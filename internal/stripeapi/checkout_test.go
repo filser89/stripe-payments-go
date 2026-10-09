@@ -34,6 +34,8 @@ func TestSTR001SDKRequest(t *testing.T) { // STR-001 STR-003
 	require.Len(t, wires, 1)
 	testutil.CheckWire(t, wires[0], snap)
 	form := wires[0].Form
+	require.Equal(t, []string{"card"}, form["allowed_payment_method_types[0]"])
+	require.NotContains(t, form, "payment_method_types[0]")
 	require.Equal(t, snap.OrderID, form.Get("payment_intent_data[metadata][order_id]"))
 	require.Equal(t, snap.OperationID, form.Get("payment_intent_data[metadata][operation_id]"))
 	for _, field := range []string{"automatic_tax[enabled]", "allow_promotion_codes", "adaptive_pricing[enabled]", "after_expiration[recovery][enabled]"} {
@@ -214,4 +216,18 @@ func assertSDKWireEvidence(t *testing.T, want, got payment.SessionEvidence, star
 	require.False(t, got.ObservedAt.After(time.Now()))
 	want.ObservedAt = got.ObservedAt
 	require.Equal(t, want, got)
+}
+
+func TestLegacyCheckoutSnapshotPreservesStaticPaymentMethods(t *testing.T) {
+	server := testutil.NewStripeServer(t)
+	snap := testutil.Intent().Operation.Snapshot
+	snap.AllowedPaymentMethodTypes = nil
+	gateway := New("sk_test_fixture", Options{BackendURL: server.Server.URL, HTTPClient: server.Server.Client()})
+	_, err := gateway.Create(context.Background(), snap)
+	require.Error(t, err, "the pinned API rejects the legacy static parameter")
+	wires := server.Wires()
+	require.Len(t, wires, 1)
+	require.Equal(t, []string{"card"}, wires[0].Form["payment_method_types[0]"])
+	require.NotContains(t, wires[0].Form, "allowed_payment_method_types[0]")
+	require.Equal(t, snap.StripeKey, wires[0].Header.Get("Idempotency-Key"))
 }

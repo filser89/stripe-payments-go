@@ -246,3 +246,34 @@ func TestConnectedSDKCorrelationMismatchBlocksReplacement(t *testing.T) {
 		})
 	}
 }
+
+func TestLegacyRejectedCheckoutContinuesWithCardFilter(t *testing.T) {
+	j := journey(t)
+	intent := testutil.Intent()
+	intent.Operation.Snapshot.AllowedPaymentMethodTypes = nil
+	_, err := j.Repo.AcceptInitial(context.Background(), intent)
+	require.NoError(t, err)
+	_, status := create(t, j, intent.Binding.Key)
+	require.Equal(t, 502, status)
+	before, err := j.Repo.LoadOrder(context.Background(), intent.Order.ID)
+	require.NoError(t, err)
+	require.Equal(t, "rejected", before.Operation.State)
+	response := testutil.Response(t, j.Handler, testutil.Request("POST", "/api/orders/"+intent.Order.ID+"/checkout", `{"request_key":"`+uuid.NewString()+`"}`, true))
+	require.Equal(t, 201, response.Code)
+	orderID, operationID := envelopeIDs(t, testutil.JSON(t, response))
+	require.Equal(t, intent.Order.ID, orderID)
+	require.NotEqual(t, intent.Operation.ID, operationID)
+	after, err := j.Repo.LoadOrder(context.Background(), orderID)
+	require.NoError(t, err)
+	require.Equal(t, []string{"card"}, after.Operation.Snapshot.AllowedPaymentMethodTypes)
+	require.Equal(t, "open", after.Operation.State)
+	original, err := j.Repo.LoadBinding(context.Background(), intent.Binding.Key)
+	require.NoError(t, err)
+	require.Equal(t, before.Operation, original.View.Operation)
+	wires := j.Stripe.Wires()
+	require.Len(t, wires, 2)
+	require.Equal(t, "card", wires[0].Form.Get("payment_method_types[0]"))
+	testutil.CheckWire(t, wires[1], after.Operation.Snapshot)
+	require.NotEqual(t, wires[0].Header.Get("Idempotency-Key"), wires[1].Header.Get("Idempotency-Key"))
+	require.Equal(t, 1, j.Stripe.LogicalObjects())
+}

@@ -35,6 +35,9 @@ type Snapshot struct {
 	FirstDispatchAt *time.Time
 	LastDispatchAt  *time.Time
 	ExpiresAt       int64
+	// AllowedPaymentMethodTypes records the dynamic-method filter. Its absence
+	// preserves the legacy static parameter for an already accepted operation.
+	AllowedPaymentMethodTypes []string `json:",omitempty"`
 }
 type Operation struct {
 	ID                    string
