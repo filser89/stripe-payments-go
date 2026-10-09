@@ -151,8 +151,6 @@ This refreshes or continues the existing order's operation. A replacement operat
 | `502` | Confirmed Stripe Checkout rejection; known order/operation IDs remain available. |
 | `503` | Work cannot currently be accepted or read, for example during database unavailability. |
 
-Checkout creation currently has a sandbox integration limitation: the request contains `payment_method_types`, which the pinned Stripe API rejects. The order remains inspectable and the API returns `502 checkout_rejected`. The `201`/`200` creation examples require an accepted Checkout result.
-
 Overlapping duplicate requests are covered by a controlled test that holds the first Stripe call while a second request uses the same key:
 
 ```sh
