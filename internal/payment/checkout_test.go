@@ -777,3 +777,119 @@ func TestLIFE009CheckoutRules(t *testing.T) { // LIFE-009
 		})
 	}
 }
+
+// ID-004 LIFE-006 LIFE-008 DATA-003 DATA-004
+func TestBoundReplayReplacementDuringRetrieval(t *testing.T) {
+	cases := []struct {
+		name         string
+		continuation bool
+	}{
+		{"original_creation_key", false}, // ID-004
+		{"bound_continuation_key", true}, // ID-004
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			c := newPolicyClock()
+			old := policyFixture(c, "open")
+			old.Operation.PaymentIntentID = policyPtr("pi_bound_old")
+			r := newPolicyRepository(old)
+			in := policyInput()
+			boundKey := "08e3d7ca-445d-4c92-bd4a-5e313b1c0067"
+			initialBinding := RequestBinding{Key: in.RequestKey, Method: "POST", Target: "/api/orders", OrderID: old.Order.ID, OperationID: old.Operation.ID, Description: in.Description, Amount: in.Amount, Currency: "usd"}
+			continuationBinding := RequestBinding{Key: boundKey, Method: "POST", Target: "/api/orders/" + old.Order.ID + "/checkout", OrderID: old.Order.ID, OperationID: old.Operation.ID, Description: in.Description, Amount: in.Amount, Currency: "usd"}
+			r.state.Bindings[in.RequestKey] = initialBinding
+			r.state.Bindings[boundKey] = continuationBinding
+			priorHistory := HistoryEntry{Sequence: 1, OrderID: old.Order.ID, OperationID: old.Operation.ID, Kind: "operation_state_changed", State: "open", ObservedAt: c.Now(), SessionID: clonePolicyPtr(old.Operation.SessionID)}
+			r.state.History[old.Order.ID] = []HistoryEntry{priorHistory}
+			expired := policyEvidence(old.Operation.Snapshot)
+			expired.Status = "expired"
+			expired.URL = ""
+			expired.PaymentIntentID = clonePolicyPtr(old.Operation.PaymentIntentID)
+			var s *Service
+			var replacement Outcome
+			var afterReplacement policyRepoState
+			g := newPolicyGateway(
+				policyReply{run: func(ctx context.Context, _ Snapshot, id string) (SessionEvidence, error) {
+					require.Equal(t, *old.Operation.SessionID, id)
+					// Hold this replay's response until a legitimate fresh-key request
+					// retrieves expiration and commits its new Checkout operation.
+					var err error
+					replacement, err = s.Continue(ctx, old.Order.ID, policyKey())
+					require.NoError(t, err)
+					require.NotEqual(t, old.Operation.ID, replacement.Operation.ID)
+					require.Equal(t, "open", replacement.Operation.State)
+					require.True(t, replacement.CanResume)
+					afterReplacement = r.State()
+					require.Equal(t, "expired", afterReplacement.Operations[old.Operation.ID].State)
+					require.Equal(t, replacement.Operation.ID, afterReplacement.Orders[old.Order.ID].CurrentOperationID)
+					return expired, nil
+				}},
+				policyReply{evidence: expired},
+				policyReply{run: func(_ context.Context, snapshot Snapshot, _ string) (SessionEvidence, error) {
+					require.NotEqual(t, old.Operation.ID, snapshot.OperationID)
+					require.NotEqual(t, old.Operation.StripeKey, snapshot.StripeKey)
+					e := policyEvidence(snapshot)
+					e.SessionID = "cs_test_replacement"
+					e.PaymentIntentID = policyPtr("pi_replacement")
+					e.URL = "https://checkout.stripe.com/c/pay/cs_test_replacement"
+					return e, nil
+				}},
+			)
+			s = policyService(t, r, g, policyOptions(c))
+			var out Outcome
+			var err error
+			if tc.continuation {
+				out, err = s.Continue(policyCtx(), old.Order.ID, boundKey)
+			} else {
+				out, err = s.Create(policyCtx(), in)
+			}
+			require.NoError(t, err)
+			// The historical bound result must reflect saved expiration, rather
+			// than a stale open view or a replacement with a relabeled ID.
+			savedOld := afterReplacement.Operations[old.Operation.ID]
+			savedOld.CheckoutURL = nil
+			require.Equal(t, savedOld, out.Operation)
+			require.Equal(t, old.Order.ID, out.Order.ID)
+			require.Equal(t, "unpaid", out.Order.Status)
+			require.True(t, out.Established)
+			require.False(t, out.Pending)
+			require.False(t, out.NewlyAccepted)
+			require.False(t, out.ConfirmedRejected)
+			require.False(t, out.NeedsInvestigation)
+			require.False(t, out.CanResume)
+			require.False(t, out.CanRetrySameOperation)
+			require.False(t, out.CanStartNewAttempt)
+			require.Equal(t, afterReplacement, r.State(), "held stale evidence must cause no further durable mutation")
+			require.Len(t, afterReplacement.Orders, 1)
+			require.Len(t, afterReplacement.Operations, 2)
+			require.Len(t, afterReplacement.Bindings, 3)
+			require.Equal(t, initialBinding, afterReplacement.Bindings[in.RequestKey])
+			require.Equal(t, continuationBinding, afterReplacement.Bindings[boundKey])
+			require.Equal(t, replacement.Operation.ID, afterReplacement.Bindings[policyKey()].OperationID)
+			require.Equal(t, old.Operation.Snapshot, savedOld.Snapshot)
+			require.Equal(t, old.Order.Description, afterReplacement.Orders[old.Order.ID].Description)
+			require.Equal(t, old.Order.Amount, afterReplacement.Orders[old.Order.ID].Amount)
+			require.Equal(t, old.Order.Currency, afterReplacement.Orders[old.Order.ID].Currency)
+			require.Equal(t, priorHistory, afterReplacement.History[old.Order.ID][0])
+			require.Len(t, afterReplacement.History[old.Order.ID], 5, "only expiration, preparation, dispatch and new open transitions append history")
+			current, err := s.Get(policyCtx(), old.Order.ID)
+			require.NoError(t, err)
+			require.Equal(t, replacement.Operation, current.Operation)
+			require.True(t, current.CanResume)
+			require.False(t, current.CanRetrySameOperation)
+			require.False(t, current.CanStartNewAttempt)
+			require.Equal(t, afterReplacement, r.State())
+			calls := g.Calls()
+			require.Len(t, calls, 3, "one held retrieval, one expiration retrieval, one replacement creation")
+			require.Equal(t, "GET", calls[0].Method)
+			require.Equal(t, "GET", calls[1].Method)
+			require.Equal(t, *old.Operation.SessionID, calls[0].SessionID)
+			require.Equal(t, *old.Operation.SessionID, calls[1].SessionID)
+			require.Equal(t, "POST", calls[2].Method)
+			require.Equal(t, replacement.Operation.ID, calls[2].Snapshot.OperationID)
+			for _, call := range calls {
+				require.True(t, call.HasDeadline)
+			}
+		})
+	}
+}
