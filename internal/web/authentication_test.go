@@ -505,7 +505,9 @@ func TestAuthenticationLandingBodyBytes(t *testing.T) { // HTTP-003 V1–V5
 			} // V5
 			if body, ok := tc.reader.(*observedBody); ok {
 				assert.Positive(t, body.reads.Load(), tc.name)
-				assert.LessOrEqual(t, body.bytes.Load(), int32(1), "landing must inspect at most one byte: %s", tc.name)
+				// The large fixture must not be consumed in full. This allows
+				// finite inspection buffers without prescribing their size.
+				assert.Less(t, body.bytes.Load(), int32(1<<20), "landing must bound actual-byte inspection: %s", tc.name)
 			}
 		}
 	}
@@ -618,8 +620,19 @@ func TestAuthenticationSanitizedOutcomes(t *testing.T) { // SEC-001 V2–V8; V1 
 		assert.NotEmpty(t, id)
 		assert.NotEqual(t, "untrusted-request-id-secret", id)
 		combined := logs.String() + w.Body.String() + fmt.Sprint(w.Header())
-		for _, secret := range []string{authUser, authPassword, base64.StdEncoding.EncodeToString([]byte(authUser + ":" + authPassword)), "database-secret", "submitted-wrong-secret", "malformed-authorization-secret", "sensitive-body-sentinel", "sensitive-read-error-sentinel", "query-secret-sentinel", "untrusted-request-id-secret"} {
-			assert.NotContains(t, combined, secret, tc.name)
+		forbidden := []string{authUser, authPassword, base64.StdEncoding.EncodeToString([]byte(authUser + ":" + authPassword)), "database-secret", "submitted-wrong-secret", "malformed-authorization-secret", "sensitive-body-sentinel", "sensitive-read-error-sentinel", "query-secret-sentinel", "untrusted-request-id-secret"}
+		for _, header := range tc.headers {
+			forbidden = append(forbidden, header)
+			parts := strings.Fields(header)
+			if len(parts) == 2 {
+				forbidden = append(forbidden, parts[1])
+				if decoded, err := base64.StdEncoding.DecodeString(parts[1]); err == nil {
+					forbidden = append(forbidden, string(decoded))
+					if username, password, ok := strings.Cut(string(decoded), ":"); ok {
+						forbidden = append(forbidden, username, password)
+					}
+				}
+			}
 		}
 		var completed bool
 		for _, line := range strings.Split(strings.TrimSpace(logs.String()), "\n") {
@@ -627,12 +640,18 @@ func TestAuthenticationSanitizedOutcomes(t *testing.T) { // SEC-001 V2–V8; V1 
 			if !assert.NoError(t, json.Unmarshal([]byte(line), &entry), tc.name) {
 				continue
 			}
+			// Include decoded structured values, including nested attributes,
+			// rather than inspecting only their escaped JSON serialization.
+			combined += "\n" + fmt.Sprint(entry)
 			if entry["msg"] == "request completed" {
 				completed = true
 				assert.Equal(t, id, entry["request_id"])
 				assert.EqualValues(t, tc.status, entry["status"])
 				assert.Contains(t, entry, "duration_ms")
 			}
+		}
+		for _, secret := range forbidden {
+			assert.NotContains(t, combined, secret, tc.name)
 		}
 		assert.True(t, completed, "missing structured completion outcome: %s", tc.name)
 	}

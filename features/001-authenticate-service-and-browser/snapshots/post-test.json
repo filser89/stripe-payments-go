@@ -65,9 +65,9 @@
   "overlay_packages": [],
   "scaffolds": [],
   "metadata": {
-    "captured_at": "2026-10-09T09:22:06Z",
+    "captured_at": "2026-10-09T09:41:18Z",
     "branch": "001-authenticate-service-and-browser",
-    "commit": "b8a0fea",
+    "commit": "2b81fb9",
     "feature": "001-authenticate-service-and-browser",
     "name": "post-test"
   },
@@ -76,8 +76,8 @@
       "id": "github.com/filser89/stripe-payments-go/cmd/service::TestAuthenticationCommandIndependence",
       "full_description": "TestAuthenticationCommandIndependence",
       "file_path": "cmd/service/authentication_test.go",
-      "line_number": 254,
-      "digest": "255bca316f071c6d5764f3be23671024cdbc67965c1c1df9d63d9863ecc1a9d0",
+      "line_number": 271,
+      "digest": "4efde9297eca5347837a4dd112036de906a6065cc25a93c1832e9de6bb63ec9d",
       "package": "github.com/filser89/stripe-payments-go/cmd/service",
       "test_name": "TestAuthenticationCommandIndependence",
       "parent_id": "",
@@ -85,8 +85,8 @@
       "is_group": false,
       "source": {
         "kind": "function",
-        "start_offset": 10316,
-        "end_offset": 12946
+        "start_offset": 11145,
+        "end_offset": 15692
       },
       "status": "passed"
     },
@@ -94,8 +94,8 @@
       "id": "github.com/filser89/stripe-payments-go/cmd/service::TestAuthenticationCredentialLifetime",
       "full_description": "TestAuthenticationCredentialLifetime",
       "file_path": "cmd/service/authentication_test.go",
-      "line_number": 322,
-      "digest": "a2af2f58467cdca4f144ce9aa859e38f7d081963fd67894524f3eb59099044ee",
+      "line_number": 380,
+      "digest": "83292fcf85eb212082b37e73506c74570e79f2fd470cd60eb5db7fddad03755e",
       "package": "github.com/filser89/stripe-payments-go/cmd/service",
       "test_name": "TestAuthenticationCredentialLifetime",
       "parent_id": "",
@@ -103,8 +103,8 @@
       "is_group": false,
       "source": {
         "kind": "function",
-        "start_offset": 12948,
-        "end_offset": 14050
+        "start_offset": 15694,
+        "end_offset": 16796
       },
       "status": "failed"
     },
@@ -112,8 +112,8 @@
       "id": "github.com/filser89/stripe-payments-go/cmd/service::TestAuthenticationServingConfiguration",
       "full_description": "TestAuthenticationServingConfiguration",
       "file_path": "cmd/service/authentication_test.go",
-      "line_number": 141,
-      "digest": "429bc99b0c001eae2d33bebc2032a3edda9ab41d46ded235f4aa96b194d1b1af",
+      "line_number": 142,
+      "digest": "751e039f55c691939b382c24a925fe19a7b8f8a8250a786e2819e63a69613bab",
       "package": "github.com/filser89/stripe-payments-go/cmd/service",
       "test_name": "TestAuthenticationServingConfiguration",
       "parent_id": "",
@@ -121,8 +121,8 @@
       "is_group": false,
       "source": {
         "kind": "function",
-        "start_offset": 4584,
-        "end_offset": 10314
+        "start_offset": 4601,
+        "end_offset": 11143
       },
       "status": "failed"
     },
@@ -707,7 +707,7 @@
       "id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationBodyReadFailure",
       "full_description": "TestAuthenticationBodyReadFailure",
       "file_path": "internal/web/authentication_test.go",
-      "line_number": 514,
+      "line_number": 516,
       "digest": "f6ceff7f9938e47d7f170096f47924371501b396722c07168fbcf86e853ec246",
       "package": "github.com/filser89/stripe-payments-go/internal/web",
       "test_name": "TestAuthenticationBodyReadFailure",
@@ -716,8 +716,8 @@
       "is_group": false,
       "source": {
         "kind": "function",
-        "start_offset": 21021,
-        "end_offset": 21738
+        "start_offset": 21154,
+        "end_offset": 21871
       },
       "status": "failed"
     },
@@ -834,7 +834,7 @@
       "full_description": "TestAuthenticationLandingBodyBytes",
       "file_path": "internal/web/authentication_test.go",
       "line_number": 476,
-      "digest": "e9de5937403f822be8e1c79cc65164e864bbb35c8785e56a372672a92dd81483",
+      "digest": "4d30821368861c8c2fa2af9716af9d91e8d03e7d70694cb2fa1a16b2a611deec",
       "package": "github.com/filser89/stripe-payments-go/internal/web",
       "test_name": "TestAuthenticationLandingBodyBytes",
       "parent_id": "",
@@ -843,7 +843,7 @@
       "source": {
         "kind": "function",
         "start_offset": 19244,
-        "end_offset": 21019
+        "end_offset": 21152
       },
       "status": "failed"
     },
@@ -869,7 +869,7 @@
       "id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationPublicProbeBoundary",
       "full_description": "TestAuthenticationPublicProbeBoundary",
       "file_path": "internal/web/authentication_test.go",
-      "line_number": 529,
+      "line_number": 531,
       "digest": "cecf772e666bbdeff0bd65e91aa1294e44d859a24098839bf8a668c510144f79",
       "package": "github.com/filser89/stripe-payments-go/internal/web",
       "test_name": "TestAuthenticationPublicProbeBoundary",
@@ -878,8 +878,8 @@
       "is_group": false,
       "source": {
         "kind": "function",
-        "start_offset": 21740,
-        "end_offset": 23902
+        "start_offset": 21873,
+        "end_offset": 24035
       },
       "status": "failed"
     },
@@ -923,8 +923,8 @@
       "id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationSanitizedOutcomes",
       "full_description": "TestAuthenticationSanitizedOutcomes",
       "file_path": "internal/web/authentication_test.go",
-      "line_number": 583,
-      "digest": "56d79f63f80c88e9aba32dbaa5fd02994151ac08e95d8d13f63c853a401d5cda",
+      "line_number": 585,
+      "digest": "d36edd2f51f30cfcdde464db84821c8cd7ed623a9a983cd9761e699d2d4ac0be",
       "package": "github.com/filser89/stripe-payments-go/internal/web",
       "test_name": "TestAuthenticationSanitizedOutcomes",
       "parent_id": "",
@@ -932,8 +932,8 @@
       "is_group": false,
       "source": {
         "kind": "function",
-        "start_offset": 23904,
-        "end_offset": 27854
+        "start_offset": 24037,
+        "end_offset": 28655
       },
       "status": "failed"
     },
@@ -1127,7 +1127,7 @@
   "protected_files": [
     {
       "path": "cmd/service/authentication_test.go",
-      "sha256": "c5e20f4a63d71f6c3628b61656097d79dd3a6b8d20702e9c65e6827f49ce9300",
+      "sha256": "e01f7294b8c72999a5917a21d0405362c03157579d288e9eb44c90a62f2589ea",
       "symlink": ""
     },
     {
@@ -1157,7 +1157,7 @@
     },
     {
       "path": "internal/web/authentication_test.go",
-      "sha256": "85b5b5dafccc2366a84c4f57766484f2c77f36e30dc05609afa044bb91b37367",
+      "sha256": "d00f762471fae90fe79d7dd57d9e401c3ad3b26288810befd16b61b041ded131",
       "symlink": ""
     },
     {

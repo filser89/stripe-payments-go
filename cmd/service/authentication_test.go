@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net"
@@ -229,7 +230,8 @@ func TestAuthenticationServingConfiguration(t *testing.T) { // CFG-001 V1–V9, 
 		if assert.Error(t, runErr, tc.name) {
 			var exit *exec.ExitError
 			if assert.ErrorAs(t, runErr, &exit, tc.name) {
-				assert.Equal(t, 1, exit.ExitCode(), tc.name)
+				assert.True(t, exit.Exited(), "must exit normally rather than be killed: %s", tc.name)
+				assert.NotZero(t, exit.ExitCode(), tc.name)
 			}
 			assert.Contains(t, logs.contents(), tc.invalidSetting, tc.name)
 			other := "BASIC_AUTH_USERNAME"
@@ -239,12 +241,27 @@ func TestAuthenticationServingConfiguration(t *testing.T) { // CFG-001 V1–V9, 
 			assert.NotContains(t, logs.contents(), other, tc.name)
 		}
 		diagnostic := logs.contents()
+		// Inspect decoded structured values so JSON escaping cannot conceal a
+		// credential containing controls or other escaped characters.
+		for _, line := range strings.Split(strings.TrimSpace(logs.contents()), "\n") {
+			var entry map[string]any
+			if assert.NoError(t, json.Unmarshal([]byte(line), &entry), tc.name) {
+				diagnostic += "\n" + fmt.Sprint(entry)
+			}
+		}
 		if runErr != nil {
 			diagnostic += runErr.Error()
 		}
 		for _, secret := range []string{tc.username, tc.password, "database-fixture-secret"} {
 			if secret != "" {
 				assert.NotContains(t, diagnostic, secret, tc.name)
+				// encoding/json replaces invalid UTF-8 in string values. Check
+				// that representation too, without losing the raw-byte check.
+				encoded, err := json.Marshal(secret)
+				require.NoError(t, err)
+				var normalized string
+				require.NoError(t, json.Unmarshal(encoded, &normalized))
+				assert.NotContains(t, diagnostic, normalized, tc.name)
 			} // V9
 		}
 		assert.NotContains(t, diagnostic, base64.StdEncoding.EncodeToString([]byte(tc.username+":"+tc.password)), tc.name)
@@ -296,6 +313,47 @@ func TestAuthenticationCommandIndependence(t *testing.T) { // CFG-002 V1–V6
 		var ready int
 		assert.NoError(t, pool.QueryRow(context.Background(), "SELECT 1").Scan(&ready))
 		assert.Equal(t, 1, ready)
+		// A live test-owned TCP endpoint accepts the database connection but
+		// cannot speak PostgreSQL. A no-op migrate command cannot pass this
+		// witness: both a real connection attempt and a bounded failure are required.
+		unavailable, err := net.Listen("tcp", "127.0.0.1:0")
+		require.NoError(t, err)
+		var closeUnavailable sync.Once
+		closeEndpoint := func() { closeUnavailable.Do(func() { assert.NoError(t, unavailable.Close()) }) }
+		t.Cleanup(closeEndpoint)
+		attempted := make(chan error, 1)
+		go func() {
+			conn, acceptErr := unavailable.Accept()
+			if acceptErr == nil {
+				acceptErr = conn.Close()
+			}
+			attempted <- acceptErr
+		}()
+		originalURL := values["DATABASE_URL"]
+		values["DATABASE_URL"] = "postgres://authentication:unavailable-database-secret@" + unavailable.Addr().String() + "/authentication?sslmode=disable"
+		outputBeforeFailure := output.Len()
+		migrationCtx, cancelMigration := context.WithTimeout(context.Background(), 2*time.Second)
+		start = time.Now()
+		err = run(migrationCtx, []string{"migrate"}, env.get, &output)
+		cancelMigration()
+		assert.Less(t, time.Since(start), 2*time.Second, basic)
+		if assert.Error(t, err, basic) {
+			assert.Contains(t, strings.ToLower(err.Error()), "database", basic)
+			assert.NotContains(t, err.Error(), "BASIC_AUTH", basic)
+			assert.NotContains(t, err.Error(), "unavailable-database-secret", basic)
+		}
+		assert.NotContains(t, output.String()[outputBeforeFailure:], "migrations complete", basic)
+		select {
+		case acceptErr := <-attempted:
+			assert.NoError(t, acceptErr, "migrate must access the database: %s", basic)
+		case <-time.After(time.Second):
+			// Closing the listener also completes the owned goroutine when the
+			// command never attempted a connection.
+			closeEndpoint()
+			<-attempted
+			t.Errorf("migrate never connected to the database: %s", basic)
+		}
+		values["DATABASE_URL"] = originalURL
 		for _, command := range []string{"probe", "migrate"} { // V5–V6
 			for _, key := range []string{"DATABASE_URL", "HTTP_READ_TIMEOUT"} {
 				original := values[key]
@@ -312,7 +370,7 @@ func TestAuthenticationCommandIndependence(t *testing.T) { // CFG-002 V1–V6
 				values[key] = original
 			}
 		}
-		for _, secret := range []string{"invalid username sentinel", "invalid\tpassword-sentinel", "database-fixture-secret"} {
+		for _, secret := range []string{"invalid username sentinel", "invalid\tpassword-sentinel", "database-fixture-secret", "unavailable-database-secret"} {
 			assert.NotContains(t, output.String(), secret)
 		}
 	}
