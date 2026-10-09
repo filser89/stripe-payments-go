@@ -16,7 +16,7 @@ func TestLoadValidConfiguration(t *testing.T) {
 	require.Equal(t, 5*time.Second, c.StartupTimeout)
 	require.Equal(t, time.Second, c.ReadinessTimeout)
 	require.Equal(t, 5*time.Second, c.HeaderTimeout)
-	require.Equal(t, 10*time.Second, c.ReadTimeout)
+	require.Equal(t, 11*time.Second, c.ReadTimeout) // CFG-003
 	require.Equal(t, 15*time.Second, c.WriteTimeout)
 	require.Equal(t, 60*time.Second, c.IdleTimeout)
 	require.Equal(t, 10*time.Second, c.ShutdownGrace)

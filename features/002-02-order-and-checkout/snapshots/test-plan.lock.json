@@ -1,0 +1,42 @@
+{
+  "version": 3,
+  "feature": "002-02-order-and-checkout",
+  "source": "test-plan.md",
+  "entries": [
+    {
+      "action": "MODIFY",
+      "expected_landing": "failed",
+      "id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadValidConfiguration",
+      "file": "internal/config/config_test.go",
+      "description": "TestLoadValidConfiguration"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/cmd/service::TestAuthenticationCommandIndependence",
+      "file": "cmd/service/authentication_test.go",
+      "description": "TestAuthenticationCommandIndependence"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/cmd/service::TestAuthenticationServingConfiguration",
+      "file": "cmd/service/authentication_test.go",
+      "description": "TestAuthenticationServingConfiguration"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/cmd/service::TestAuthenticationCredentialLifetime",
+      "file": "cmd/service/authentication_test.go",
+      "description": "TestAuthenticationCredentialLifetime"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/integration::TestDatabaseMigrationsReadinessAndRestart/empty_production_migrations",
+      "file": "internal/integration/foundation_test.go",
+      "description": "TestDatabaseMigrationsReadinessAndRestart/empty_production_migrations"
+    }
+  ]
+}
