@@ -14,7 +14,7 @@
 - Delivery Obligations: 4 separate completion tasks
 - Contract deltas: 2
 - Invalidation sweep: 38 examples hit — 38 keep / 0 modify / 0 remove
-- Planned state entries: 11 TOUCH, 2 PIN
+- Planned state entries: 11 TOUCH, 4 PIN
 
 Architecture inventory: `.kaba/architecture.md` is absent. Project rules and established package-local Go tests govern placement. Existing public `config.Load`, `web.New`, `Server.Handler`, `Server.Serve`, and command `run` allow boundary evidence without choosing middleware names or credential field layout. No missing declaration or compilation scaffold is prescribed. Tests must compile against real public boundaries and fail on unmet behavior. No production interfaces, helpers, or architecture are invented.
 
@@ -170,6 +170,8 @@ The 11 TOUCH entries permit credential fixture additions and authenticated /work
 | TOUCH | `github.com/filser89/stripe-payments-go/internal/web::TestShutdownCancelsOverdueWorkAndWaitsForCleanup` | `TestShutdownCancelsOverdueWorkAndWaitsForCleanup` | unchanged | Shared settings(t) receives valid serving credentials, affecting this dependent digest; authenticate protected /work where present and preserve foundation outcomes. |
 | PIN | `—` | `TestAuthenticationCommandIndependence` | passed | Pin already-conforming command independence or foundation transport against real code; no scaffolds. |
 | PIN | `—` | `TestAuthenticationFoundationTransport` | passed | Pin already-conforming command independence or foundation transport against real code; no scaffolds. |
+| PIN | `—` | `TestAuthenticationShutdownAdmission` | passed | Shutdown admission returns 503 before protected work with and without credentials; verify against real code. |
+| PIN | `—` | `TestAuthenticationDelegation` | passed | Handler delegation preserves request and response for valid credentials against real code. |
 
 ## Factories / Fixtures
 

@@ -86,10 +86,16 @@ func TestDatabaseMigrationsReadinessAndRestart(t *testing.T) {
 		require.NoError(t, pool.QueryRow(ctx, "SELECT to_regclass('should_rollback') IS NULL").Scan(&absent))
 		require.True(t, absent)
 	})
-	t.Run("outage_recovery_and_retained_data", func(t *testing.T) {
+	t.Run("outage_recovery_and_retained_data", func(t *testing.T) { // FND-003 V1–V2
 		c, err := config.Load(func(k string) string {
 			if k == "DATABASE_URL" {
 				return url
+			}
+			if k == "BASIC_AUTH_USERNAME" {
+				return "integration-fixture-user"
+			}
+			if k == "BASIC_AUTH_PASSWORD" {
+				return "integration-fixture-password"
 			}
 			return ""
 		})
@@ -147,11 +153,17 @@ func TestOpenRejectsUnavailableDatabaseWithinDeadline(t *testing.T) {
 	default:
 	}
 }
-func TestShutdownCancelsActivePostgresQuery(t *testing.T) {
+func TestShutdownCancelsActivePostgresQuery(t *testing.T) { // FND-003 V3
 	_, url, pool := database(t)
 	c, err := config.Load(func(k string) string {
 		if k == "DATABASE_URL" {
 			return url
+		}
+		if k == "BASIC_AUTH_USERNAME" {
+			return "integration-fixture-user"
+		}
+		if k == "BASIC_AUTH_PASSWORD" {
+			return "integration-fixture-password"
 		}
 		return ""
 	})
@@ -173,7 +185,12 @@ func TestShutdownCancelsActivePostgresQuery(t *testing.T) {
 	clientDone := make(chan struct{})
 	go func() {
 		defer close(clientDone)
-		resp, e := http.Get("http://" + ln.Addr().String() + "/work")
+		req, e := http.NewRequest(http.MethodGet, "http://"+ln.Addr().String()+"/work", nil)
+		if e != nil {
+			return
+		}
+		req.SetBasicAuth("integration-fixture-user", "integration-fixture-password")
+		resp, e := http.DefaultClient.Do(req)
 		if e == nil {
 			_ = resp.Body.Close()
 		}

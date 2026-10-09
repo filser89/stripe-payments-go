@@ -1,0 +1,1200 @@
+{
+  "version": 2,
+  "runner": "go",
+  "runner_schema": 1,
+  "context": {
+    "AR": "ar",
+    "CC": "clang",
+    "CGO_CFLAGS": "-O2 -g",
+    "CGO_CPPFLAGS": "",
+    "CGO_CXXFLAGS": "-O2 -g",
+    "CGO_ENABLED": "1",
+    "CGO_FFLAGS": "-O2 -g",
+    "CGO_LDFLAGS": "-O2 -g",
+    "CXX": "clang++",
+    "GOARCH": "arm64",
+    "GOARM64": "v8.0",
+    "GODEBUG": "",
+    "GOEXPERIMENT": "",
+    "GOFIPS140": "off",
+    "GOOS": "darwin",
+    "GOVERSION": "go1.27.2",
+    "GOWORK": "",
+    "PKG_CONFIG": "pkg-config",
+    "command": "go test ./...",
+    "packages": "./...",
+    "tags": "",
+    "count": 1
+  },
+  "groups": [
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets",
+      "full_description": "TestLoadRejectsInvalidConfigurationWithoutSecrets",
+      "file_path": "internal/config/config_test.go",
+      "line_number": 32,
+      "digest": "184e3c5f0b490d1f952b27f688e9f9ffe6852d958542a189f7fe7f74974cec50",
+      "package": "github.com/filser89/stripe-payments-go/internal/config",
+      "test_name": "TestLoadRejectsInvalidConfigurationWithoutSecrets",
+      "parent_id": "",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets",
+      "is_group": true,
+      "source": {
+        "kind": "function",
+        "start_offset": 1146,
+        "end_offset": 2578
+      }
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/integration::TestDatabaseMigrationsReadinessAndRestart",
+      "full_description": "TestDatabaseMigrationsReadinessAndRestart",
+      "file_path": "internal/integration/foundation_test.go",
+      "line_number": 58,
+      "digest": "91c832ddf5298b681ed3b4d01c8b52778eedd9f53dadb16551ef725f7228593b",
+      "package": "github.com/filser89/stripe-payments-go/internal/integration",
+      "test_name": "TestDatabaseMigrationsReadinessAndRestart",
+      "parent_id": "",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/integration::TestDatabaseMigrationsReadinessAndRestart",
+      "is_group": true,
+      "source": {
+        "kind": "function",
+        "start_offset": 2172,
+        "end_offset": 5196
+      }
+    }
+  ],
+  "overlay_packages": [],
+  "scaffolds": [],
+  "metadata": {
+    "captured_at": "2026-10-09T09:22:06Z",
+    "branch": "001-authenticate-service-and-browser",
+    "commit": "b8a0fea",
+    "feature": "001-authenticate-service-and-browser",
+    "name": "post-test"
+  },
+  "examples": [
+    {
+      "id": "github.com/filser89/stripe-payments-go/cmd/service::TestAuthenticationCommandIndependence",
+      "full_description": "TestAuthenticationCommandIndependence",
+      "file_path": "cmd/service/authentication_test.go",
+      "line_number": 254,
+      "digest": "255bca316f071c6d5764f3be23671024cdbc67965c1c1df9d63d9863ecc1a9d0",
+      "package": "github.com/filser89/stripe-payments-go/cmd/service",
+      "test_name": "TestAuthenticationCommandIndependence",
+      "parent_id": "",
+      "group_id": "github.com/filser89/stripe-payments-go/cmd/service::TestAuthenticationCommandIndependence",
+      "is_group": false,
+      "source": {
+        "kind": "function",
+        "start_offset": 10316,
+        "end_offset": 12946
+      },
+      "status": "passed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/cmd/service::TestAuthenticationCredentialLifetime",
+      "full_description": "TestAuthenticationCredentialLifetime",
+      "file_path": "cmd/service/authentication_test.go",
+      "line_number": 322,
+      "digest": "a2af2f58467cdca4f144ce9aa859e38f7d081963fd67894524f3eb59099044ee",
+      "package": "github.com/filser89/stripe-payments-go/cmd/service",
+      "test_name": "TestAuthenticationCredentialLifetime",
+      "parent_id": "",
+      "group_id": "github.com/filser89/stripe-payments-go/cmd/service::TestAuthenticationCredentialLifetime",
+      "is_group": false,
+      "source": {
+        "kind": "function",
+        "start_offset": 12948,
+        "end_offset": 14050
+      },
+      "status": "failed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/cmd/service::TestAuthenticationServingConfiguration",
+      "full_description": "TestAuthenticationServingConfiguration",
+      "file_path": "cmd/service/authentication_test.go",
+      "line_number": 141,
+      "digest": "429bc99b0c001eae2d33bebc2032a3edda9ab41d46ded235f4aa96b194d1b1af",
+      "package": "github.com/filser89/stripe-payments-go/cmd/service",
+      "test_name": "TestAuthenticationServingConfiguration",
+      "parent_id": "",
+      "group_id": "github.com/filser89/stripe-payments-go/cmd/service::TestAuthenticationServingConfiguration",
+      "is_group": false,
+      "source": {
+        "kind": "function",
+        "start_offset": 4584,
+        "end_offset": 10314
+      },
+      "status": "failed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/cmd/service::TestRunRejectsInvalidDatabaseWithoutExposingCredentials",
+      "full_description": "TestRunRejectsInvalidDatabaseWithoutExposingCredentials",
+      "file_path": "cmd/service/main_test.go",
+      "line_number": 25,
+      "digest": "701c9d7efe44bc562adad46bba239e88cad92d95ee8bb18dc6d365d76f6c73b4",
+      "package": "github.com/filser89/stripe-payments-go/cmd/service",
+      "test_name": "TestRunRejectsInvalidDatabaseWithoutExposingCredentials",
+      "parent_id": "",
+      "group_id": "github.com/filser89/stripe-payments-go/cmd/service::TestRunRejectsInvalidDatabaseWithoutExposingCredentials",
+      "is_group": false,
+      "source": {
+        "kind": "function",
+        "start_offset": 512,
+        "end_offset": 850
+      },
+      "status": "passed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/cmd/service::TestRunRejectsMissingConfiguration",
+      "full_description": "TestRunRejectsMissingConfiguration",
+      "file_path": "cmd/service/main_test.go",
+      "line_number": 10,
+      "digest": "0bf4afc4188b02164686d8256e0a74ac7f7f28e0a58a201c769d0bf98bbf59d0",
+      "package": "github.com/filser89/stripe-payments-go/cmd/service",
+      "test_name": "TestRunRejectsMissingConfiguration",
+      "parent_id": "",
+      "group_id": "github.com/filser89/stripe-payments-go/cmd/service::TestRunRejectsMissingConfiguration",
+      "is_group": false,
+      "source": {
+        "kind": "function",
+        "start_offset": 96,
+        "end_offset": 511
+      },
+      "status": "passed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/cmd/service::TestRunRejectsUnknownCommandBeforeConnecting",
+      "full_description": "TestRunRejectsUnknownCommandBeforeConnecting",
+      "file_path": "cmd/service/main_test.go",
+      "line_number": 36,
+      "digest": "f4871c644055b6ff5194e363100e1c644ab16732974d02215560f2e8438244ce",
+      "package": "github.com/filser89/stripe-payments-go/cmd/service",
+      "test_name": "TestRunRejectsUnknownCommandBeforeConnecting",
+      "parent_id": "",
+      "group_id": "github.com/filser89/stripe-payments-go/cmd/service::TestRunRejectsUnknownCommandBeforeConnecting",
+      "is_group": false,
+      "source": {
+        "kind": "function",
+        "start_offset": 851,
+        "end_offset": 1248
+      },
+      "status": "passed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/bad_log_level",
+      "full_description": "TestLoadRejectsInvalidConfigurationWithoutSecrets/bad_log_level",
+      "file_path": "internal/config/config_test.go",
+      "line_number": 41,
+      "digest": "cb997cda60f6a0012a5782ce81defbd23472e424ff4cfe74cae3b82aa71c39e3",
+      "package": "github.com/filser89/stripe-payments-go/internal/config",
+      "test_name": "TestLoadRejectsInvalidConfigurationWithoutSecrets/bad_log_level",
+      "parent_id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets",
+      "is_group": false,
+      "source": {
+        "kind": "table-row",
+        "start_offset": 1683,
+        "end_offset": 1723,
+        "row_index": 7
+      },
+      "status": "passed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/bad_port",
+      "full_description": "TestLoadRejectsInvalidConfigurationWithoutSecrets/bad_port",
+      "file_path": "internal/config/config_test.go",
+      "line_number": 39,
+      "digest": "e157f2e24ca24b12e439292a31b3cf5734e3eb8b41153e9ffeb55979b9bb50e6",
+      "package": "github.com/filser89/stripe-payments-go/internal/config",
+      "test_name": "TestLoadRejectsInvalidConfigurationWithoutSecrets/bad_port",
+      "parent_id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets",
+      "is_group": false,
+      "source": {
+        "kind": "table-row",
+        "start_offset": 1588,
+        "end_offset": 1632,
+        "row_index": 5
+      },
+      "status": "passed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/invalid_database",
+      "full_description": "TestLoadRejectsInvalidConfigurationWithoutSecrets/invalid_database",
+      "file_path": "internal/config/config_test.go",
+      "line_number": 35,
+      "digest": "cf0ccca780b863bb898156af4a0c6cee1f7184f180343ca00761dca93698f969",
+      "package": "github.com/filser89/stripe-payments-go/internal/config",
+      "test_name": "TestLoadRejectsInvalidConfigurationWithoutSecrets/invalid_database",
+      "parent_id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets",
+      "is_group": false,
+      "source": {
+        "kind": "table-row",
+        "start_offset": 1320,
+        "end_offset": 1386,
+        "row_index": 1
+      },
+      "status": "passed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/invalid_timeout",
+      "full_description": "TestLoadRejectsInvalidConfigurationWithoutSecrets/invalid_timeout",
+      "file_path": "internal/config/config_test.go",
+      "line_number": 42,
+      "digest": "481cc803475ba05dcc6a9da2a050df0d9f9319fe95f945bc582837e389e80b6c",
+      "package": "github.com/filser89/stripe-payments-go/internal/config",
+      "test_name": "TestLoadRejectsInvalidConfigurationWithoutSecrets/invalid_timeout",
+      "parent_id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets",
+      "is_group": false,
+      "source": {
+        "kind": "table-row",
+        "start_offset": 1727,
+        "end_offset": 1777,
+        "row_index": 8
+      },
+      "status": "passed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/missing_database",
+      "full_description": "TestLoadRejectsInvalidConfigurationWithoutSecrets/missing_database",
+      "file_path": "internal/config/config_test.go",
+      "line_number": 34,
+      "digest": "ea204d7905c45f343db2e783390258e9bfb8a686058dd7874d1a8439c0fffd21",
+      "package": "github.com/filser89/stripe-payments-go/internal/config",
+      "test_name": "TestLoadRejectsInvalidConfigurationWithoutSecrets/missing_database",
+      "parent_id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets",
+      "is_group": false,
+      "source": {
+        "kind": "table-row",
+        "start_offset": 1276,
+        "end_offset": 1316,
+        "row_index": 0
+      },
+      "status": "passed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/missing_database_name",
+      "full_description": "TestLoadRejectsInvalidConfigurationWithoutSecrets/missing_database_name",
+      "file_path": "internal/config/config_test.go",
+      "line_number": 38,
+      "digest": "6430bf7ef396e6a7d4ee12c15d92e3b5a8a37c769dc80d2d9d5d156b1f0f8283",
+      "package": "github.com/filser89/stripe-payments-go/internal/config",
+      "test_name": "TestLoadRejectsInvalidConfigurationWithoutSecrets/missing_database_name",
+      "parent_id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets",
+      "is_group": false,
+      "source": {
+        "kind": "table-row",
+        "start_offset": 1518,
+        "end_offset": 1584,
+        "row_index": 4
+      },
+      "status": "passed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/missing_host",
+      "full_description": "TestLoadRejectsInvalidConfigurationWithoutSecrets/missing_host",
+      "file_path": "internal/config/config_test.go",
+      "line_number": 37,
+      "digest": "700cb08fbdd10bd6f4db7ee46c32c8e1abd8ec9752068c86c34ed4991bf45439",
+      "package": "github.com/filser89/stripe-payments-go/internal/config",
+      "test_name": "TestLoadRejectsInvalidConfigurationWithoutSecrets/missing_host",
+      "parent_id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets",
+      "is_group": false,
+      "source": {
+        "kind": "table-row",
+        "start_offset": 1463,
+        "end_offset": 1514,
+        "row_index": 3
+      },
+      "status": "passed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/negative_readiness",
+      "full_description": "TestLoadRejectsInvalidConfigurationWithoutSecrets/negative_readiness",
+      "file_path": "internal/config/config_test.go",
+      "line_number": 44,
+      "digest": "240b9878fcecfa29a1b9ed69e666dd0e9c08afea8158b099e05f25dfd4bbcc72",
+      "package": "github.com/filser89/stripe-payments-go/internal/config",
+      "test_name": "TestLoadRejectsInvalidConfigurationWithoutSecrets/negative_readiness",
+      "parent_id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets",
+      "is_group": false,
+      "source": {
+        "kind": "table-row",
+        "start_offset": 1829,
+        "end_offset": 1879,
+        "row_index": 10
+      },
+      "status": "passed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/overflow_budget",
+      "full_description": "TestLoadRejectsInvalidConfigurationWithoutSecrets/overflow_budget",
+      "file_path": "internal/config/config_test.go",
+      "line_number": 52,
+      "digest": "a2ceb1e120f60ae47720b394d154f2515b70fd66f877db44e24c2d85f62b2f42",
+      "package": "github.com/filser89/stripe-payments-go/internal/config",
+      "test_name": "TestLoadRejectsInvalidConfigurationWithoutSecrets/overflow_budget",
+      "parent_id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets",
+      "is_group": false,
+      "source": {
+        "kind": "table-row",
+        "start_offset": 2221,
+        "end_offset": 2270,
+        "row_index": 18
+      },
+      "status": "passed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/short_container_budget",
+      "full_description": "TestLoadRejectsInvalidConfigurationWithoutSecrets/short_container_budget",
+      "file_path": "internal/config/config_test.go",
+      "line_number": 51,
+      "digest": "08ef8dfc6ca8d3db89bc2175c94842387160f58aae90453934abde890e332633",
+      "package": "github.com/filser89/stripe-payments-go/internal/config",
+      "test_name": "TestLoadRejectsInvalidConfigurationWithoutSecrets/short_container_budget",
+      "parent_id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets",
+      "is_group": false,
+      "source": {
+        "kind": "table-row",
+        "start_offset": 2155,
+        "end_offset": 2217,
+        "row_index": 17
+      },
+      "status": "passed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/wrong_scheme",
+      "full_description": "TestLoadRejectsInvalidConfigurationWithoutSecrets/wrong_scheme",
+      "file_path": "internal/config/config_test.go",
+      "line_number": 36,
+      "digest": "01ff3baa52b148f09bc44febe773d6bc1648e2b44aa993ed2a62af2a272b0b19",
+      "package": "github.com/filser89/stripe-payments-go/internal/config",
+      "test_name": "TestLoadRejectsInvalidConfigurationWithoutSecrets/wrong_scheme",
+      "parent_id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets",
+      "is_group": false,
+      "source": {
+        "kind": "table-row",
+        "start_offset": 1390,
+        "end_offset": 1459,
+        "row_index": 2
+      },
+      "status": "passed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_cleanup",
+      "full_description": "TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_cleanup",
+      "file_path": "internal/config/config_test.go",
+      "line_number": 50,
+      "digest": "1f18d49c1d8889d3c1b710d7ad53bafaa7fb0c3137b6f6970df9b9d162c158a6",
+      "package": "github.com/filser89/stripe-payments-go/internal/config",
+      "test_name": "TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_cleanup",
+      "parent_id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets",
+      "is_group": false,
+      "source": {
+        "kind": "table-row",
+        "start_offset": 2110,
+        "end_offset": 2151,
+        "row_index": 16
+      },
+      "status": "passed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_header",
+      "full_description": "TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_header",
+      "file_path": "internal/config/config_test.go",
+      "line_number": 45,
+      "digest": "4d8d235ca9852ca7a6bd86daf580eeebbb454e5a1fdac89a0c179ee9155b19f2",
+      "package": "github.com/filser89/stripe-payments-go/internal/config",
+      "test_name": "TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_header",
+      "parent_id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets",
+      "is_group": false,
+      "source": {
+        "kind": "table-row",
+        "start_offset": 1883,
+        "end_offset": 1927,
+        "row_index": 11
+      },
+      "status": "passed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_idle",
+      "full_description": "TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_idle",
+      "file_path": "internal/config/config_test.go",
+      "line_number": 48,
+      "digest": "8fc7b41fa53240559b698b58e7eadba4ae52db98e0f26f24da00af6fbfe4750d",
+      "package": "github.com/filser89/stripe-payments-go/internal/config",
+      "test_name": "TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_idle",
+      "parent_id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets",
+      "is_group": false,
+      "source": {
+        "kind": "table-row",
+        "start_offset": 2021,
+        "end_offset": 2061,
+        "row_index": 14
+      },
+      "status": "passed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_port",
+      "full_description": "TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_port",
+      "file_path": "internal/config/config_test.go",
+      "line_number": 40,
+      "digest": "5cc06f86b85ab4657d0e8022a3831084aeb5aa02d8a59fe44965719c4ecc75fe",
+      "package": "github.com/filser89/stripe-payments-go/internal/config",
+      "test_name": "TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_port",
+      "parent_id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets",
+      "is_group": false,
+      "source": {
+        "kind": "table-row",
+        "start_offset": 1636,
+        "end_offset": 1679,
+        "row_index": 6
+      },
+      "status": "passed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_read",
+      "full_description": "TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_read",
+      "file_path": "internal/config/config_test.go",
+      "line_number": 46,
+      "digest": "2d9a44c62b8936670212f8a6fc903f8f7cf0d0dffc6070ae31b6de9e1723a665",
+      "package": "github.com/filser89/stripe-payments-go/internal/config",
+      "test_name": "TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_read",
+      "parent_id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets",
+      "is_group": false,
+      "source": {
+        "kind": "table-row",
+        "start_offset": 1931,
+        "end_offset": 1971,
+        "row_index": 12
+      },
+      "status": "passed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_shutdown",
+      "full_description": "TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_shutdown",
+      "file_path": "internal/config/config_test.go",
+      "line_number": 49,
+      "digest": "6fd54274c42488f1b429cbe40de46f2b8e5ac9c8bc777bee13a681daa251a02c",
+      "package": "github.com/filser89/stripe-payments-go/internal/config",
+      "test_name": "TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_shutdown",
+      "parent_id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets",
+      "is_group": false,
+      "source": {
+        "kind": "table-row",
+        "start_offset": 2065,
+        "end_offset": 2106,
+        "row_index": 15
+      },
+      "status": "passed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_startup",
+      "full_description": "TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_startup",
+      "file_path": "internal/config/config_test.go",
+      "line_number": 43,
+      "digest": "9f2d14a0a49991acf7c33a94e29e3375b6f6a607048b1e803dced5d83601198a",
+      "package": "github.com/filser89/stripe-payments-go/internal/config",
+      "test_name": "TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_startup",
+      "parent_id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets",
+      "is_group": false,
+      "source": {
+        "kind": "table-row",
+        "start_offset": 1781,
+        "end_offset": 1825,
+        "row_index": 9
+      },
+      "status": "passed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_write",
+      "full_description": "TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_write",
+      "file_path": "internal/config/config_test.go",
+      "line_number": 47,
+      "digest": "3832e6edb4a93156b3d03640e8dd1d35cfd98ffd88a0d2ebe19e0f340c45556c",
+      "package": "github.com/filser89/stripe-payments-go/internal/config",
+      "test_name": "TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_write",
+      "parent_id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets",
+      "is_group": false,
+      "source": {
+        "kind": "table-row",
+        "start_offset": 1975,
+        "end_offset": 2017,
+        "row_index": 13
+      },
+      "status": "passed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadValidConfiguration",
+      "full_description": "TestLoadValidConfiguration",
+      "file_path": "internal/config/config_test.go",
+      "line_number": 10,
+      "digest": "ab2082e81fb65bb4a3627a8c6214ac5e1b18a64e701f4ab61ef265112bd40620",
+      "package": "github.com/filser89/stripe-payments-go/internal/config",
+      "test_name": "TestLoadValidConfiguration",
+      "parent_id": "",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadValidConfiguration",
+      "is_group": false,
+      "source": {
+        "kind": "function",
+        "start_offset": 149,
+        "end_offset": 1144
+      },
+      "status": "passed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/integration::TestDatabaseMigrationsReadinessAndRestart/apply_repeat_and_rollback",
+      "full_description": "TestDatabaseMigrationsReadinessAndRestart/apply_repeat_and_rollback",
+      "file_path": "internal/integration/foundation_test.go",
+      "line_number": 69,
+      "digest": "71e4f0451315d3f289c63bbf0b88afaae8f2a2db4acb9c2dc93569bd33f2cb4a",
+      "package": "github.com/filser89/stripe-payments-go/internal/integration",
+      "test_name": "TestDatabaseMigrationsReadinessAndRestart/apply_repeat_and_rollback",
+      "parent_id": "github.com/filser89/stripe-payments-go/internal/integration::TestDatabaseMigrationsReadinessAndRestart",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/integration::TestDatabaseMigrationsReadinessAndRestart",
+      "is_group": false,
+      "source": {
+        "kind": "subtest",
+        "start_offset": 2625,
+        "end_offset": 3352
+      },
+      "status": "passed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/integration::TestDatabaseMigrationsReadinessAndRestart/empty_production_migrations",
+      "full_description": "TestDatabaseMigrationsReadinessAndRestart/empty_production_migrations",
+      "file_path": "internal/integration/foundation_test.go",
+      "line_number": 66,
+      "digest": "9c7dc222ca2e8b54dda3222210bf7824608e0e3e45ec4278cdd5386ddf712f59",
+      "package": "github.com/filser89/stripe-payments-go/internal/integration",
+      "test_name": "TestDatabaseMigrationsReadinessAndRestart/empty_production_migrations",
+      "parent_id": "github.com/filser89/stripe-payments-go/internal/integration::TestDatabaseMigrationsReadinessAndRestart",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/integration::TestDatabaseMigrationsReadinessAndRestart",
+      "is_group": false,
+      "source": {
+        "kind": "subtest",
+        "start_offset": 2474,
+        "end_offset": 2623
+      },
+      "status": "passed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/integration::TestDatabaseMigrationsReadinessAndRestart/failing_transaction_leaves_no_partial_table",
+      "full_description": "TestDatabaseMigrationsReadinessAndRestart/failing_transaction_leaves_no_partial_table",
+      "file_path": "internal/integration/foundation_test.go",
+      "line_number": 83,
+      "digest": "19660a88cb1c9bba625c3ad3fc6f2d03c6599cd0f1040b9bf4afef8ed954ddb0",
+      "package": "github.com/filser89/stripe-payments-go/internal/integration",
+      "test_name": "TestDatabaseMigrationsReadinessAndRestart/failing_transaction_leaves_no_partial_table",
+      "parent_id": "github.com/filser89/stripe-payments-go/internal/integration::TestDatabaseMigrationsReadinessAndRestart",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/integration::TestDatabaseMigrationsReadinessAndRestart",
+      "is_group": false,
+      "source": {
+        "kind": "subtest",
+        "start_offset": 3354,
+        "end_offset": 3662
+      },
+      "status": "passed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/integration::TestDatabaseMigrationsReadinessAndRestart/generated_readiness_query",
+      "full_description": "TestDatabaseMigrationsReadinessAndRestart/generated_readiness_query",
+      "file_path": "internal/integration/foundation_test.go",
+      "line_number": 61,
+      "digest": "bc91562dbb3b0e03c44e5a97a4d843337bfcda3e8983ea844a8ba5b6df70ec18",
+      "package": "github.com/filser89/stripe-payments-go/internal/integration",
+      "test_name": "TestDatabaseMigrationsReadinessAndRestart/generated_readiness_query",
+      "parent_id": "github.com/filser89/stripe-payments-go/internal/integration::TestDatabaseMigrationsReadinessAndRestart",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/integration::TestDatabaseMigrationsReadinessAndRestart",
+      "is_group": false,
+      "source": {
+        "kind": "subtest",
+        "start_offset": 2302,
+        "end_offset": 2472
+      },
+      "status": "passed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/integration::TestDatabaseMigrationsReadinessAndRestart/outage_recovery_and_retained_data",
+      "full_description": "TestDatabaseMigrationsReadinessAndRestart/outage_recovery_and_retained_data",
+      "file_path": "internal/integration/foundation_test.go",
+      "line_number": 89,
+      "digest": "8834f2227ee4653e7c6149a259e476dd3eb441099885242f21a97c714c484748",
+      "package": "github.com/filser89/stripe-payments-go/internal/integration",
+      "test_name": "TestDatabaseMigrationsReadinessAndRestart/outage_recovery_and_retained_data",
+      "parent_id": "github.com/filser89/stripe-payments-go/internal/integration::TestDatabaseMigrationsReadinessAndRestart",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/integration::TestDatabaseMigrationsReadinessAndRestart",
+      "is_group": false,
+      "source": {
+        "kind": "subtest",
+        "start_offset": 3664,
+        "end_offset": 5194
+      },
+      "status": "passed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/integration::TestOpenRejectsUnavailableDatabaseWithinDeadline",
+      "full_description": "TestOpenRejectsUnavailableDatabaseWithinDeadline",
+      "file_path": "internal/integration/foundation_test.go",
+      "line_number": 128,
+      "digest": "0616bb6c5cad127ccc66bdae66fa8f8e22e5f355b44726aa4cb67146c2fed986",
+      "package": "github.com/filser89/stripe-payments-go/internal/integration",
+      "test_name": "TestOpenRejectsUnavailableDatabaseWithinDeadline",
+      "parent_id": "",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/integration::TestOpenRejectsUnavailableDatabaseWithinDeadline",
+      "is_group": false,
+      "source": {
+        "kind": "function",
+        "start_offset": 5197,
+        "end_offset": 6001
+      },
+      "status": "passed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/integration::TestShutdownCancelsActivePostgresQuery",
+      "full_description": "TestShutdownCancelsActivePostgresQuery",
+      "file_path": "internal/integration/foundation_test.go",
+      "line_number": 156,
+      "digest": "2f8e4fa6929b9855118329f4f45c3eff185837151db0e6c6101d7e284eb83496",
+      "package": "github.com/filser89/stripe-payments-go/internal/integration",
+      "test_name": "TestShutdownCancelsActivePostgresQuery",
+      "parent_id": "",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/integration::TestShutdownCancelsActivePostgresQuery",
+      "is_group": false,
+      "source": {
+        "kind": "function",
+        "start_offset": 6002,
+        "end_offset": 7935
+      },
+      "status": "passed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationAuthorizationParsing",
+      "full_description": "TestAuthenticationAuthorizationParsing",
+      "file_path": "internal/web/authentication_test.go",
+      "line_number": 220,
+      "digest": "8ec7384e799eb0daa0bc312665e8c453bdf7d73e027441015e878b64fae5ae05",
+      "package": "github.com/filser89/stripe-payments-go/internal/web",
+      "test_name": "TestAuthenticationAuthorizationParsing",
+      "parent_id": "",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationAuthorizationParsing",
+      "is_group": false,
+      "source": {
+        "kind": "function",
+        "start_offset": 8167,
+        "end_offset": 12012
+      },
+      "status": "failed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationBodyReadFailure",
+      "full_description": "TestAuthenticationBodyReadFailure",
+      "file_path": "internal/web/authentication_test.go",
+      "line_number": 514,
+      "digest": "f6ceff7f9938e47d7f170096f47924371501b396722c07168fbcf86e853ec246",
+      "package": "github.com/filser89/stripe-payments-go/internal/web",
+      "test_name": "TestAuthenticationBodyReadFailure",
+      "parent_id": "",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationBodyReadFailure",
+      "is_group": false,
+      "source": {
+        "kind": "function",
+        "start_offset": 21021,
+        "end_offset": 21738
+      },
+      "status": "failed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationConcurrentIsolation",
+      "full_description": "TestAuthenticationConcurrentIsolation",
+      "file_path": "internal/web/authentication_test.go",
+      "line_number": 346,
+      "digest": "e16a03d539ec553e8b76229b3e22f0217f4b06cf69b90bf1164c3c643893a3dc",
+      "package": "github.com/filser89/stripe-payments-go/internal/web",
+      "test_name": "TestAuthenticationConcurrentIsolation",
+      "parent_id": "",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationConcurrentIsolation",
+      "is_group": false,
+      "source": {
+        "kind": "function",
+        "start_offset": 14953,
+        "end_offset": 16872
+      },
+      "status": "failed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationCredentialSources",
+      "full_description": "TestAuthenticationCredentialSources",
+      "file_path": "internal/web/authentication_test.go",
+      "line_number": 275,
+      "digest": "e901e369e787b4c750337c73e18a582b3e2ac97c58f0a2848061a06584e96884",
+      "package": "github.com/filser89/stripe-payments-go/internal/web",
+      "test_name": "TestAuthenticationCredentialSources",
+      "parent_id": "",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationCredentialSources",
+      "is_group": false,
+      "source": {
+        "kind": "function",
+        "start_offset": 12014,
+        "end_offset": 13184
+      },
+      "status": "failed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationDelegation",
+      "full_description": "TestAuthenticationDelegation",
+      "file_path": "internal/web/authentication_test.go",
+      "line_number": 305,
+      "digest": "f1891179e14c73c6fe17bd3cc41e3a452fc4f6c4cc95ed84adeca8e2888fb906",
+      "package": "github.com/filser89/stripe-payments-go/internal/web",
+      "test_name": "TestAuthenticationDelegation",
+      "parent_id": "",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationDelegation",
+      "is_group": false,
+      "source": {
+        "kind": "function",
+        "start_offset": 13186,
+        "end_offset": 14951
+      },
+      "status": "passed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationExactCredentials",
+      "full_description": "TestAuthenticationExactCredentials",
+      "file_path": "internal/web/authentication_test.go",
+      "line_number": 181,
+      "digest": "8a80307dae7f2cbed29cc7ed342cb58fab62ad342d6db4b78e3c5543c1e04ae4",
+      "package": "github.com/filser89/stripe-payments-go/internal/web",
+      "test_name": "TestAuthenticationExactCredentials",
+      "parent_id": "",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationExactCredentials",
+      "is_group": false,
+      "source": {
+        "kind": "function",
+        "start_offset": 5593,
+        "end_offset": 8165
+      },
+      "status": "failed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationFoundationTransport",
+      "full_description": "TestAuthenticationFoundationTransport",
+      "file_path": "internal/web/authentication_transport_test.go",
+      "line_number": 142,
+      "digest": "d799d5d65fd2980134abedcecfc0615d627425d76fbd40f1f4a5b7753324f83a",
+      "package": "github.com/filser89/stripe-payments-go/internal/web",
+      "test_name": "TestAuthenticationFoundationTransport",
+      "parent_id": "",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationFoundationTransport",
+      "is_group": false,
+      "source": {
+        "kind": "function",
+        "start_offset": 4822,
+        "end_offset": 9532
+      },
+      "status": "passed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationLanding",
+      "full_description": "TestAuthenticationLanding",
+      "file_path": "internal/web/authentication_test.go",
+      "line_number": 411,
+      "digest": "31be908158b9b6f709470e48187a95ce97bfb0bb49649674719e1400a3da0d21",
+      "package": "github.com/filser89/stripe-payments-go/internal/web",
+      "test_name": "TestAuthenticationLanding",
+      "parent_id": "",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationLanding",
+      "is_group": false,
+      "source": {
+        "kind": "function",
+        "start_offset": 16874,
+        "end_offset": 18026
+      },
+      "status": "failed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationLandingBodyBytes",
+      "full_description": "TestAuthenticationLandingBodyBytes",
+      "file_path": "internal/web/authentication_test.go",
+      "line_number": 476,
+      "digest": "e9de5937403f822be8e1c79cc65164e864bbb35c8785e56a372672a92dd81483",
+      "package": "github.com/filser89/stripe-payments-go/internal/web",
+      "test_name": "TestAuthenticationLandingBodyBytes",
+      "parent_id": "",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationLandingBodyBytes",
+      "is_group": false,
+      "source": {
+        "kind": "function",
+        "start_offset": 19244,
+        "end_offset": 21019
+      },
+      "status": "failed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationMissingCredentials",
+      "full_description": "TestAuthenticationMissingCredentials",
+      "file_path": "internal/web/authentication_test.go",
+      "line_number": 154,
+      "digest": "a79f56c3bba37c97ec7758c1bb5a9b7bab7cfdad0150e247164130e4d1336ba4",
+      "package": "github.com/filser89/stripe-payments-go/internal/web",
+      "test_name": "TestAuthenticationMissingCredentials",
+      "parent_id": "",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationMissingCredentials",
+      "is_group": false,
+      "source": {
+        "kind": "function",
+        "start_offset": 4611,
+        "end_offset": 5591
+      },
+      "status": "failed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationPublicProbeBoundary",
+      "full_description": "TestAuthenticationPublicProbeBoundary",
+      "file_path": "internal/web/authentication_test.go",
+      "line_number": 529,
+      "digest": "cecf772e666bbdeff0bd65e91aa1294e44d859a24098839bf8a668c510144f79",
+      "package": "github.com/filser89/stripe-payments-go/internal/web",
+      "test_name": "TestAuthenticationPublicProbeBoundary",
+      "parent_id": "",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationPublicProbeBoundary",
+      "is_group": false,
+      "source": {
+        "kind": "function",
+        "start_offset": 21740,
+        "end_offset": 23902
+      },
+      "status": "failed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationRealStreamingBodies",
+      "full_description": "TestAuthenticationRealStreamingBodies",
+      "file_path": "internal/web/authentication_transport_test.go",
+      "line_number": 69,
+      "digest": "bbcbe58573cbb4206c6ff16d420d05b1b2c04cda9264244b74144c124e64e1f8",
+      "package": "github.com/filser89/stripe-payments-go/internal/web",
+      "test_name": "TestAuthenticationRealStreamingBodies",
+      "parent_id": "",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationRealStreamingBodies",
+      "is_group": false,
+      "source": {
+        "kind": "function",
+        "start_offset": 1729,
+        "end_offset": 2915
+      },
+      "status": "failed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationRouting",
+      "full_description": "TestAuthenticationRouting",
+      "file_path": "internal/web/authentication_test.go",
+      "line_number": 432,
+      "digest": "8b47f31b33d4e1077a7acc30004c30a1317316a06dc51b6e656b7944673495d2",
+      "package": "github.com/filser89/stripe-payments-go/internal/web",
+      "test_name": "TestAuthenticationRouting",
+      "parent_id": "",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationRouting",
+      "is_group": false,
+      "source": {
+        "kind": "function",
+        "start_offset": 18028,
+        "end_offset": 18726
+      },
+      "status": "failed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationSanitizedOutcomes",
+      "full_description": "TestAuthenticationSanitizedOutcomes",
+      "file_path": "internal/web/authentication_test.go",
+      "line_number": 583,
+      "digest": "56d79f63f80c88e9aba32dbaa5fd02994151ac08e95d8d13f63c853a401d5cda",
+      "package": "github.com/filser89/stripe-payments-go/internal/web",
+      "test_name": "TestAuthenticationSanitizedOutcomes",
+      "parent_id": "",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationSanitizedOutcomes",
+      "is_group": false,
+      "source": {
+        "kind": "function",
+        "start_offset": 23904,
+        "end_offset": 27854
+      },
+      "status": "failed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationShutdownAdmission",
+      "full_description": "TestAuthenticationShutdownAdmission",
+      "file_path": "internal/web/authentication_test.go",
+      "line_number": 38,
+      "digest": "371eb8e91316809a594154a44391a2b7f02e1499bad06d351fa8d9d7e6a774fa",
+      "package": "github.com/filser89/stripe-payments-go/internal/web",
+      "test_name": "TestAuthenticationShutdownAdmission",
+      "parent_id": "",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationShutdownAdmission",
+      "is_group": false,
+      "source": {
+        "kind": "function",
+        "start_offset": 696,
+        "end_offset": 2427
+      },
+      "status": "passed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationStalledBodyDeadline",
+      "full_description": "TestAuthenticationStalledBodyDeadline",
+      "file_path": "internal/web/authentication_transport_test.go",
+      "line_number": 97,
+      "digest": "7529e42d48e135e36067eba96176de11cf77c219505c340e8b12f6f9e28e9374",
+      "package": "github.com/filser89/stripe-payments-go/internal/web",
+      "test_name": "TestAuthenticationStalledBodyDeadline",
+      "parent_id": "",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationStalledBodyDeadline",
+      "is_group": false,
+      "source": {
+        "kind": "function",
+        "start_offset": 2917,
+        "end_offset": 4204
+      },
+      "status": "failed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/web::TestCleanupFailureIsReported",
+      "full_description": "TestCleanupFailureIsReported",
+      "file_path": "internal/web/server_test.go",
+      "line_number": 223,
+      "digest": "1b480aaef252d7caa40b8c66c824ca2f4d0458f3b9286c2ce35cd6b6e2035ad7",
+      "package": "github.com/filser89/stripe-payments-go/internal/web",
+      "test_name": "TestCleanupFailureIsReported",
+      "parent_id": "",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/web::TestCleanupFailureIsReported",
+      "is_group": false,
+      "source": {
+        "kind": "function",
+        "start_offset": 6643,
+        "end_offset": 7056
+      },
+      "status": "passed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/web::TestCleanupIsBounded",
+      "full_description": "TestCleanupIsBounded",
+      "file_path": "internal/web/server_test.go",
+      "line_number": 231,
+      "digest": "be0ba1241a964ce78b67e23f7d4f9ea2deb957e020bc5b9991ea62a783b88654",
+      "package": "github.com/filser89/stripe-payments-go/internal/web",
+      "test_name": "TestCleanupIsBounded",
+      "parent_id": "",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/web::TestCleanupIsBounded",
+      "is_group": false,
+      "source": {
+        "kind": "function",
+        "start_offset": 7057,
+        "end_offset": 7633
+      },
+      "status": "passed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/web::TestGracefulShutdownAllowsActiveRequestToFinish",
+      "full_description": "TestGracefulShutdownAllowsActiveRequestToFinish",
+      "file_path": "internal/web/server_test.go",
+      "line_number": 100,
+      "digest": "a7e97d43c9efb68c8bb993de2db6e73e7a27db660bf5b1576ee44884ce73b66f",
+      "package": "github.com/filser89/stripe-payments-go/internal/web",
+      "test_name": "TestGracefulShutdownAllowsActiveRequestToFinish",
+      "parent_id": "",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/web::TestGracefulShutdownAllowsActiveRequestToFinish",
+      "is_group": false,
+      "source": {
+        "kind": "function",
+        "start_offset": 3033,
+        "end_offset": 4873
+      },
+      "status": "passed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/web::TestHealthReadinessAndSanitizedLogs",
+      "full_description": "TestHealthReadinessAndSanitizedLogs",
+      "file_path": "internal/web/server_test.go",
+      "line_number": 52,
+      "digest": "5c0213594f569a7cb9460e27a29e6b0150984a620e5c1148e85bc726272809f8",
+      "package": "github.com/filser89/stripe-payments-go/internal/web",
+      "test_name": "TestHealthReadinessAndSanitizedLogs",
+      "parent_id": "",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/web::TestHealthReadinessAndSanitizedLogs",
+      "is_group": false,
+      "source": {
+        "kind": "function",
+        "start_offset": 988,
+        "end_offset": 2578
+      },
+      "status": "passed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/web::TestPanicProducesSanitizedFailureLog",
+      "full_description": "TestPanicProducesSanitizedFailureLog",
+      "file_path": "internal/web/server_test.go",
+      "line_number": 247,
+      "digest": "89a7a0f27353713985392d1ee1b5c0dee9b133a0e5f722c6fa1e4848ec910afa",
+      "package": "github.com/filser89/stripe-payments-go/internal/web",
+      "test_name": "TestPanicProducesSanitizedFailureLog",
+      "parent_id": "",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/web::TestPanicProducesSanitizedFailureLog",
+      "is_group": false,
+      "source": {
+        "kind": "function",
+        "start_offset": 7635,
+        "end_offset": 8345
+      },
+      "status": "passed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/web::TestReadinessDeadline",
+      "full_description": "TestReadinessDeadline",
+      "file_path": "internal/web/server_test.go",
+      "line_number": 90,
+      "digest": "d6ee8ef09a68850da82c8570f1873e40972068a5430f59cfe06aaa86131d55ef",
+      "package": "github.com/filser89/stripe-payments-go/internal/web",
+      "test_name": "TestReadinessDeadline",
+      "parent_id": "",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/web::TestReadinessDeadline",
+      "is_group": false,
+      "source": {
+        "kind": "function",
+        "start_offset": 2579,
+        "end_offset": 3032
+      },
+      "status": "passed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/web::TestServeFailureClosesResources",
+      "full_description": "TestServeFailureClosesResources",
+      "file_path": "internal/web/server_test.go",
+      "line_number": 259,
+      "digest": "afcfd5e4d6a2cb0ecdd2e919607406d305c8a68cf653f4feb8e82f923393aaa2",
+      "package": "github.com/filser89/stripe-payments-go/internal/web",
+      "test_name": "TestServeFailureClosesResources",
+      "parent_id": "",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/web::TestServeFailureClosesResources",
+      "is_group": false,
+      "source": {
+        "kind": "function",
+        "start_offset": 8346,
+        "end_offset": 8809
+      },
+      "status": "passed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/web::TestShutdownCancelsOverdueWorkAndWaitsForCleanup",
+      "full_description": "TestShutdownCancelsOverdueWorkAndWaitsForCleanup",
+      "file_path": "internal/web/server_test.go",
+      "line_number": 162,
+      "digest": "f1d4df876b79daebf86c5f27b31d545dd4238e298326bf1a7f0336e88fd746ca",
+      "package": "github.com/filser89/stripe-payments-go/internal/web",
+      "test_name": "TestShutdownCancelsOverdueWorkAndWaitsForCleanup",
+      "parent_id": "",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/web::TestShutdownCancelsOverdueWorkAndWaitsForCleanup",
+      "is_group": false,
+      "source": {
+        "kind": "function",
+        "start_offset": 4874,
+        "end_offset": 6642
+      },
+      "status": "passed"
+    }
+  ],
+  "summary": {
+    "total": 57,
+    "passed": 42,
+    "failed": 15,
+    "pending": 0
+  },
+  "protected_files": [
+    {
+      "path": "cmd/service/authentication_test.go",
+      "sha256": "c5e20f4a63d71f6c3628b61656097d79dd3a6b8d20702e9c65e6827f49ce9300",
+      "symlink": ""
+    },
+    {
+      "path": "cmd/service/main_test.go",
+      "sha256": "8a3a7b8d93963e1c24b3625793315c375250ec58c379862aadc1d980ae40fd1c",
+      "symlink": ""
+    },
+    {
+      "path": "internal/config/config_test.go",
+      "sha256": "625fbc9aa742399f1a32ff9aa7dcf5fac75f7a8649d01af5823e2f0a654a218a",
+      "symlink": ""
+    },
+    {
+      "path": "internal/integration/foundation_test.go",
+      "sha256": "a9b6dc45e78bb661fd5650c446cc9d8e2ce392ec42dd9bb12e29b970720a841b",
+      "symlink": ""
+    },
+    {
+      "path": "internal/integration/testdata/failing/00002_failure.sql",
+      "sha256": "0a4f7b67dbf3e98cbdfb193ddbc038881e3fb639bf1b073579ac0aa055f5324b",
+      "symlink": ""
+    },
+    {
+      "path": "internal/integration/testdata/migrations/00001_fixture.sql",
+      "sha256": "5214719780fff30262f2bc77611173ce96a5c17538b73aa269dd00ca2992df33",
+      "symlink": ""
+    },
+    {
+      "path": "internal/web/authentication_test.go",
+      "sha256": "85b5b5dafccc2366a84c4f57766484f2c77f36e30dc05609afa044bb91b37367",
+      "symlink": ""
+    },
+    {
+      "path": "internal/web/authentication_transport_test.go",
+      "sha256": "ca0c134717665a5b41b83a4973267d33047f3d70887f2bc414cb7e128536d9b3",
+      "symlink": ""
+    },
+    {
+      "path": "internal/web/server_test.go",
+      "sha256": "419eabbedd01874479a2a4c6955ce8430e194043dcb0aa51cd171976b3ea3980",
+      "symlink": ""
+    },
+    {
+      "path": "scripts/testdata/workflows.sh",
+      "sha256": "7d779af047b4deabcc3204b4f41fa9f291056b07f83c77c690de297a174bd480",
+      "symlink": ""
+    }
+  ],
+  "implementation_required": [
+    "github.com/filser89/stripe-payments-go/cmd/service::TestAuthenticationCommandIndependence",
+    "github.com/filser89/stripe-payments-go/cmd/service::TestAuthenticationCredentialLifetime",
+    "github.com/filser89/stripe-payments-go/cmd/service::TestAuthenticationServingConfiguration",
+    "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationAuthorizationParsing",
+    "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationBodyReadFailure",
+    "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationConcurrentIsolation",
+    "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationCredentialSources",
+    "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationDelegation",
+    "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationExactCredentials",
+    "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationFoundationTransport",
+    "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationLanding",
+    "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationLandingBodyBytes",
+    "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationMissingCredentials",
+    "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationPublicProbeBoundary",
+    "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationRealStreamingBodies",
+    "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationRouting",
+    "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationSanitizedOutcomes",
+    "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationShutdownAdmission",
+    "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationStalledBodyDeadline"
+  ]
+}

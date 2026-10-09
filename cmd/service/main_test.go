@@ -7,9 +7,18 @@ import (
 	"testing"
 )
 
-func TestRunRejectsMissingConfiguration(t *testing.T) {
+func TestRunRejectsMissingConfiguration(t *testing.T) { // CFG-001 SEC-001
 	var out bytes.Buffer
-	err := run(context.Background(), nil, func(string) string { return "" }, &out)
+	err := run(context.Background(), nil, func(k string) string {
+		switch k {
+		case "BASIC_AUTH_USERNAME":
+			return "command-fixture-user"
+		case "BASIC_AUTH_PASSWORD":
+			return "command-fixture-password"
+		default:
+			return ""
+		}
+	}, &out)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "DATABASE_URL")
 }
