@@ -59,7 +59,9 @@ func translateError(ctx context.Context, e payment.SessionEvidence, err error, f
 			e.ErrorClass = "server"
 		}
 	}
-	if facts.status >= 500 {
+	if facts.status >= 300 && facts.status < 400 {
+		e.ErrorClass = "redirect"
+	} else if facts.status >= 500 {
 		e.ErrorClass = "server"
 	} else if facts.status == 429 {
 		e.ErrorClass = "rate_limit"

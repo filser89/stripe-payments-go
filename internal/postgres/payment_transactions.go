@@ -249,7 +249,7 @@ func (r *paymentRepository) ApplyObservation(ctx context.Context, in payment.Obs
 	} else if ev.ErrorClass != "" {
 		updated.EvidenceSource = "stripe"
 	}
-	if ev.ErrorClass == "server" || ev.ErrorClass == "idempotency" || ev.ErrorClass == "confirmation_required" {
+	if ev.ErrorClass == "server" || ev.ErrorClass == "idempotency" || ev.ErrorClass == "confirmation_required" || ev.ErrorClass == "redirect" {
 		updated.InvestigationRequired = true
 	}
 	if in.State == "rejected" {

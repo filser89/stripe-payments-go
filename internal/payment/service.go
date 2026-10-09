@@ -22,8 +22,9 @@ type requestIDKey struct{}
 type actionKey struct{}
 type responseWindowKey struct{}
 type responseWindow struct {
-	mu       sync.Mutex
-	deadline time.Time
+	mu               sync.Mutex
+	deadline         time.Time
+	externalDeadline time.Time
 }
 
 func ResponseDeadline(ctx context.Context) time.Time {
@@ -54,8 +55,10 @@ func (s *Service) finalContext(ctx context.Context) (context.Context, context.Ca
 type workDeadlineKey struct{}
 
 func WithRequestID(ctx context.Context, id string) context.Context {
-	ctx = context.WithValue(ctx, responseWindowKey{}, &responseWindow{})
 	return context.WithValue(ctx, requestIDKey{}, id)
+}
+func WithRequestBudget(ctx context.Context, externalDeadline time.Time) context.Context {
+	return context.WithValue(ctx, responseWindowKey{}, &responseWindow{externalDeadline: externalDeadline})
 }
 func RequestID(ctx context.Context) string { id, _ := ctx.Value(requestIDKey{}).(string); return id }
 func New(r Repository, g Gateway, o Options) *Service {
@@ -131,7 +134,15 @@ func failure(kind string, v View, e error) *Error {
 	return &Error{Code: kind, OrderID: v.Order.ID, OperationID: v.Operation.ID, Cause: e}
 }
 func (s *Service) bounded(ctx context.Context) (context.Context, context.CancelFunc) {
-	ctx = context.WithValue(ctx, workDeadlineKey{}, time.Now().Add(s.opts.RequestTimeout-time.Second))
+	deadline := time.Now().Add(s.opts.RequestTimeout - time.Second)
+	if window, ok := ctx.Value(responseWindowKey{}).(*responseWindow); ok {
+		window.mu.Lock()
+		if !window.externalDeadline.IsZero() && window.externalDeadline.Before(deadline) {
+			deadline = window.externalDeadline
+		}
+		window.mu.Unlock()
+	}
+	ctx = context.WithValue(ctx, workDeadlineKey{}, deadline)
 	return context.WithTimeout(ctx, s.opts.RequestTimeout)
 }
 func (s *Service) compatible(op Operation) bool {
@@ -148,7 +159,7 @@ func (s *Service) view(v View) View {
 	v.CanResume = active && compatible && !mismatch && op.OwnerToken == "" && op.State == "open" && op.CheckoutURL != nil && *op.CheckoutURL != "" && op.ExpiresAt != nil && op.ExpiresAt.After(s.opts.Now())
 	v.CanRetrySameOperation = active && compatible && !mismatch && op.OwnerToken == "" && (op.State == "prepared" || op.State == "unresolved" && (op.SessionID != nil || s.safe(op)))
 	v.CanStartNewAttempt = active && compatible && !mismatch && op.ID == v.Order.CurrentOperationID && op.OwnerToken == "" && ((op.State == "rejected" && !op.PriorAmbiguity) || (op.State == "expired" && op.EvidenceSource == "stripe" && !mismatch))
-	v.NeedsInvestigation = op.InvestigationRequired || mismatch || !compatible || op.State == "rejected" || op.FailureCode != nil && (*op.FailureCode == "server" || *op.FailureCode == "idempotency" || *op.FailureCode == "validation" || *op.FailureCode == "credential" || *op.FailureCode == "permission" || *op.FailureCode == "generic" || *op.FailureCode == "temporarily_unavailable" || *op.FailureCode == "confirmation_required") || op.State == "unresolved" && op.FirstDispatchAt != nil && s.opts.Now().Sub(*op.FirstDispatchAt) >= 15*time.Minute
+	v.NeedsInvestigation = op.InvestigationRequired || mismatch || !compatible || op.State == "rejected" || op.FailureCode != nil && (*op.FailureCode == "server" || *op.FailureCode == "idempotency" || *op.FailureCode == "validation" || *op.FailureCode == "credential" || *op.FailureCode == "permission" || *op.FailureCode == "generic" || *op.FailureCode == "temporarily_unavailable" || *op.FailureCode == "confirmation_required" || *op.FailureCode == "redirect") || op.State == "unresolved" && op.FirstDispatchAt != nil && s.opts.Now().Sub(*op.FirstDispatchAt) >= 15*time.Minute
 	if !v.CanResume {
 		v.Operation.CheckoutURL = nil
 	}
@@ -358,7 +369,11 @@ func (s *Service) Get(ctx context.Context, id string) (v View, err error) {
 		if code(err) != "not_found" {
 			err = &Error{Code: "temporarily_unavailable", OrderID: id, Cause: err}
 		}
-		s.log(ctx, "read", s.outcome(v), err, "database_read")
+		kind := "database_read"
+		if code(err) == "not_found" {
+			kind = "not_found"
+		}
+		s.log(ctx, "read", s.outcome(v), err, kind)
 		return
 	}
 	v = s.view(v)
@@ -375,6 +390,10 @@ func (s *Service) History(ctx context.Context, id string, after int64, limit int
 	if err != nil && code(err) != "not_found" {
 		err = &Error{Code: "temporarily_unavailable", OrderID: id, Cause: err}
 	}
-	s.log(ctx, "history", Outcome{Order: Order{ID: id}}, err, "")
+	known := Outcome{Order: Order{ID: id}}
+	if code(err) == "not_found" {
+		known = Outcome{}
+	}
+	s.log(ctx, "history", known, err, "")
 	return
 }

@@ -32,9 +32,10 @@ func (h *checkoutAPI) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		h.root.ServeHTTP(w, r)
 		return
 	}
+	admitted := time.Now()
 	ctx, cancel := context.WithTimeout(r.Context(), h.timeout)
 	defer cancel()
-	ctx = payment.WithRequestID(ctx, payment.RequestID(ctx))
+	ctx = payment.WithRequestBudget(ctx, admitted.Add(h.timeout-time.Second))
 	r = r.WithContext(ctx)
 	control := http.NewResponseController(w)
 	deadline, _ := ctx.Deadline()

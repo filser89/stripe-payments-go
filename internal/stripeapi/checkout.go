@@ -3,6 +3,8 @@ package stripeapi
 
 import (
 	"context"
+	"crypto/tls"
+	"errors"
 	"net/http"
 	"time"
 
@@ -24,7 +26,11 @@ type responseFacts struct {
 type capturingTransport struct{ next http.RoundTripper }
 
 func (t capturingTransport) RoundTrip(r *http.Request) (*http.Response, error) {
-	response, err := t.next.RoundTrip(r)
+	// Preserve the single-use request contract through injected transport wrappers.
+	request := r.Clone(r.Context())
+	request.Close = true
+	request.GetBody = nil
+	response, err := t.next.RoundTrip(request)
 	if response != nil {
 		if facts, ok := r.Context().Value(responseContextKey{}).(*responseFacts); ok {
 			facts.header = response.Header.Clone()
@@ -44,13 +50,38 @@ func New(key string, options Options) payment.Gateway {
 	if transport == nil {
 		transport = http.DefaultTransport
 	}
-	client.Transport = capturingTransport{next: transport}
+	client.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
+	client.Transport = capturingTransport{next: singleAttemptTransport(transport)}
 	config := &stripe.BackendConfig{HTTPClient: client, MaxNetworkRetries: stripe.Int64(0), LeveledLogger: &stripe.LeveledLogger{Level: stripe.LevelNull}}
 	if options.BackendURL != "" {
 		config.URL = stripe.String(options.BackendURL)
 	}
 	return &gateway{client: stripe.NewClient(key, stripe.WithBackends(stripe.NewBackendsWithConfig(config)))}
 }
+
+// Standard transports use verified TLS and HTTP/1 on fresh connections. This
+// excludes HTTP/2 stream retries and HTTP/1 retries after connection reuse.
+// Opaque construction-only test transports retain their injected behavior.
+func singleAttemptTransport(source http.RoundTripper) http.RoundTripper {
+	standard, ok := source.(*http.Transport)
+	if !ok {
+		return source
+	}
+	controlled := standard.Clone()
+	controlled.DisableKeepAlives = true
+	controlled.ForceAttemptHTTP2 = false
+	controlled.Protocols = &http.Protocols{}
+	controlled.Protocols.SetHTTP1(true)
+	controlled.TLSNextProto = map[string]func(string, *tls.Conn) http.RoundTripper{}
+	if controlled.TLSClientConfig == nil {
+		controlled.TLSClientConfig = &tls.Config{}
+	} else {
+		controlled.TLSClientConfig = controlled.TLSClientConfig.Clone()
+	}
+	controlled.TLSClientConfig.NextProtos = []string{"http/1.1"}
+	return controlled
+}
+
 func (g *gateway) Create(ctx context.Context, s payment.Snapshot) (payment.SessionEvidence, error) {
 	metadata := map[string]string{"order_id": s.OrderID, "operation_id": s.OperationID}
 	params := &stripe.CheckoutSessionCreateParams{
@@ -76,6 +107,9 @@ func (g *gateway) Retrieve(ctx context.Context, sessionID string) (payment.Sessi
 }
 func translate(ctx context.Context, s *stripe.CheckoutSession, err error, facts *responseFacts) (payment.SessionEvidence, error) {
 	e := payment.SessionEvidence{ObservedAt: time.Now().UTC()}
+	if facts.status >= 300 && facts.status < 400 && err == nil {
+		err = errors.New("stripe redirect response")
+	}
 	if err != nil {
 		return translateError(ctx, e, err, facts)
 	}

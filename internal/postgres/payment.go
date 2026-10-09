@@ -56,6 +56,7 @@ func dbError(err error, order, operation string) error {
 	code := "temporarily_unavailable"
 	if errors.Is(err, pgx.ErrNoRows) {
 		code = "not_found"
+		order, operation = "", ""
 	}
 	return &payment.Error{Code: code, OrderID: order, OperationID: operation, Cause: err}
 }
