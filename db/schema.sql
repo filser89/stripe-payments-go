@@ -1,0 +1,1 @@
+-- The foundation has no business tables. Include business migrations here when introduced.

@@ -3,3 +3,6 @@
 !.env.example
 .content-builder/
 .DS_Store
+/bin/
+/.tools/
+/.work/
