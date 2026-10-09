@@ -76,23 +76,25 @@ func TestSDKCheckoutEvidenceTranslation(t *testing.T) { // LIFE-002 LIFE-007 STR
 			intent := testutil.Intent()
 			snap := intent.Operation.Snapshot
 			snap.ExpiresAt = time.Now().Add(24 * time.Hour).Unix()
-			server.Mutation = func(obj map[string]any) {
-				obj["id"] = tc.session
-				obj["status"] = tc.status
-				obj["payment_status"] = tc.payment
-				obj["livemode"] = tc.live
-				obj["amount_total"] = tc.amount
-				obj["currency"] = tc.currency
-				obj["url"] = tc.url
-				obj["payment_intent"] = tc.intent
-				obj["expires_at"] = snap.ExpiresAt
-				if tc.client != "" {
-					obj["client_reference_id"] = tc.client
+			server.Configure(func(s *testutil.StripeServer) {
+				s.Mutation = func(obj map[string]any) {
+					obj["id"] = tc.session
+					obj["status"] = tc.status
+					obj["payment_status"] = tc.payment
+					obj["livemode"] = tc.live
+					obj["amount_total"] = tc.amount
+					obj["currency"] = tc.currency
+					obj["url"] = tc.url
+					obj["payment_intent"] = tc.intent
+					obj["expires_at"] = snap.ExpiresAt
+					if tc.client != "" {
+						obj["client_reference_id"] = tc.client
+					}
+					if tc.operation != "" {
+						obj["metadata"] = map[string]string{"order_id": snap.OrderID, "operation_id": tc.operation}
+					}
 				}
-				if tc.operation != "" {
-					obj["metadata"] = map[string]string{"order_id": snap.OrderID, "operation_id": tc.operation}
-				}
-			}
+			})
 			gateway := New("sk_test_fixture", Options{BackendURL: server.Server.URL, HTTPClient: server.Server.Client()})
 			require.NotNil(t, gateway, "missing SDK evidence translation")
 			e, err := gateway.Create(context.Background(), snap)

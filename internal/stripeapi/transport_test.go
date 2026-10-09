@@ -29,8 +29,7 @@ func TestSDKStructuredAndUncertainErrors(t *testing.T) { // STR-005 STR-006 STR-
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			server := testutil.NewStripeServer(t)
-			server.Status = tc.status
-			server.ErrorBody = tc.body
+			server.Configure(func(s *testutil.StripeServer) { s.Status = tc.status; s.ErrorBody = tc.body })
 			g := New("sk_test_fixture", Options{BackendURL: server.Server.URL, HTTPClient: server.Server.Client()})
 			require.NotNil(t, g, "missing SDK error classification")
 			e, err := g.Create(context.Background(), testutil.Intent().Operation.Snapshot)
@@ -53,7 +52,9 @@ func TestSTR004SDKTransport(t *testing.T) { // STR-004 STR-005
 	t.Run("blocked_headers_deadline", func(t *testing.T) {
 		s := testutil.NewStripeServer(t)
 		barrier := testutil.NewBarrier()
-		s.Before = func(ctx context.Context, _ testutil.Wire) { _ = barrier.Wait(ctx) }
+		s.Configure(func(s *testutil.StripeServer) {
+			s.Before = func(ctx context.Context, _ testutil.Wire) { _ = barrier.Wait(ctx) }
+		})
 		g := New("sk_test_fixture", Options{BackendURL: s.Server.URL, HTTPClient: s.Server.Client()})
 		require.NotNil(t, g, "missing cancellable SDK adapter")
 		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
@@ -73,7 +74,9 @@ func TestSTR004SDKTransport(t *testing.T) { // STR-004 STR-005
 	t.Run("earlier_parent_cancellation", func(t *testing.T) {
 		s := testutil.NewStripeServer(t)
 		barrier := testutil.NewBarrier()
-		s.Before = func(ctx context.Context, _ testutil.Wire) { _ = barrier.Wait(ctx) }
+		s.Configure(func(s *testutil.StripeServer) {
+			s.Before = func(ctx context.Context, _ testutil.Wire) { _ = barrier.Wait(ctx) }
+		})
 		g := New("sk_test_fixture", Options{BackendURL: s.Server.URL, HTTPClient: s.Server.Client()})
 		require.NotNil(t, g, "missing SDK parent cancellation")
 		ctx, cancel := context.WithCancel(context.Background())
@@ -100,7 +103,7 @@ func TestSTR004SDKTransport(t *testing.T) { // STR-004 STR-005
 	})
 	t.Run("reset_no_hidden_retry", func(t *testing.T) {
 		s := testutil.NewStripeServer(t)
-		s.Drop = true
+		s.Configure(func(s *testutil.StripeServer) { s.Drop = true })
 		g := New("sk_test_fixture", Options{BackendURL: s.Server.URL, HTTPClient: s.Server.Client()})
 		require.NotNil(t, g, "missing reset handling")
 		_, err := g.Create(context.Background(), testutil.Intent().Operation.Snapshot)
