@@ -27,6 +27,46 @@ func TestCheckoutEndpointRouting(t *testing.T) { // HTTP-005 SEC-001
 			}
 			if tc.status >= 400 {
 				require.Zero(t, f.Effects())
+				code := "method_not_allowed"
+				if tc.status == 404 {
+					code = "not_found"
+				}
+				if tc.status == 400 {
+					code = "invalid_request"
+				}
+				checkoutLocalError(t, w, code)
+			}
+		})
+	}
+}
+
+func TestCheckoutReadErrorHEADParity(t *testing.T) { // HTTP-004 HTTP-005
+	for _, tc := range []struct {
+		name, path, code string
+		status           int
+	}{
+		{"malformed_id", "/api/orders/bad", "invalid_request", 400},
+		{"bad_query", "/api/orders/11111111-1111-4111-8111-111111111111?unknown=1", "invalid_request", 400},
+		{"missing_order", "/api/orders/11111111-1111-4111-8111-111111111111", "not_found", 404},
+		{"unavailable_order", "/api/orders/11111111-1111-4111-8111-111111111111", "temporarily_unavailable", 503},
+		{"missing_history", "/api/orders/11111111-1111-4111-8111-111111111111/history", "not_found", 404},
+		{"unavailable_history", "/api/orders/11111111-1111-4111-8111-111111111111/history", "temporarily_unavailable", 503},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			f := preparedCheckout()
+			if tc.code != "invalid_request" {
+				f.Err = checkoutError(tc.code, f)
+			}
+			h, _ := checkoutHandler(t, f, 2*time.Second)
+			get := testutil.Response(t, h, testutil.Request("GET", tc.path, "", true))
+			head := testutil.Response(t, h, testutil.Request("HEAD", tc.path, "", true))
+			require.Equal(t, tc.status, get.Code)
+			require.Equal(t, get.Code, head.Code)
+			checkoutLocalError(t, get, tc.code)
+			checkoutHeaders(t, head)
+			require.Empty(t, head.Body.String())
+			for _, header := range []string{"Content-Type", "Cache-Control", "Allow", "Location", "Retry-After"} {
+				require.Equal(t, get.Header().Get(header), head.Header().Get(header))
 			}
 		})
 	}

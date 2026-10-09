@@ -8,36 +8,47 @@ import (
 	"github.com/filser89/stripe-payments-go/internal/testutil"
 	"github.com/stretchr/testify/require"
 	"net/http"
+	"net/http/httptest"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 )
 
 type checkoutFake struct {
-	Created   atomic.Int32
-	Continued atomic.Int32
-	Read      atomic.Int32
-	Histories atomic.Int32
-	Outcome   payment.Outcome
-	View      payment.View
-	Page      payment.HistoryPage
-	Err       error
-	Input     payment.CreateInput
-	After     int64
-	Limit     int
-	Before    func(context.Context)
+	mu          sync.Mutex
+	OrderID     string
+	ContinueKey string
+	Created     atomic.Int32
+	Continued   atomic.Int32
+	Read        atomic.Int32
+	Histories   atomic.Int32
+	Outcome     payment.Outcome
+	View        payment.View
+	Page        payment.HistoryPage
+	Err         error
+	Input       payment.CreateInput
+	After       int64
+	Limit       int
+	Before      func(context.Context)
 }
 
 func (f *checkoutFake) Create(ctx context.Context, in payment.CreateInput) (payment.Outcome, error) {
 	f.Created.Add(1)
+	f.mu.Lock()
 	f.Input = in
+	f.mu.Unlock()
 	if f.Before != nil {
 		f.Before(ctx)
 	}
 	return f.Outcome, f.Err
 }
-func (f *checkoutFake) Continue(ctx context.Context, _, _ string) (payment.Outcome, error) {
+func (f *checkoutFake) Continue(ctx context.Context, orderID, key string) (payment.Outcome, error) {
 	f.Continued.Add(1)
+	f.mu.Lock()
+	f.OrderID = orderID
+	f.ContinueKey = key
+	f.mu.Unlock()
 	if f.Before != nil {
 		f.Before(ctx)
 	}
@@ -52,8 +63,10 @@ func (f *checkoutFake) Get(ctx context.Context, _ string) (payment.View, error) 
 }
 func (f *checkoutFake) History(ctx context.Context, _ string, after int64, limit int) (payment.HistoryPage, error) {
 	f.Histories.Add(1)
+	f.mu.Lock()
 	f.After = after
 	f.Limit = limit
+	f.mu.Unlock()
 	if f.Before != nil {
 		f.Before(ctx)
 	}
@@ -89,12 +102,14 @@ type checkoutReadFault struct {
 	Data  []byte
 	Error error
 	Reads atomic.Int32
+	Bytes atomic.Int64
 }
 
 func (b *checkoutReadFault) Read(p []byte) (int, error) {
 	b.Reads.Add(1)
 	if len(b.Data) > 0 {
 		n := copy(p, b.Data)
+		b.Bytes.Add(int64(n))
 		b.Data = b.Data[n:]
 		return n, b.Error
 	}
@@ -103,4 +118,25 @@ func (b *checkoutReadFault) Read(p []byte) (int, error) {
 func (*checkoutReadFault) Close() error { return nil }
 func checkoutError(code string, f *checkoutFake) error {
 	return &payment.Error{Code: code, OrderID: f.Outcome.Order.ID, OperationID: f.Outcome.Operation.ID, Cause: errors.New("sensitive-sentinel")}
+}
+
+func checkoutHeaders(t *testing.T, w *httptest.ResponseRecorder) {
+	t.Helper()
+	require.Equal(t, "application/json; charset=utf-8", w.Header().Get("Content-Type"))
+	require.Equal(t, "no-store", w.Header().Get("Cache-Control"))
+	require.NotEmpty(t, w.Header().Get("X-Request-ID"))
+}
+func checkoutLocalError(t *testing.T, w *httptest.ResponseRecorder, code string) {
+	t.Helper()
+	checkoutHeaders(t, w)
+	v := testutil.JSON(t, w)
+	e, ok := v["error"].(map[string]any)
+	require.True(t, ok)
+	require.Equal(t, code, e["code"])
+	message, ok := e["message"].(string)
+	require.True(t, ok)
+	require.NotEmpty(t, message)
+	for _, sensitive := range []string{"read-sentinel", "sensitive-sentinel", "checkout-fixture-password", "sk_test_fixture"} {
+		require.NotContains(t, message, sensitive)
+	}
 }

@@ -28,6 +28,9 @@ func TestCheckoutContinuationResponses(t *testing.T) { // HTTP-002 HTTP-003 HTTP
 			require.Equal(t, tc.status, w.Code)
 			require.Zero(t, f.Created.Load())
 			require.EqualValues(t, 1, f.Continued.Load())
+			require.Equal(t, f.Outcome.Order.ID, f.OrderID)
+			require.Equal(t, "11111111-1111-4111-8111-111111111111", f.ContinueKey)
+			checkoutHeaders(t, w)
 			v := testutil.JSON(t, w)
 			if tc.status < 400 {
 				require.Equal(t, f.Outcome.Operation.ID, v["operation"].(map[string]any)["id"])

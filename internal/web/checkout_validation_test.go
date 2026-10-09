@@ -1,10 +1,13 @@
 package web
 
 import (
+	"encoding/json"
 	"errors"
+	"github.com/filser89/stripe-payments-go/internal/payment"
 	"github.com/filser89/stripe-payments-go/internal/testutil"
 	"github.com/stretchr/testify/require"
 	"io"
+	"strings"
 	"testing"
 	"time"
 )
@@ -113,12 +116,29 @@ func TestCheckoutValidation(t *testing.T) { // INP-001 INP-002 INP-003 INP-004 I
 			if tc.status >= 400 {
 				require.Zero(t, f.Effects())
 				if tc.method != "HEAD" {
-					require.Contains(t, w.Body.String(), `"error"`)
+					code := "invalid_request"
+					if tc.status == 413 {
+						code = "body_too_large"
+					}
+					if tc.status == 415 {
+						code = "unsupported_media_type"
+					}
+					checkoutLocalError(t, w, code)
 				}
 			} else {
 				require.EqualValues(t, 1, f.Effects())
 				if tc.method == "POST" {
-					require.Equal(t, "usd", f.Outcome.Order.Currency)
+					var expected payment.CreateInput
+					var raw struct {
+						Description string `json:"description"`
+						Amount      int64  `json:"amount"`
+						Key         string `json:"request_key"`
+					}
+					require.NoError(t, json.Unmarshal([]byte(tc.body), &raw))
+					expected.Description = raw.Description
+					expected.Amount = raw.Amount
+					expected.RequestKey = raw.Key
+					require.Equal(t, expected, f.Input)
 				}
 			}
 			if tc.method == "HEAD" {
@@ -150,6 +170,154 @@ func TestCheckoutReadFailures(t *testing.T) { // INP-004 INP-006
 				require.Zero(t, f.Effects())
 				require.NotContains(t, w.Body.String(), "read-sentinel")
 			}
+		})
+	}
+}
+
+func TestCheckoutContinuationValidation(t *testing.T) { // INP-003 INP-004 INP-005 HTTP-004
+	for _, tc := range []struct {
+		name, body, media, encoding string
+		status                      int
+	}{
+		{"valid", `{"request_key":"11111111-1111-4111-8111-111111111111"}`, "application/json", "", 201},
+		{"charset", `{"request_key":"11111111-1111-4111-8111-111111111111"}`, "application/json; charset=utf-8", "", 201},
+		{"trailing_whitespace", `{"request_key":"11111111-1111-4111-8111-111111111111"}` + " \n\t", "application/json", "", 201},
+		{"missing", `{}`, "application/json", "", 400},
+		{"short_key", `{"request_key":"short"}`, "application/json", "", 400},
+		{"empty_body", ``, "application/json", "", 400},
+		{"trailing_junk", `{"request_key":"11111111-1111-4111-8111-111111111111"} x`, "application/json", "", 400},
+		{"invalid_utf8", "{\"request_key\":\"\xff\"}", "application/json", "", 400},
+		{"null_key", `{"request_key":null}`, "application/json", "", 400},
+		{"empty_key", `{"request_key":""}`, "application/json", "", 400},
+		{"uppercase", `{"request_key":"ABCDEFAB-1111-4111-8111-111111111111"}`, "application/json", "", 400},
+		{"version", `{"request_key":"11111111-1111-5111-8111-111111111111"}`, "application/json", "", 400},
+		{"variant", `{"request_key":"11111111-1111-4111-7111-111111111111"}`, "application/json", "", 400},
+		{"unhyphenated", `{"request_key":"11111111111141118111111111111111"}`, "application/json", "", 400},
+		{"number", `{"request_key":42}`, "application/json", "", 400},
+		{"duplicate", `{"request_key":"11111111-1111-4111-8111-111111111111","request_key":"22222222-2222-4222-8222-222222222222"}`, "application/json", "", 400},
+		{"unknown", `{"request_key":"11111111-1111-4111-8111-111111111111","x":1}`, "application/json", "", 400},
+		{"array", `[]`, "application/json", "", 400},
+		{"null_object", `null`, "application/json", "", 400},
+		{"scalar", `1`, "application/json", "", 400},
+		{"second_object", `{"request_key":"11111111-1111-4111-8111-111111111111"} {}`, "application/json", "", 400},
+		{"partial", `{"request_key":"11111111-1111-4111-8111-111111111111"`, "application/json", "", 400},
+		{"media_missing", `{"request_key":"11111111-1111-4111-8111-111111111111"}`, "", "", 415},
+		{"media_wrong", `{"request_key":"11111111-1111-4111-8111-111111111111"}`, "text/plain", "", 415},
+		{"charset_wrong", `{"request_key":"11111111-1111-4111-8111-111111111111"}`, "application/json; charset=iso-8859-1", "", 415},
+		{"encoding", `{"request_key":"11111111-1111-4111-8111-111111111111"}`, "application/json", "gzip", 415},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			f := preparedCheckout()
+			h, _ := checkoutHandler(t, f, 2*time.Second)
+			r := testutil.Request("POST", "/api/orders/"+f.Outcome.Order.ID+"/checkout", tc.body, true)
+			r.Header.Set("Content-Type", tc.media)
+			r.Header.Set("Content-Encoding", tc.encoding)
+			w := testutil.Response(t, h, r)
+			require.Equal(t, tc.status, w.Code)
+			if tc.status >= 400 {
+				require.Zero(t, f.Effects())
+				code := "invalid_request"
+				if tc.status == 415 {
+					code = "unsupported_media_type"
+				}
+				checkoutLocalError(t, w, code)
+			} else {
+				require.EqualValues(t, 1, f.Continued.Load())
+				require.Equal(t, f.Outcome.Order.ID, f.OrderID)
+				require.Equal(t, "11111111-1111-4111-8111-111111111111", f.ContinueKey)
+			}
+		})
+	}
+}
+func TestCheckoutDuplicateFields(t *testing.T) { // INP-004 HTTP-004
+	for _, tc := range []struct{ name, body string }{
+		{"description", `{"description":"a","description":"b","amount":2500,"request_key":"11111111-1111-4111-8111-111111111111"}`},
+		{"request_key", `{"description":"a","amount":2500,"request_key":"11111111-1111-4111-8111-111111111111","request_key":"22222222-2222-4222-8222-222222222222"}`},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			f := preparedCheckout()
+			h, _ := checkoutHandler(t, f, 2*time.Second)
+			w := testutil.Response(t, h, testutil.Request("POST", "/api/orders", tc.body, true))
+			require.Equal(t, 400, w.Code)
+			checkoutLocalError(t, w, "invalid_request")
+			require.Zero(t, f.Effects())
+		})
+	}
+}
+func TestCheckoutCompleteJSONReadError(t *testing.T) { // INP-004 HTTP-004
+	for _, tc := range []struct{ name, path, body string }{
+		{"initial", "/api/orders", `{"description":"a","amount":2500,"request_key":"11111111-1111-4111-8111-111111111111"}`},
+		{"continuation", "/api/orders/11111111-1111-4111-8111-111111111111/checkout", `{"request_key":"11111111-1111-4111-8111-111111111111"}`},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			f := preparedCheckout()
+			h, _ := checkoutHandler(t, f, 2*time.Second)
+			r := testutil.Request("POST", tc.path, "", true)
+			r.Body = &checkoutReadFault{Data: []byte(tc.body), Error: errors.New("read-sentinel")}
+			r.ContentLength = -1
+			w := testutil.Response(t, h, r)
+			require.Equal(t, 400, w.Code)
+			checkoutLocalError(t, w, "invalid_request")
+			require.Zero(t, f.Effects())
+		})
+	}
+}
+func TestCheckoutUnknownLengthReadBodies(t *testing.T) { // INP-006 HTTP-004
+	for _, tc := range []struct {
+		name, method, data string
+		err                error
+		status             int
+	}{
+		{"get_empty", "GET", "", io.EOF, 200}, {"get_nonempty", "GET", "x", io.EOF, 400},
+		{"head_empty", "HEAD", "", io.EOF, 200}, {"head_nonempty", "HEAD", "x", io.EOF, 400},
+		{"head_read_error", "HEAD", "", errors.New("read-sentinel"), 400},
+		{"get_large_body", "GET", strings.Repeat("x", 1<<20), io.EOF, 400},
+		{"head_large_body", "HEAD", strings.Repeat("x", 1<<20), io.EOF, 400},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			f := preparedCheckout()
+			h, _ := checkoutHandler(t, f, 2*time.Second)
+			r := testutil.Request(tc.method, "/api/orders/"+f.View.Order.ID, "", true)
+			reader := &checkoutReadFault{Data: []byte(tc.data), Error: tc.err}
+			r.Body = reader
+			r.ContentLength = -1
+			w := testutil.Response(t, h, r)
+			require.Equal(t, tc.status, w.Code)
+			require.Greater(t, reader.Reads.Load(), int32(0))
+			require.LessOrEqual(t, reader.Bytes.Load(), int64(4097), "read endpoint detection must stay bounded regardless of submitted size")
+			if tc.status >= 400 {
+				require.Zero(t, f.Effects())
+				checkoutHeaders(t, w)
+				if tc.method == "GET" {
+					checkoutLocalError(t, w, "invalid_request")
+				}
+			} else {
+				require.EqualValues(t, 1, f.Read.Load())
+			}
+			if tc.method == "HEAD" {
+				require.Empty(t, w.Body.String())
+			}
+		})
+	}
+}
+
+func TestCheckoutContinuationReadFailures(t *testing.T) { // INP-004 INP-005 HTTP-004
+	for _, tc := range []struct {
+		name, data string
+		err        error
+	}{
+		{"zero_read_error", "", errors.New("read-sentinel")}, {"partial_read_error", `{"request_key":"11111111-1111`, errors.New("read-sentinel")}, {"zero_normal_eof", "", io.EOF},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			f := preparedCheckout()
+			h, _ := checkoutHandler(t, f, 2*time.Second)
+			r := testutil.Request("POST", "/api/orders/"+f.Outcome.Order.ID+"/checkout", "", true)
+			r.Body = &checkoutReadFault{Data: []byte(tc.data), Error: tc.err}
+			r.ContentLength = -1
+			w := testutil.Response(t, h, r)
+			require.Equal(t, 400, w.Code)
+			require.Zero(t, f.Effects())
+			checkoutLocalError(t, w, "invalid_request")
 		})
 	}
 }

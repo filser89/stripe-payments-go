@@ -5,6 +5,8 @@ import (
 	"github.com/filser89/stripe-payments-go/internal/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 )
@@ -28,8 +30,19 @@ func TestCheckoutAmountConfiguration(t *testing.T) { // CFG-001
 		c, e := checkoutConfiguration(t, map[string]string{"PAYMENT_MIN_AMOUNT": tc.min, "PAYMENT_MAX_AMOUNT": tc.max})
 		assert.NoError(t, e)
 		assert.NoError(t, c.ValidateServing())
-		assert.NotZero(t, c.CheckoutSettings().MinAmount)
+		min, err := strconv.ParseInt(tc.min, 10, 64)
+		require.NoError(t, err)
+		max, err := strconv.ParseInt(tc.max, 10, 64)
+		require.NoError(t, err)
+		assert.Equal(t, min, c.CheckoutSettings().MinAmount)
+		assert.Equal(t, max, c.CheckoutSettings().MaxAmount)
+		assert.Equal(t, "usd", c.CheckoutSettings().Currency)
 	}
+	c, e := checkoutConfiguration(t, map[string]string{"PAYMENT_MIN_AMOUNT": "1000", "PAYMENT_MAX_AMOUNT": "500"})
+	if e == nil {
+		e = c.ValidateServing()
+	}
+	require.Error(t, e, "reversed limits")
 	for _, tc := range []struct{ key, value string }{{"PAYMENT_CURRENCY", "USD"}, {"PAYMENT_CURRENCY", "eur"}, {"PAYMENT_MIN_AMOUNT", "49"}, {"PAYMENT_MAX_AMOUNT", "100001"}, {"PAYMENT_MIN_AMOUNT", "0x32"}, {"PAYMENT_MAX_AMOUNT", "1e5"}, {"PAYMENT_MIN_AMOUNT", "50.0"}, {"PAYMENT_MAX_AMOUNT", "9223372036854775808"}, {"PAYMENT_MIN_AMOUNT", " 50"}, {"PAYMENT_MIN_AMOUNT", "100001"}, {"PAYMENT_MAX_AMOUNT", "49"}} {
 		c, e := checkoutConfiguration(t, map[string]string{tc.key: tc.value})
 		if e == nil {
@@ -51,7 +64,7 @@ func TestCheckoutSandboxOriginConfiguration(t *testing.T) { // CFG-002
 		c, e := checkoutConfiguration(t, map[string]string{"APP_BASE_URL": origin})
 		assert.NoError(t, e)
 		assert.NoError(t, c.ValidateServing())
-		assert.NotEmpty(t, c.CheckoutSettings().BaseURL)
+		assert.Equal(t, strings.TrimSuffix(origin, "/"), strings.TrimSuffix(c.CheckoutSettings().BaseURL, "/"), "effective origin must preserve host and port")
 	}
 	for _, key := range []string{"", "sk_test_", "sk_live_fixture", "rk_test_fixture", " sk_test_fixture", "sk_test_fixture ", "sk_test_\u0085"} {
 		c, e := checkoutConfiguration(t, map[string]string{"STRIPE_SECRET_KEY": key})
@@ -67,6 +80,14 @@ func TestCheckoutSandboxOriginConfiguration(t *testing.T) { // CFG-002
 		}
 		assert.Error(t, e, origin)
 	}
+	missing, missingErr := checkoutConfiguration(t, map[string]string{"APP_BASE_URL": ""})
+	require.NoError(t, missingErr)
+	require.NoError(t, missing.ValidateServing())
+	require.Equal(t, "http://localhost:8080", missing.CheckoutSettings().BaseURL)
+	custom, customErr := checkoutConfiguration(t, map[string]string{"STRIPE_SECRET_KEY": "sk_test_custom_fixture"})
+	require.NoError(t, customErr)
+	require.NoError(t, custom.ValidateServing())
+	require.Equal(t, "sk_test_custom_fixture", custom.CheckoutSettings().SecretKey)
 	env := testutil.Environment("postgres://fixture:fixture@localhost/fixture", "localhost:8080")
 	captured, e := config.Load(func(k string) string { return env[k] })
 	require.NoError(t, e)
@@ -99,7 +120,21 @@ func TestCheckoutBudgetConfiguration(t *testing.T) { // CFG-003
 		c, e := checkoutConfiguration(t, changes)
 		assert.NoError(t, e)
 		assert.NoError(t, c.ValidateServing())
-		assert.NotZero(t, c.CheckoutSettings().RequestTimeout)
+		expected := s
+		for key, value := range changes {
+			switch key {
+			case "CHECKOUT_REQUEST_TIMEOUT":
+				expected.RequestTimeout, e = time.ParseDuration(value)
+			case "STRIPE_CALL_TIMEOUT":
+				expected.CallTimeout, e = time.ParseDuration(value)
+			case "STRIPE_RETRY_BUDGET":
+				expected.RetryBudget, e = time.ParseDuration(value)
+			case "STRIPE_MAX_ATTEMPTS":
+				expected.MaxAttempts, e = strconv.Atoi(value)
+			}
+			require.NoError(t, e)
+		}
+		assert.Equal(t, expected, c.CheckoutSettings())
 	}
 	for _, tc := range []struct{ key, value string }{{"CHECKOUT_REQUEST_TIMEOUT", "1.999s"}, {"CHECKOUT_REQUEST_TIMEOUT", "10.001s"}, {"CHECKOUT_REQUEST_TIMEOUT", "invalid"}, {"STRIPE_CALL_TIMEOUT", "99ms"}, {"STRIPE_CALL_TIMEOUT", "2001ms"}, {"STRIPE_CALL_TIMEOUT", "invalid"}, {"STRIPE_RETRY_BUDGET", "499ms"}, {"STRIPE_RETRY_BUDGET", "7001ms"}, {"STRIPE_RETRY_BUDGET", "invalid"}, {"STRIPE_MAX_ATTEMPTS", "0"}, {"STRIPE_MAX_ATTEMPTS", "4"}, {"STRIPE_MAX_ATTEMPTS", "1.5"}, {"HTTP_READ_TIMEOUT", "10s"}, {"HTTP_WRITE_TIMEOUT", "10s"}} {
 		c, e := checkoutConfiguration(t, map[string]string{tc.key: tc.value})
