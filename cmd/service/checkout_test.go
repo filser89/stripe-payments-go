@@ -203,9 +203,10 @@ func commandCheckoutRequest(t *testing.T, address, method, path, body, credentia
 	r, err := http.NewRequestWithContext(ctx, method, address+path, strings.NewReader(body))
 	require.NoError(t, err)
 	r.Header.Set("Content-Type", "application/json")
-	if credential == "valid" {
+	switch credential {
+	case "valid":
 		r.SetBasicAuth(commandUser, commandPassword)
-	} else if credential == "wrong" {
+	case "wrong":
 		r.SetBasicAuth(commandUser, "wrong")
 	}
 	response, err := http.DefaultClient.Do(r)

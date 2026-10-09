@@ -75,7 +75,7 @@
       "source": {
         "kind": "function",
         "start_offset": 13267,
-        "end_offset": 20000
+        "end_offset": 20036
       }
     },
     {
@@ -167,8 +167,8 @@
       "id": "github.com/filser89/stripe-payments-go/internal/integration::TestConnectedCheckoutRecovery",
       "full_description": "TestConnectedCheckoutRecovery",
       "file_path": "internal/integration/checkout_recovery_test.go",
-      "line_number": 18,
-      "digest": "2af0348c59a3d0c0b145deabeb8acc7f948281404c234df31b680ddf0a70deb7",
+      "line_number": 21,
+      "digest": "c7db9bc8f1265246ece621b25ff971a3acf18a2b0fbd1afb9484032adc284992",
       "package": "github.com/filser89/stripe-payments-go/internal/integration",
       "test_name": "TestConnectedCheckoutRecovery",
       "parent_id": "",
@@ -176,8 +176,8 @@
       "is_group": true,
       "source": {
         "kind": "function",
-        "start_offset": 374,
-        "end_offset": 6383
+        "start_offset": 427,
+        "end_offset": 6436
       }
     },
     {
@@ -446,8 +446,8 @@
       "id": "github.com/filser89/stripe-payments-go/internal/integration::TestFailedDispatchCommitSendsNoWire",
       "full_description": "TestFailedDispatchCommitSendsNoWire",
       "file_path": "internal/integration/checkout_recovery_test.go",
-      "line_number": 377,
-      "digest": "ae02b1fffd765b9f64927667894391c0f839d92a87edb5c33e6b96272babad20",
+      "line_number": 393,
+      "digest": "ded5e03815c07601a4fd026d7284359c3b668f2339886b75298d170a0ccc1523",
       "package": "github.com/filser89/stripe-payments-go/internal/integration",
       "test_name": "TestFailedDispatchCommitSendsNoWire",
       "parent_id": "",
@@ -455,8 +455,8 @@
       "is_group": true,
       "source": {
         "kind": "function",
-        "start_offset": 15168,
-        "end_offset": 16515
+        "start_offset": 15837,
+        "end_offset": 17184
       }
     },
     {
@@ -472,16 +472,16 @@
       "is_group": true,
       "source": {
         "kind": "function",
-        "start_offset": 20038,
-        "end_offset": 24745
+        "start_offset": 20074,
+        "end_offset": 24781
       }
     },
     {
       "id": "github.com/filser89/stripe-payments-go/internal/integration::TestRecoveryWithOptionalSupplementalStripeRequestIDs",
       "full_description": "TestRecoveryWithOptionalSupplementalStripeRequestIDs",
       "file_path": "internal/integration/checkout_recovery_test.go",
-      "line_number": 336,
-      "digest": "6b5e7c6d692d797714deea2fed6777ae21e55062032af2ebfb196ef862fb94ce",
+      "line_number": 352,
+      "digest": "498a6464f05c64fed3d80afd615be1b7893ab4ee460d4e4a59c573ea03397149",
       "package": "github.com/filser89/stripe-payments-go/internal/integration",
       "test_name": "TestRecoveryWithOptionalSupplementalStripeRequestIDs",
       "parent_id": "",
@@ -489,8 +489,8 @@
       "is_group": true,
       "source": {
         "kind": "function",
-        "start_offset": 13779,
-        "end_offset": 15146
+        "start_offset": 14448,
+        "end_offset": 15815
       }
     },
     {
@@ -1809,9 +1809,9 @@
     }
   ],
   "metadata": {
-    "captured_at": "2026-10-09T15:20:12Z",
-    "branch": "002-02-order-and-checkout",
-    "commit": "9f1a138",
+    "captured_at": "2026-10-09T16:24:12Z",
+    "branch": "002-checkout-frozen-hygiene",
+    "commit": "e255850",
     "feature": "002-02-order-and-checkout",
     "name": "post-test"
   },
@@ -1875,7 +1875,7 @@
       "full_description": "TestCheckoutCommandWiring",
       "file_path": "cmd/service/checkout_test.go",
       "line_number": 90,
-      "digest": "5c779fff07195ea8cbb18e2b4981350904791df347cfbeffb13864b3e9a90fbc",
+      "digest": "c23346f780fb0e5ed8055cc72be112a5b710ec3453d534e04fdd6be224d5158e",
       "package": "github.com/filser89/stripe-payments-go/cmd/service",
       "test_name": "TestCheckoutCommandWiring",
       "parent_id": "",
@@ -1892,8 +1892,8 @@
       "id": "github.com/filser89/stripe-payments-go/cmd/service::TestCheckoutCustomCallBudgetAndAttempts",
       "full_description": "TestCheckoutCustomCallBudgetAndAttempts",
       "file_path": "cmd/service/checkout_test.go",
-      "line_number": 219,
-      "digest": "1b1ade67e33ef7e862d33a19a3df1311ded3f501bc356fa5dc020be1efe146cb",
+      "line_number": 220,
+      "digest": "554ccc8edcfb227500b9f3218a22eedacd8a765330adb2555d027d88b08a2186",
       "package": "github.com/filser89/stripe-payments-go/cmd/service",
       "test_name": "TestCheckoutCustomCallBudgetAndAttempts",
       "parent_id": "",
@@ -1901,8 +1901,8 @@
       "is_group": false,
       "source": {
         "kind": "function",
-        "start_offset": 9713,
-        "end_offset": 11570
+        "start_offset": 9701,
+        "end_offset": 11558
       },
       "status": "failed"
     },
@@ -2588,7 +2588,7 @@
       "full_description": "TestActualCheckoutServerShutdown/checkout_completes_during_grace",
       "file_path": "internal/integration/checkout_deadlines_test.go",
       "line_number": 371,
-      "digest": "94481f22976d1d863400dcec65acbce6e1952f67fdee457bd3966e48aa08cfdb",
+      "digest": "3891aabc1ee696e1c81666877660fb6bf0a98214f03c500d7427ce972a4a5b83",
       "package": "github.com/filser89/stripe-payments-go/internal/integration",
       "test_name": "TestActualCheckoutServerShutdown/checkout_completes_during_grace",
       "parent_id": "github.com/filser89/stripe-payments-go/internal/integration::TestActualCheckoutServerShutdown",
@@ -2607,7 +2607,7 @@
       "full_description": "TestActualCheckoutServerShutdown/overdue_body_canceled",
       "file_path": "internal/integration/checkout_deadlines_test.go",
       "line_number": 372,
-      "digest": "08d1b63d4fd192394496be585c83fd2a91517cada2542cb17325a4031bfae157",
+      "digest": "b250c969a9704c8fa1660b4564b35c2f7c6d496d2e1f44a5b81701e46eb93a22",
       "package": "github.com/filser89/stripe-payments-go/internal/integration",
       "test_name": "TestActualCheckoutServerShutdown/overdue_body_canceled",
       "parent_id": "github.com/filser89/stripe-payments-go/internal/integration::TestActualCheckoutServerShutdown",
@@ -2626,7 +2626,7 @@
       "full_description": "TestActualCheckoutServerShutdown/overdue_database_canceled",
       "file_path": "internal/integration/checkout_deadlines_test.go",
       "line_number": 372,
-      "digest": "74c9ac2bb7a6d1eb8cdb535313f9a9f17c9f43871f796c1f4c7ef9f547a7bad2",
+      "digest": "17776c317c1192bee753add0bbda4625302dcb25b54042257cbeaf926e08f384",
       "package": "github.com/filser89/stripe-payments-go/internal/integration",
       "test_name": "TestActualCheckoutServerShutdown/overdue_database_canceled",
       "parent_id": "github.com/filser89/stripe-payments-go/internal/integration::TestActualCheckoutServerShutdown",
@@ -2645,7 +2645,7 @@
       "full_description": "TestActualCheckoutServerShutdown/overdue_stripe_canceled",
       "file_path": "internal/integration/checkout_deadlines_test.go",
       "line_number": 371,
-      "digest": "ebd1c648c130d4026bf615116f3551a6acd6db7300bc375727ac951ac64d9140",
+      "digest": "ad9218ea97dbfd59956b59bf1d786ac187e0cf2be08d1b35c960ef109dd2f9a5",
       "package": "github.com/filser89/stripe-payments-go/internal/integration",
       "test_name": "TestActualCheckoutServerShutdown/overdue_stripe_canceled",
       "parent_id": "github.com/filser89/stripe-payments-go/internal/integration::TestActualCheckoutServerShutdown",
@@ -2663,8 +2663,8 @@
       "id": "github.com/filser89/stripe-payments-go/internal/integration::TestCallerResponseLossAfterCommittedCheckout",
       "full_description": "TestCallerResponseLossAfterCommittedCheckout",
       "file_path": "internal/integration/checkout_recovery_test.go",
-      "line_number": 172,
-      "digest": "6d1c7747c3174f257e3218e81bef037a7c15dbb4ee2d75cb5f0af86997e1fbe3",
+      "line_number": 175,
+      "digest": "f43b2db298d8f9df1ddb4111ba5ec8a06f84fd735bee2e10d0024d08a50e0726",
       "package": "github.com/filser89/stripe-payments-go/internal/integration",
       "test_name": "TestCallerResponseLossAfterCommittedCheckout",
       "parent_id": "",
@@ -2672,8 +2672,8 @@
       "is_group": false,
       "source": {
         "kind": "function",
-        "start_offset": 6968,
-        "end_offset": 9338
+        "start_offset": 7021,
+        "end_offset": 9391
       },
       "status": "failed"
     },
@@ -2739,7 +2739,7 @@
       "full_description": "TestConnectedActualRetryHeadersAndWaitCancellation/cancel_during_real_wait",
       "file_path": "internal/integration/checkout_deadlines_test.go",
       "line_number": 318,
-      "digest": "3b500b73f7c535f13a8bcc589cf349c2b2c05d72f4f473ba0820436fe3adefb3",
+      "digest": "540f0e43bb2c00ae884ec207fe9bdac7873a941bf8c01bc0383f3a796402542f",
       "package": "github.com/filser89/stripe-payments-go/internal/integration",
       "test_name": "TestConnectedActualRetryHeadersAndWaitCancellation/cancel_during_real_wait",
       "parent_id": "github.com/filser89/stripe-payments-go/internal/integration::TestConnectedActualRetryHeadersAndWaitCancellation",
@@ -2851,7 +2851,7 @@
       "full_description": "TestConnectedCheckoutBudgetsAndShutdown/blocked_wire_caller_cancel_joins_and_retains_identity",
       "file_path": "internal/integration/checkout_deadlines_test.go",
       "line_number": 63,
-      "digest": "e3577a2a2af916087b648704bc691190dadf44745206bfb8185acf4597e2cc8b",
+      "digest": "dc022062a5309656dcfba7d6971b6f145c5eaeadf02af528709c4ab4fdcc10fa",
       "package": "github.com/filser89/stripe-payments-go/internal/integration",
       "test_name": "TestConnectedCheckoutBudgetsAndShutdown/blocked_wire_caller_cancel_joins_and_retains_identity",
       "parent_id": "github.com/filser89/stripe-payments-go/internal/integration::TestConnectedCheckoutBudgetsAndShutdown",
@@ -3074,8 +3074,8 @@
       "id": "github.com/filser89/stripe-payments-go/internal/integration::TestConnectedCheckoutRecovery/acceptance_failure_sends_nothing",
       "full_description": "TestConnectedCheckoutRecovery/acceptance_failure_sends_nothing",
       "file_path": "internal/integration/checkout_recovery_test.go",
-      "line_number": 57,
-      "digest": "4f90695b5b253b0b2352eb23328f7201febab51297cd98918448f35d20f4ea5d",
+      "line_number": 60,
+      "digest": "0b118757a714746af2027d0cc68ebdaf4862e94ca87f98e08cc5c5f1c1282d5d",
       "package": "github.com/filser89/stripe-payments-go/internal/integration",
       "test_name": "TestConnectedCheckoutRecovery/acceptance_failure_sends_nothing",
       "parent_id": "github.com/filser89/stripe-payments-go/internal/integration::TestConnectedCheckoutRecovery",
@@ -3083,8 +3083,8 @@
       "is_group": false,
       "source": {
         "kind": "subtest",
-        "start_offset": 2366,
-        "end_offset": 2874
+        "start_offset": 2419,
+        "end_offset": 2927
       },
       "status": "failed"
     },
@@ -3092,8 +3092,8 @@
       "id": "github.com/filser89/stripe-payments-go/internal/integration::TestConnectedCheckoutRecovery/old_creation_refuses_post_at_safe_boundary",
       "full_description": "TestConnectedCheckoutRecovery/old_creation_refuses_post_at_safe_boundary",
       "file_path": "internal/integration/checkout_recovery_test.go",
-      "line_number": 129,
-      "digest": "677f7688239978fb5a8f0e977831f2cc681dc9dc403bac717bd6863a7a2ecccd",
+      "line_number": 132,
+      "digest": "b4050ebbfb7747d32ec2f0900eca034677659a7a2d00da325da1e16f499a20bf",
       "package": "github.com/filser89/stripe-payments-go/internal/integration",
       "test_name": "TestConnectedCheckoutRecovery/old_creation_refuses_post_at_safe_boundary",
       "parent_id": "github.com/filser89/stripe-payments-go/internal/integration::TestConnectedCheckoutRecovery",
@@ -3101,8 +3101,8 @@
       "is_group": false,
       "source": {
         "kind": "subtest",
-        "start_offset": 5518,
-        "end_offset": 6381
+        "start_offset": 5571,
+        "end_offset": 6434
       },
       "status": "failed"
     },
@@ -3110,8 +3110,8 @@
       "id": "github.com/filser89/stripe-payments-go/internal/integration::TestConnectedCheckoutRecovery/response_lost_restart_reuses_snapshot",
       "full_description": "TestConnectedCheckoutRecovery/response_lost_restart_reuses_snapshot",
       "file_path": "internal/integration/checkout_recovery_test.go",
-      "line_number": 19,
-      "digest": "66eadbd59aa639b4b09f2a3a870fbdb5ea5c2700183c55d2c441062cc7ea8024",
+      "line_number": 22,
+      "digest": "e44704699a8e717a612a6dc7398cd7affd0b80fb8a263d29a2a0c081c3063f08",
       "package": "github.com/filser89/stripe-payments-go/internal/integration",
       "test_name": "TestConnectedCheckoutRecovery/response_lost_restart_reuses_snapshot",
       "parent_id": "github.com/filser89/stripe-payments-go/internal/integration::TestConnectedCheckoutRecovery",
@@ -3119,8 +3119,8 @@
       "is_group": false,
       "source": {
         "kind": "subtest",
-        "start_offset": 551,
-        "end_offset": 2364
+        "start_offset": 604,
+        "end_offset": 2417
       },
       "status": "failed"
     },
@@ -3128,8 +3128,8 @@
       "id": "github.com/filser89/stripe-payments-go/internal/integration::TestConnectedCheckoutRecovery/success_before_result_commit_failure_then_restart",
       "full_description": "TestConnectedCheckoutRecovery/success_before_result_commit_failure_then_restart",
       "file_path": "internal/integration/checkout_recovery_test.go",
-      "line_number": 67,
-      "digest": "ebb606c6b2a0c4163824371c4cf3885d9c6bd718bbcbc7da5c1c13e8a5e14ec1",
+      "line_number": 70,
+      "digest": "806ce572ccffe99034b44f3be72681569921c790171102f4236f183918a3fa01",
       "package": "github.com/filser89/stripe-payments-go/internal/integration",
       "test_name": "TestConnectedCheckoutRecovery/success_before_result_commit_failure_then_restart",
       "parent_id": "github.com/filser89/stripe-payments-go/internal/integration::TestConnectedCheckoutRecovery",
@@ -3137,8 +3137,8 @@
       "is_group": false,
       "source": {
         "kind": "subtest",
-        "start_offset": 2876,
-        "end_offset": 5516
+        "start_offset": 2929,
+        "end_offset": 5569
       },
       "status": "failed"
     },
@@ -3222,7 +3222,7 @@
       "full_description": "TestConnectedDelayedWireCannotOverwritePaidOrOwner/owner_failure",
       "file_path": "internal/integration/checkout_concurrency_test.go",
       "line_number": 163,
-      "digest": "2907206c137e224ed4be168149cca5891ab70c8dfd29ec13be60368c8a4b2097",
+      "digest": "931dc4f4b5c380b5e9d3d5f664af798224a564ee989440440c7932900cfd9648",
       "package": "github.com/filser89/stripe-payments-go/internal/integration",
       "test_name": "TestConnectedDelayedWireCannotOverwritePaidOrOwner/owner_failure",
       "parent_id": "github.com/filser89/stripe-payments-go/internal/integration::TestConnectedDelayedWireCannotOverwritePaidOrOwner",
@@ -3241,7 +3241,7 @@
       "full_description": "TestConnectedDelayedWireCannotOverwritePaidOrOwner/owner_success",
       "file_path": "internal/integration/checkout_concurrency_test.go",
       "line_number": 161,
-      "digest": "bd0496c351d3d43290eb3d0cdacd0edbffa84c26ebb0866df0af65524baa7acd",
+      "digest": "2109fbbc782ee8d3a8970552699709bdee2a332f0d50d4eda231b085104037b3",
       "package": "github.com/filser89/stripe-payments-go/internal/integration",
       "test_name": "TestConnectedDelayedWireCannotOverwritePaidOrOwner/owner_success",
       "parent_id": "github.com/filser89/stripe-payments-go/internal/integration::TestConnectedDelayedWireCannotOverwritePaidOrOwner",
@@ -3260,7 +3260,7 @@
       "full_description": "TestConnectedDelayedWireCannotOverwritePaidOrOwner/paid_failure",
       "file_path": "internal/integration/checkout_concurrency_test.go",
       "line_number": 162,
-      "digest": "eba2a0c2c5d2e5e62b7ed1f648ac61bc500e552a7c13133aa70d4ee0327ccc4e",
+      "digest": "a6309a7cbf2aaf956960da2474de8c0c65d1e5e3953d7e6fc27d0605ae145819",
       "package": "github.com/filser89/stripe-payments-go/internal/integration",
       "test_name": "TestConnectedDelayedWireCannotOverwritePaidOrOwner/paid_failure",
       "parent_id": "github.com/filser89/stripe-payments-go/internal/integration::TestConnectedDelayedWireCannotOverwritePaidOrOwner",
@@ -3279,7 +3279,7 @@
       "full_description": "TestConnectedDelayedWireCannotOverwritePaidOrOwner/paid_success",
       "file_path": "internal/integration/checkout_concurrency_test.go",
       "line_number": 160,
-      "digest": "147244c2d40e5b8301e1b7f45eb6d242f6c0cb97bb3bbbc78c50ddad79151a91",
+      "digest": "3b1a39de2c073cdd008b870e9785f822fa04ce2c092bfe53fd411706143b1c17",
       "package": "github.com/filser89/stripe-payments-go/internal/integration",
       "test_name": "TestConnectedDelayedWireCannotOverwritePaidOrOwner/paid_success",
       "parent_id": "github.com/filser89/stripe-payments-go/internal/integration::TestConnectedDelayedWireCannotOverwritePaidOrOwner",
@@ -4182,8 +4182,8 @@
       "id": "github.com/filser89/stripe-payments-go/internal/integration::TestDurableDispatchMarkerWithoutWireRecoversAfterRestart",
       "full_description": "TestDurableDispatchMarkerWithoutWireRecoversAfterRestart",
       "file_path": "internal/integration/checkout_recovery_test.go",
-      "line_number": 230,
-      "digest": "ee47fd7c856c63e682a9b2f73a96eaff321cf19a89ceb558fe9d231a02734991",
+      "line_number": 233,
+      "digest": "ca0a2ebb1adb2ea2cedfd420ce9893934d20b94e253494cf00287cc22dd96c34",
       "package": "github.com/filser89/stripe-payments-go/internal/integration",
       "test_name": "TestDurableDispatchMarkerWithoutWireRecoversAfterRestart",
       "parent_id": "",
@@ -4191,8 +4191,8 @@
       "is_group": false,
       "source": {
         "kind": "function",
-        "start_offset": 9367,
-        "end_offset": 11351
+        "start_offset": 9420,
+        "end_offset": 11404
       },
       "status": "failed"
     },
@@ -4200,8 +4200,8 @@
       "id": "github.com/filser89/stripe-payments-go/internal/integration::TestFailedDispatchCommitSendsNoWire/history_commit",
       "full_description": "TestFailedDispatchCommitSendsNoWire/history_commit",
       "file_path": "internal/integration/checkout_recovery_test.go",
-      "line_number": 381,
-      "digest": "36da8d03769f2fb8e3973c295cf43399ebc62c51a19228bafcaaece9da9a88f9",
+      "line_number": 397,
+      "digest": "44249c1c5942e068d937568b8ca9616821797be91c4e4ff7c17e7bcddf53cfbb",
       "package": "github.com/filser89/stripe-payments-go/internal/integration",
       "test_name": "TestFailedDispatchCommitSendsNoWire/history_commit",
       "parent_id": "github.com/filser89/stripe-payments-go/internal/integration::TestFailedDispatchCommitSendsNoWire",
@@ -4209,8 +4209,8 @@
       "is_group": false,
       "source": {
         "kind": "table-row",
-        "start_offset": 15315,
-        "end_offset": 15339,
+        "start_offset": 15984,
+        "end_offset": 16008,
         "row_index": 1
       },
       "status": "failed"
@@ -4219,8 +4219,8 @@
       "id": "github.com/filser89/stripe-payments-go/internal/integration::TestFailedDispatchCommitSendsNoWire/history_write",
       "full_description": "TestFailedDispatchCommitSendsNoWire/history_write",
       "file_path": "internal/integration/checkout_recovery_test.go",
-      "line_number": 381,
-      "digest": "516d5c6458e50affdf8d68e8bd65feff9dcca56572111ee0a7ea3e0a18734137",
+      "line_number": 397,
+      "digest": "41a431ede28a4b6d601ec7d5a1889f9fc289f4bb1b1ab94c3677c942364dfdfb",
       "package": "github.com/filser89/stripe-payments-go/internal/integration",
       "test_name": "TestFailedDispatchCommitSendsNoWire/history_write",
       "parent_id": "github.com/filser89/stripe-payments-go/internal/integration::TestFailedDispatchCommitSendsNoWire",
@@ -4228,8 +4228,8 @@
       "is_group": false,
       "source": {
         "kind": "table-row",
-        "start_offset": 15289,
-        "end_offset": 15313,
+        "start_offset": 15958,
+        "end_offset": 15982,
         "row_index": 0
       },
       "status": "failed"
@@ -4247,8 +4247,8 @@
       "is_group": false,
       "source": {
         "kind": "table-row",
-        "start_offset": 20262,
-        "end_offset": 20324,
+        "start_offset": 20298,
+        "end_offset": 20360,
         "row_index": 1
       },
       "status": "failed"
@@ -4266,8 +4266,8 @@
       "is_group": false,
       "source": {
         "kind": "table-row",
-        "start_offset": 20208,
-        "end_offset": 20260,
+        "start_offset": 20244,
+        "end_offset": 20296,
         "row_index": 0
       },
       "status": "failed"
@@ -4303,8 +4303,8 @@
       "is_group": false,
       "source": {
         "kind": "function",
-        "start_offset": 24774,
-        "end_offset": 26626
+        "start_offset": 24810,
+        "end_offset": 26662
       },
       "status": "failed"
     },
@@ -4312,8 +4312,8 @@
       "id": "github.com/filser89/stripe-payments-go/internal/integration::TestRecoveryWithOptionalSupplementalStripeRequestIDs/request_id_absent",
       "full_description": "TestRecoveryWithOptionalSupplementalStripeRequestIDs/request_id_absent",
       "file_path": "internal/integration/checkout_recovery_test.go",
-      "line_number": 340,
-      "digest": "78d61b972339511ddc97fcc51ec23c0e289f63e41fb5ffd4dfd4e700cba6110a",
+      "line_number": 356,
+      "digest": "e918e9b81fdd36bc8adcde5b72ea1dee15f7d3295b695bb6b7e593a795f39e46",
       "package": "github.com/filser89/stripe-payments-go/internal/integration",
       "test_name": "TestRecoveryWithOptionalSupplementalStripeRequestIDs/request_id_absent",
       "parent_id": "github.com/filser89/stripe-payments-go/internal/integration::TestRecoveryWithOptionalSupplementalStripeRequestIDs",
@@ -4321,8 +4321,8 @@
       "is_group": false,
       "source": {
         "kind": "table-row",
-        "start_offset": 13913,
-        "end_offset": 13940,
+        "start_offset": 14582,
+        "end_offset": 14609,
         "row_index": 0
       },
       "status": "failed"
@@ -4331,8 +4331,8 @@
       "id": "github.com/filser89/stripe-payments-go/internal/integration::TestRecoveryWithOptionalSupplementalStripeRequestIDs/request_id_present",
       "full_description": "TestRecoveryWithOptionalSupplementalStripeRequestIDs/request_id_present",
       "file_path": "internal/integration/checkout_recovery_test.go",
-      "line_number": 340,
-      "digest": "e0e2de4fa7e51d5c7b83d543bed6703e13cf32b2e39e2d02f7c29b78b72845ef",
+      "line_number": 356,
+      "digest": "94e483a5c116c6cfbc773b5f43e5e9af944f2f39602759323837c47426f161f0",
       "package": "github.com/filser89/stripe-payments-go/internal/integration",
       "test_name": "TestRecoveryWithOptionalSupplementalStripeRequestIDs/request_id_present",
       "parent_id": "github.com/filser89/stripe-payments-go/internal/integration::TestRecoveryWithOptionalSupplementalStripeRequestIDs",
@@ -4340,8 +4340,8 @@
       "is_group": false,
       "source": {
         "kind": "table-row",
-        "start_offset": 13942,
-        "end_offset": 13971,
+        "start_offset": 14611,
+        "end_offset": 14640,
         "row_index": 1
       },
       "status": "failed"
@@ -4350,8 +4350,8 @@
       "id": "github.com/filser89/stripe-payments-go/internal/integration::TestResultAndReadUnavailableReturnKnownIdentity",
       "full_description": "TestResultAndReadUnavailableReturnKnownIdentity",
       "file_path": "internal/integration/checkout_recovery_test.go",
-      "line_number": 284,
-      "digest": "fee3034a647fd8d059fde4b9246ae7b9202bf6670fbf2f4260524064fa353202",
+      "line_number": 287,
+      "digest": "9b736a69f0f5882d0ebb2f19c7c4b0f6655c78cf0dae10c1e7a836621ce83ac8",
       "package": "github.com/filser89/stripe-payments-go/internal/integration",
       "test_name": "TestResultAndReadUnavailableReturnKnownIdentity",
       "parent_id": "",
@@ -4359,8 +4359,8 @@
       "is_group": false,
       "source": {
         "kind": "function",
-        "start_offset": 11732,
-        "end_offset": 13758
+        "start_offset": 11785,
+        "end_offset": 14427
       },
       "status": "failed"
     },
@@ -14244,7 +14244,7 @@
     },
     {
       "path": "cmd/service/checkout_test.go",
-      "sha256": "396c9da368b54b4c8599098684dc59d64f957c76b7083b3c73a03613d9a1d6f0",
+      "sha256": "1fa2ab58aa90574c030e0bb27ea6e9802ea5f3eb27575fac199a22786883c2aa",
       "symlink": ""
     },
     {
@@ -14274,7 +14274,7 @@
     },
     {
       "path": "internal/integration/checkout_deadlines_test.go",
-      "sha256": "e5a9c2eeac89e3edb7ac0a9581214ef64e6b682e4069c4292db8337083f604a2",
+      "sha256": "f5e65bc57cb0f72f2a9e50e21ce19efac77e5d88b1785e661924c93e08384140",
       "symlink": ""
     },
     {
@@ -14284,7 +14284,7 @@
     },
     {
       "path": "internal/integration/checkout_recovery_test.go",
-      "sha256": "0ded4ae0822031e9ddd1087683d99567de42a201d8e5fb4247b9193234fe4ef1",
+      "sha256": "f09c52c2195ac32469ea46b0360b8f2f8bab0b59e7750b707e1582d6a3bf1de2",
       "symlink": ""
     },
     {

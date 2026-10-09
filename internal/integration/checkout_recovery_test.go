@@ -7,9 +7,12 @@ import (
 	"github.com/filser89/stripe-payments-go/internal/stripeapi"
 	"github.com/filser89/stripe-payments-go/internal/testutil"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/require"
+	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -320,9 +323,22 @@ func TestResultAndReadUnavailableReturnKnownIdentity(t *testing.T) {
 	require.Equal(t, binding.OperationID, e["operation_id"])
 	requireMeaningfulLog(t, j.Logs, w.Header().Get("X-Request-ID"), binding.OrderID, binding.OperationID, w.Code)
 	require.Equal(t, 1, j.Stripe.LogicalObjects())
-	require.NoError(t, j.DB.Container.Start(ctx))
-	require.Eventually(t, func() bool { return j.DB.Pool.Ping(ctx) == nil }, 15*time.Second, 100*time.Millisecond)
-	fresh := journeyWith(t, j.DB, j.DB.Independent(t), j.Stripe, j.Options)
+	restartCtx, restartCancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer restartCancel()
+	require.NoError(t, j.DB.Container.Start(restartCtx))
+	host, err := j.DB.Container.Host(restartCtx)
+	require.NoError(t, err)
+	port, err := j.DB.Container.MappedPort(restartCtx, "5432/tcp")
+	require.NoError(t, err)
+	databaseURL, err := url.Parse(j.DB.URL)
+	require.NoError(t, err)
+	databaseURL.Host = net.JoinHostPort(host, port.Port())
+	pool, err := pgxpool.New(restartCtx, databaseURL.String())
+	require.NoError(t, err)
+	t.Cleanup(pool.Close)
+	require.Eventually(t, func() bool { return pool.Ping(restartCtx) == nil }, 15*time.Second, 100*time.Millisecond)
+	restoredDB := &testutil.DB{URL: databaseURL.String(), Pool: pool, Container: j.DB.Container}
+	fresh := journeyWith(t, restoredDB, restoredDB.Independent(t), j.Stripe, j.Options)
 	j.Stripe.Configure(func(s *testutil.StripeServer) { s.Before = nil })
 	v, status := create(t, fresh, key)
 	require.Equal(t, 200, status)

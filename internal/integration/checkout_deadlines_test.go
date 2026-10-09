@@ -378,7 +378,7 @@ func TestActualCheckoutServerShutdown(t *testing.T) {
 			independentID, _ := envelopeIDs(t, independent)
 			independentBefore, err := j.Repo.LoadOrder(context.Background(), independentID)
 			require.NoError(t, err)
-			env := testutil.Environment(j.DB.URL, "127.0.0.1:0")
+			env := testutil.Environment(j.DB.URL, "127.0.0.1:8080")
 			env["SHUTDOWN_GRACE"] = "150ms"
 			env["CLEANUP_TIMEOUT"] = "1s"
 			c, err := config.Load(func(k string) string { return env[k] })
@@ -440,7 +440,7 @@ func TestActualCheckoutServerShutdown(t *testing.T) {
 			if tc.blocked == "body" {
 				conn, err := net.Dial("tcp", ln.Addr().String())
 				require.NoError(t, err)
-				defer conn.Close()
+				defer func() { require.NoError(t, conn.Close()) }()
 				auth := base64.StdEncoding.EncodeToString([]byte("checkout-fixture-user:checkout-fixture-password"))
 				_, err = fmt.Fprintf(conn, "POST /api/orders HTTP/1.1\r\nHost: local\r\nAuthorization: Basic %s\r\nContent-Type: application/json\r\nContent-Length: 1000\r\n\r\n{", auth)
 				require.NoError(t, err)
