@@ -2,9 +2,11 @@ SHELL := /bin/bash
 export GOTOOLCHAIN := go1.27.2
 export PATH := $(CURDIR)/.tools/bin:$(PATH)
 
-.PHONY: setup build up down logs migrate generate test verify
+.PHONY: setup configure build up down logs migrate generate test verify
 setup:
 	@./scripts/setup.sh
+configure:
+	@./scripts/configure.sh
 build:
 	@mkdir -p bin
 	go build -trimpath -o bin/service ./cmd/service
