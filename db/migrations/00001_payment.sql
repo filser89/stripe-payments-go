@@ -1,3 +1,5 @@
+-- +goose Up
+-- +goose StatementBegin
 CREATE TABLE payment_orders (
  id uuid PRIMARY KEY, description text NOT NULL CHECK (char_length(description) BETWEEN 1 AND 200),
  amount bigint NOT NULL CHECK (amount BETWEEN 50 AND 100000), currency text NOT NULL CHECK(currency='usd'),
@@ -65,3 +67,9 @@ CREATE TRIGGER payment_order_immutable BEFORE UPDATE ON payment_orders FOR EACH 
 CREATE TRIGGER payment_operation_immutable BEFORE UPDATE ON payment_operations FOR EACH ROW EXECUTE FUNCTION payment_immutable();
 CREATE TRIGGER payment_binding_immutable BEFORE UPDATE OR DELETE ON payment_request_bindings FOR EACH ROW EXECUTE FUNCTION payment_immutable();
 CREATE TRIGGER payment_history_immutable BEFORE UPDATE OR DELETE ON payment_history FOR EACH ROW EXECUTE FUNCTION payment_immutable();
+-- +goose StatementEnd
+
+-- +goose Down
+ALTER TABLE payment_orders DROP CONSTRAINT payment_current_operation;
+DROP TABLE payment_history, payment_request_bindings, payment_operations, payment_orders;
+DROP FUNCTION payment_immutable();
