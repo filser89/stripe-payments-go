@@ -52,61 +52,63 @@ func TestAuthenticationAuditASCIISchemeOnWire(t *testing.T) {
 }
 
 func TestAuthenticationAuditLandingReadFailureContext(t *testing.T) {
-	for _, method := range []string{http.MethodGet, http.MethodHead} {
-		for _, tc := range []struct {
-			name        string
-			body        io.Reader
-			status      int
-			readFailure bool
-		}{
-			{"zero_byte_read_failure", failingBody{}, http.StatusBadRequest, true},
-			{"nonempty_body", strings.NewReader("sensitive-body-sentinel"), http.StatusBadRequest, false},
-			{"clean_eof", strings.NewReader(""), http.StatusOK, false},
-		} {
-			t.Run(method+"/"+tc.name, func(t *testing.T) {
-				s, logs := authServer(t, authUser, authPassword, nil)
-				w := httptest.NewRecorder()
-				s.Handler.ServeHTTP(w, authRequest(method, "/", tc.body))
-				assert.Equal(t, tc.status, w.Code)
-				if tc.status == http.StatusBadRequest {
-					assertBadBody(t, w, method)
-					if method == http.MethodGet {
-						assert.Equal(t, "Bad Request", strings.TrimSpace(w.Body.String()))
-					}
+	for _, tc := range []struct {
+		name        string
+		method      string
+		body        io.Reader
+		status      int
+		readFailure bool
+	}{
+		{"GET/zero_byte_read_failure", http.MethodGet, failingBody{}, http.StatusBadRequest, true},
+		{"GET/nonempty_body", http.MethodGet, strings.NewReader("sensitive-body-sentinel"), http.StatusBadRequest, false},
+		{"GET/clean_eof", http.MethodGet, strings.NewReader(""), http.StatusOK, false},
+		{"HEAD/zero_byte_read_failure", http.MethodHead, failingBody{}, http.StatusBadRequest, true},
+		{"HEAD/nonempty_body", http.MethodHead, strings.NewReader("sensitive-body-sentinel"), http.StatusBadRequest, false},
+		{"HEAD/clean_eof", http.MethodHead, strings.NewReader(""), http.StatusOK, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			s, logs := authServer(t, authUser, authPassword, nil)
+			w := httptest.NewRecorder()
+			s.Handler.ServeHTTP(w, authRequest(tc.method, "/", tc.body))
+			assert.Equal(t, tc.status, w.Code)
+			if tc.status == http.StatusBadRequest {
+				assertBadBody(t, w, tc.method)
+				if tc.method == http.MethodGet {
+					assert.Equal(t, "Bad Request", strings.TrimSpace(w.Body.String()))
 				}
-				id := w.Header().Get("X-Request-ID")
-				require.NotEmpty(t, id)
-				combined := logs.String() + w.Body.String() + fmt.Sprint(w.Header())
-				completionCount, readFailureCount := 0, 0
-				for _, line := range strings.Split(strings.TrimSpace(logs.String()), "\n") {
-					var entry map[string]any
-					require.NoError(t, json.Unmarshal([]byte(line), &entry))
-					combined += fmt.Sprint(entry)
-					if entry["msg"] == "request completed" {
-						completionCount++
-						assert.Equal(t, id, entry["request_id"])
-						assert.EqualValues(t, tc.status, entry["status"])
-					}
-					// Accept a descriptive category such as body_read or
-					// request_body_read_failed without requiring a log message,
-					// severity, or separate event from the completion record.
-					kind, _ := entry["error_kind"].(string)
-					kind = strings.ToLower(kind)
-					if strings.Contains(kind, "read") && (strings.Contains(kind, "body") || strings.Contains(kind, "input")) {
-						readFailureCount++
-						assert.Equal(t, id, entry["request_id"])
-					}
+			}
+			id := w.Header().Get("X-Request-ID")
+			require.NotEmpty(t, id)
+			combined := logs.String() + w.Body.String() + fmt.Sprint(w.Header())
+			completionCount, readFailureCount := 0, 0
+			for _, line := range strings.Split(strings.TrimSpace(logs.String()), "\n") {
+				var entry map[string]any
+				require.NoError(t, json.Unmarshal([]byte(line), &entry))
+				combined += fmt.Sprint(entry)
+				if entry["msg"] == "request completed" {
+					completionCount++
+					assert.Equal(t, id, entry["request_id"])
+					assert.EqualValues(t, tc.status, entry["status"])
 				}
-				assert.Equal(t, 1, completionCount, "retain one structured request outcome")
-				wantReadFailures := 0
-				if tc.readFailure {
-					wantReadFailures = 1
+				// Accept a descriptive category such as body_read or
+				// request_body_read_failed without requiring a log message,
+				// severity, or separate event from the completion record.
+				kind, _ := entry["error_kind"].(string)
+				kind = strings.ToLower(kind)
+				if strings.Contains(kind, "read") && (strings.Contains(kind, "body") || strings.Contains(kind, "input")) {
+					readFailureCount++
+					assert.Equal(t, id, entry["request_id"])
 				}
-				assert.Equal(t, wantReadFailures, readFailureCount, "read errors need one correlated safe category distinct from payload rejection and clean EOF")
-				for _, secret := range []string{authUser, authPassword, authHeader(authUser, authPassword), base64.StdEncoding.EncodeToString([]byte(authUser + ":" + authPassword)), "sensitive-read-error-sentinel", "sensitive-body-sentinel"} {
-					assert.NotContains(t, combined, secret)
-				}
-			})
-		}
+			}
+			assert.Equal(t, 1, completionCount, "retain one structured request outcome")
+			wantReadFailures := 0
+			if tc.readFailure {
+				wantReadFailures = 1
+			}
+			assert.Equal(t, wantReadFailures, readFailureCount, "read errors need one correlated safe category distinct from payload rejection and clean EOF")
+			for _, secret := range []string{authUser, authPassword, authHeader(authUser, authPassword), base64.StdEncoding.EncodeToString([]byte(authUser + ":" + authPassword)), "sensitive-read-error-sentinel", "sensitive-body-sentinel"} {
+				assert.NotContains(t, combined, secret)
+			}
+		})
 	}
 }
