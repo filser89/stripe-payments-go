@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd "$(dirname "$0")/.."
-if [[ ! -f .env ]]; then echo 'Create .env from .env.example and set local database, Basic, and Stripe sandbox credentials.' >&2; exit 1; fi
+./scripts/configure.sh
 on_failure() { docker compose logs --no-color --tail=80 app migrate >&2 || true; }
 trap on_failure ERR
 docker compose build

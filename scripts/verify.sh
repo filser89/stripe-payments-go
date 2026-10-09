@@ -11,6 +11,7 @@ trap 'rm -rf "$scratch"' EXIT
 cp -R internal/postgres/queries "$scratch/queries"
 sqlc generate
 if ! diff -ru "$scratch/queries" internal/postgres/queries; then echo 'Generated SQL code was stale; review regeneration.' >&2; exit 1; fi
+./scripts/testdata/configure.sh
 ./scripts/testdata/workflows.sh
 golangci-lint run --timeout=5m ./...
 govulncheck ./...

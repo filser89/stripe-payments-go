@@ -156,7 +156,9 @@ func snapshotJSON(s payment.Snapshot) ([]byte, error) {
 	}
 	m["Mode"] = "payment"
 	m["UIMode"] = "hosted_page"
-	m["PaymentMethodTypes"] = []string{"card"}
+	if len(s.AllowedPaymentMethodTypes) == 0 {
+		m["PaymentMethodTypes"] = []string{"card"}
+	}
 	m["Quantity"] = 1
 	m["CaptureMethod"] = "automatic"
 	m["AutomaticTax"] = false

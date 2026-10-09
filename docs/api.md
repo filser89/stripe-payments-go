@@ -28,6 +28,8 @@ curl --user "$ACCOUNT" -i -H 'Content-Type: application/json' \
  "$BASE/api/orders/$ORDER_ID/checkout" --data "{\"request_key\":\"$CONTINUE_KEY\"}"
 ```
 
+Checkout creation uses the pinned API's `allowed_payment_method_types=[card]` filter. Cards must be enabled in the Stripe sandbox Dashboard.
+
 201 means a newly accepted operation with an established result; 200 an established replay/refresh. 202 means accepted prepared/unresolved work, with Location pointing to the order and Retry-After: 1. Retain keys/IDs and inspect before retrying the same operation. Reads make no Stripe calls. Checkout creation never confirms payment.
 
 Responses contain order, operation, can_resume, can_retry_same_operation and can_start_new_attempt. Order exposes id/description/amount/currency/payment_status/created_at/updated_at. Operation exposes id/state/stripe_session_id/stripe_payment_intent_id/checkout_url/first_dispatch_at/expires_at/created_at/updated_at/failure_code/investigation_required. Optional values are explicit nulls; times are UTC RFC3339Nano. Flags are advisory and rechecked on POST; checkout_url is exposed only when resuming is safe. Owner tokens, Stripe/request keys, snapshots and raw diagnostics are private. History exposes sequence/kind/recorded_at/order_id/optional operation_id/from_state/to_state/Stripe association-event-request IDs/failure_code; no URL, description or raw payload.

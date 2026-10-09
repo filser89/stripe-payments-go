@@ -13,7 +13,7 @@ func Purchase() payment.Order {
 func Operation(order payment.Order) payment.Operation {
 	now := order.CreatedAt
 	id := uuid.NewString()
-	snap := payment.Snapshot{OrderID: order.ID, OperationID: id, Description: order.Description, Amount: order.Amount, Currency: order.Currency, StripeKey: uuid.NewString(), SDKVersion: "v87.0.0", APIVersion: "2026-09-30.endive", SuccessURL: "http://localhost:8080/?order_id=" + order.ID + "&checkout_return=success", CancelURL: "http://localhost:8080/?order_id=" + order.ID + "&checkout_return=cancel"}
+	snap := payment.Snapshot{OrderID: order.ID, OperationID: id, Description: order.Description, Amount: order.Amount, Currency: order.Currency, StripeKey: uuid.NewString(), SDKVersion: "v87.0.0", APIVersion: "2026-09-30.endive", AllowedPaymentMethodTypes: []string{"card"}, SuccessURL: "http://localhost:8080/?order_id=" + order.ID + "&checkout_return=success", CancelURL: "http://localhost:8080/?order_id=" + order.ID + "&checkout_return=cancel"}
 	return payment.Operation{ID: id, OrderID: order.ID, State: "prepared", StripeKey: snap.StripeKey, Snapshot: snap, CreatedAt: now, UpdatedAt: now, Version: 1}
 }
 func Binding(o payment.Order, op payment.Operation) payment.RequestBinding {

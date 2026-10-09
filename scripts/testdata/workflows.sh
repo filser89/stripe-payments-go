@@ -7,13 +7,22 @@ trap 'rm -rf "$scratch"' EXIT
 mkdir -p "$scratch/scripts" "$scratch/fake-bin" "$scratch/state"
 cp "$project_root/Makefile" "$scratch/Makefile"
 cp "$project_root/scripts/up.sh" "$scratch/scripts/up.sh"
-touch "$scratch/.env"
+cp "$project_root/scripts/configure.sh" "$scratch/scripts/configure.sh"
+cp "$project_root/.env.example" "$scratch/.env.example"
+cat > "$scratch/.env" <<'VALUES'
+BASIC_AUTH_USERNAME=workflow-user
+BASIC_AUTH_PASSWORD=workflow-password
+STRIPE_SECRET_KEY=sk_test_workflow
+VALUES
+export REAL_DOCKER="$(command -v docker)"
+unset BASIC_AUTH_USERNAME BASIC_AUTH_PASSWORD STRIPE_SECRET_KEY
 export WORKFLOW_STATE="$scratch/state"
 cat > "$scratch/fake-bin/docker" <<'DOCKER'
 #!/usr/bin/env bash
 set -euo pipefail
 state="$WORKFLOW_STATE"
 case "$*" in
+  *' config --format json'|*' config --quiet') exec "$REAL_DOCKER" "$@" ;;
   'compose build') cp "$state/source" "$state/image" ;;
   'compose stop app') rm -f "$state/app-running" ;;
   'compose run '*migrate)
@@ -68,6 +77,27 @@ rm -f "$WORKFLOW_STATE/fail-migration"
 ./scripts/up.sh >/dev/null
 if [[ ! -f "$WORKFLOW_STATE/app-running" ]] || ! cmp -s "$WORKFLOW_STATE/source" "$WORKFLOW_STATE/applied"; then
   echo 'FAIL: successful startup did not run the current migrations before the app' >&2
+  failures=$((failures+1))
+fi
+# First startup configures before Docker build/start; canceled input starts nothing.
+cp .env "$WORKFLOW_STATE/configured"
+rm .env
+if ! printf '%s\n' workflow-new-user workflow-new-password sk_test_workflow_new | ./scripts/up.sh > "$WORKFLOW_STATE/configure-output" 2>&1; then
+  echo 'FAIL: first startup did not configure and start the application' >&2
+  failures=$((failures+1))
+fi
+if [[ ! -f .env || ! -f "$WORKFLOW_STATE/app-running" ]]; then
+  echo 'FAIL: first startup did not save configuration and start the application' >&2
+  failures=$((failures+1))
+fi
+cp "$WORKFLOW_STATE/image" "$WORKFLOW_STATE/before-cancel"
+rm .env
+if printf '%s\n' workflow-new-user | ./scripts/up.sh > "$WORKFLOW_STATE/configure-output" 2>&1; then
+  echo 'FAIL: canceled configuration reported startup success' >&2
+  failures=$((failures+1))
+fi
+if [[ -f .env || ! -f "$WORKFLOW_STATE/app-running" ]] || ! cmp -s "$WORKFLOW_STATE/image" "$WORKFLOW_STATE/before-cancel"; then
+  echo 'FAIL: canceled configuration modified files or the running stack' >&2
   failures=$((failures+1))
 fi
 [[ "$failures" == 0 ]] || exit 1
