@@ -1,0 +1,63 @@
+name: stripe-payments-go
+services:
+  db:
+    image: postgres:18.6-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB in .env}
+    ports:
+      - "127.0.0.1:${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
+      interval: 2s
+      timeout: 2s
+      retries: 20
+  migrate:
+    build: .
+    image: stripe-payments-go:local
+    command: [migrate, up]
+    environment: &app-environment
+      DATABASE_URL: postgres://db:5432/${POSTGRES_DB:?Set POSTGRES_DB}?sslmode=disable
+      PGUSER: ${POSTGRES_USER:?Set POSTGRES_USER}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+      LISTEN_ADDR: :8080
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      DB_STARTUP_TIMEOUT: ${DB_STARTUP_TIMEOUT:-5s}
+      READINESS_TIMEOUT: ${READINESS_TIMEOUT:-1s}
+      HTTP_HEADER_TIMEOUT: ${HTTP_HEADER_TIMEOUT:-5s}
+      HTTP_READ_TIMEOUT: ${HTTP_READ_TIMEOUT:-10s}
+      HTTP_WRITE_TIMEOUT: ${HTTP_WRITE_TIMEOUT:-15s}
+      HTTP_IDLE_TIMEOUT: ${HTTP_IDLE_TIMEOUT:-60s}
+      SHUTDOWN_GRACE: ${SHUTDOWN_GRACE:-10s}
+      CLEANUP_TIMEOUT: ${CLEANUP_TIMEOUT:-5s}
+      COMPOSE_STOP_GRACE_PERIOD: ${COMPOSE_STOP_GRACE_PERIOD:-20s}
+    depends_on:
+      db:
+        condition: service_healthy
+  app:
+    build: .
+    image: stripe-payments-go:local
+    environment: *app-environment
+    ports:
+      - "127.0.0.1:${APP_PORT:-8080}:8080"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    stop_grace_period: ${COMPOSE_STOP_GRACE_PERIOD:-20s}
+    healthcheck:
+      test: [CMD, /app/service, probe]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+  stripe:
+    image: stripe/stripe-cli:v1.53.1
+    profiles: [stripe]
+    environment:
+      STRIPE_API_KEY: ${STRIPE_API_KEY:-}
+    command: [listen, --forward-to, http://app:8080/webhooks/stripe]
+    depends_on: [app]
+volumes:
+  postgres-data:

@@ -12,7 +12,7 @@ Keep the order representation sufficient to associate payments with purchases. L
 
 | Area | Choice |
 | --- | --- |
-| Language | Go 1.27.1 |
+| Language | Go 1.27.2 |
 | HTTP | Standard-library `net/http` |
 | Database | PostgreSQL 18.6; the same version locally and in integration tests |
 | Database access | pgx v5 with pgxpool, plus sqlc generating typed Go code from parameterized SQL |
@@ -58,6 +58,7 @@ Keep payment rules independently testable from HTTP and Stripe integration. Keep
 
 ## Commit messages
 
+- Use descriptive branch names without the `codex/` prefix.
 - Use `type(scope): description`; scope is optional.
 - Allowed types: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`, `build`, `ci`.
 - Write the description in imperative mood with a lowercase opening and no trailing period.
