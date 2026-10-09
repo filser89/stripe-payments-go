@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "feature": "002-02-order-and-checkout",
+  "files": [
+    {
+      "path": "internal/config/testdata/kaba/002-02-order-and-checkout/contracts.go",
+      "sha256": "ac9337d01feaea83dd6a8f5b129b91981a070d2a295b2084bda3949d50942f58",
+      "package": "github.com/filser89/stripe-payments-go/internal/config"
+    },
+    {
+      "path": "internal/payment/testdata/kaba/002-02-order-and-checkout/contracts.go",
+      "sha256": "12004a88e553b32da3ee859920608162287a94c37861b5760893f1bf53edf536",
+      "package": "github.com/filser89/stripe-payments-go/internal/payment"
+    },
+    {
+      "path": "internal/postgres/testdata/kaba/002-02-order-and-checkout/contracts.go",
+      "sha256": "9c0fb3cfe1c7317403663662c10e3d01f6c602a73a2de1a6d846c67a754245ae",
+      "package": "github.com/filser89/stripe-payments-go/internal/postgres"
+    },
+    {
+      "path": "internal/stripeapi/testdata/kaba/002-02-order-and-checkout/contracts.go",
+      "sha256": "0eb4c786f8236f2f82cd231dac9d71cb6b3eb1176c694bf91506fed135636ff1",
+      "package": "github.com/filser89/stripe-payments-go/internal/stripeapi"
+    },
+    {
+      "path": "internal/web/testdata/kaba/002-02-order-and-checkout/contracts.go",
+      "sha256": "f8177511e5a1dfe29f4d05042ae391c68ee310c4beae50fda5c60376827a7bbd",
+      "package": "github.com/filser89/stripe-payments-go/internal/web"
+    }
+  ]
+}
