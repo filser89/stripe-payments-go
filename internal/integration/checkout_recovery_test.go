@@ -305,6 +305,7 @@ func TestResultAndReadUnavailableReturnKnownIdentity(t *testing.T) {
 	}
 	binding, err := j.Repo.LoadBinding(context.Background(), key)
 	require.NoError(t, err)
+	durable := j.DB.Durable(t)
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 	timeout := time.Second
@@ -340,12 +341,62 @@ func TestResultAndReadUnavailableReturnKnownIdentity(t *testing.T) {
 	restoredDB := &testutil.DB{URL: databaseURL.String(), Pool: pool, Container: j.DB.Container}
 	fresh := journeyWith(t, restoredDB, restoredDB.Independent(t), j.Stripe, j.Options)
 	j.Stripe.Configure(func(s *testutil.StripeServer) { s.Before = nil })
-	v, status := create(t, fresh, key)
-	require.Equal(t, 200, status)
-	id, op := envelopeIDs(t, v)
-	require.Equal(t, binding.OrderID, id)
-	require.Equal(t, binding.OperationID, op)
-	require.Equal(t, 1, j.Stripe.LogicalObjects())
+	// An unavailable database cannot release the dispatch claim. Observe public
+	// pending responses until its legitimate 12-second lease becomes reclaimable;
+	// the five-second margin belongs only to this local recovery witness.
+	recoveryCtx, recoveryCancel := context.WithTimeout(context.Background(), 17*time.Second)
+	defer recoveryCancel()
+	observed, err := testutil.DurableRows(recoveryCtx, restoredDB.Pool)
+	require.NoError(t, err)
+	require.Equal(t, businessRows(t, durable), businessRows(t, observed), "outage commits no partial result or business history")
+	wireCount := len(j.Stripe.Wires())
+	ticker := time.NewTicker(100 * time.Millisecond)
+	defer ticker.Stop()
+	for {
+		// The parent deadline caps every request by the remaining witness budget.
+		requestCtx, requestCancel := context.WithTimeout(recoveryCtx, fresh.Options.RequestTimeout)
+		r := testutil.Request("POST", "/api/orders", purchaseBody(key, "Single café product", 2500), true).WithContext(requestCtx)
+		response := make(chan *httptest.ResponseRecorder, 1)
+		go func() {
+			w := httptest.NewRecorder()
+			fresh.Handler.ServeHTTP(w, r)
+			response <- w
+		}()
+		select {
+		case w = <-response:
+			requestCancel()
+		case <-recoveryCtx.Done():
+			requestCancel()
+			t.Fatal("same-key recovery did not establish checkout within the lease recovery witness budget")
+		}
+		require.Contains(t, []int{200, 202}, w.Code)
+		id, op := envelopeIDs(t, testutil.JSON(t, w))
+		require.Equal(t, binding.OrderID, id)
+		require.Equal(t, binding.OperationID, op)
+		require.Equal(t, 1, j.Stripe.LogicalObjects())
+		recoveredBinding, err := fresh.Repo.LoadBinding(recoveryCtx, key)
+		require.NoError(t, err)
+		require.Equal(t, binding.OrderID, recoveredBinding.OrderID)
+		require.Equal(t, binding.OperationID, recoveredBinding.OperationID)
+		observed, err = testutil.DurableRows(recoveryCtx, restoredDB.Pool)
+		require.NoError(t, err)
+		require.Equal(t, durable["payment_request_bindings"], observed["payment_request_bindings"], "same key retains its complete accepted binding")
+		for _, table := range []string{"payment_orders", "payment_operations", "payment_request_bindings"} {
+			require.Len(t, observed[table], 1, "recovery cannot allocate another order, operation or binding")
+		}
+		if w.Code == 200 {
+			break
+		}
+		require.Equal(t, "/api/orders/"+binding.OrderID, w.Header().Get("Location"))
+		require.Equal(t, "1", w.Header().Get("Retry-After"))
+		require.Equal(t, wireCount, len(j.Stripe.Wires()), "active ownership admits no additional Stripe call")
+		require.Equal(t, businessRows(t, durable), businessRows(t, observed), "pending recovery preserves business state and exact history")
+		select {
+		case <-ticker.C:
+		case <-recoveryCtx.Done():
+			t.Fatal("same-key recovery remained pending beyond the lease recovery witness budget")
+		}
+	}
 }
 
 // REC-001 STR-003
