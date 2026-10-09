@@ -1,6 +1,6 @@
 # Feature: Authenticate service and browser access
 
-**Branch**: `001-authentication-refresh` · **Status**: draft
+**Branch**: `001-authenticate-service-and-browser` · **Status**: draft
 
 ## Summary
 

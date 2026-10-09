@@ -1,6 +1,6 @@
 # Test Plan: Authenticate service and browser access
 
-**Feature**: `001-authentication-refresh` | **Spec**: [spec.md](spec.md)
+**Feature**: `001-authenticate-service-and-browser` | **Spec**: [spec.md](spec.md)
 **Acceptance Criteria**: [acceptance-criteria.md](acceptance-criteria.md)
 
 ## Summary

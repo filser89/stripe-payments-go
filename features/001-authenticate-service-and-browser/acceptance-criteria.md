@@ -1,6 +1,6 @@
 # Acceptance Criteria: Authenticate service and browser access
 
-**Feature**: `001-authentication-refresh`
+**Feature**: `001-authenticate-service-and-browser`
 **Spec**: [spec.md](spec.md)
 **Status**: Draft
 
