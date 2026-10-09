@@ -29,14 +29,14 @@ Static preflight uses the configured pinned golangci-lint. Local workflow verifi
 | Named variant | Driver scenarios | Production source trace |
 | --- | --- | --- |
 | Accepted/successful | accepted; established_replay | payment.Service.Create → execute → ApplyObservation; web checkout mutation response/record |
-| Prepared/unresolved | prepared_after_get_budget; timeout | Continue → shared externalBudget → BindContinuation → deferred_budget; execute call failure → unresolved observation |
+| Prepared/unresolved | prepared_after_get_budget; timeout; await_confirmation | Continue → shared externalBudget → BindContinuation → deferred_budget; execute call failure → unresolved observation |
 | Confirmed rejection | rejected | execute first owned validation rejection → rejected observation/error; web domainError preserves actual state/class |
 | Input/auth rejection | input_rejection; unsupported_media; oversized; body_read; auth_rejection | checkout bounded parser/localKind; authenticate fixed auth_rejected outcome; no durable IDs |
 | DB acceptance/result/read | database_acceptance; database_dispatch; database_result; database_result_and_read; database_read | acceptance failure; pre-send marker failure; result rollback → owned release/readback; readback unavailable → known-ID503; Get database_read |
 | Stripe timeout/server/mismatch | timeout; server; mismatch | real SDK/context/error translation → execute classification/evidenceState; unresolved/investigation and suppressed URL |
 | Cancellation/ownership loss | direct_canceled; ownership_lost | caller cancellation → joined gateway → bounded ReleaseDispatch → canceled log; stale ApplyObservation fence → ownership_lost readback, no stale success |
 
-All 19 scenarios have decoded semantic outcomes and expected statuses/categories. HTTP records correlate to generated response request IDs; business records carry only known durable IDs. Direct cancellation has known order/operation IDs and canceled context without an invented HTTP request ID. Database acceptance/input/auth rejection contain no fabricated durable IDs. Decoded sanitization inspection excludes fixture passwords/Stripe keys/owner tokens/request keys, descriptions, raw SDK diagnostics and Checkout URLs.
+All 20 scenarios have decoded semantic outcomes and expected statuses/categories. HTTP records correlate to generated response request IDs; business records carry only known durable IDs. Direct cancellation has known order/operation IDs and canceled context without an invented HTTP request ID. Database acceptance/input/auth rejection contain no fabricated durable IDs. Decoded sanitization inspection excludes fixture passwords/Stripe keys/owner tokens/request keys, descriptions, raw SDK diagnostics and Checkout URLs.
 
 SEC-003 independent code review/final audit and advisory R26 remain open until independently verified. These implementation artifacts do not close that independent condition.
 

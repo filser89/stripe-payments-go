@@ -85,8 +85,7 @@ func errorKind(e SessionEvidence, err error) string {
 	return "temporarily_unavailable"
 }
 func evidenceState(op Operation, e SessionEvidence) (string, bool) {
-	s := op.Snapshot
-	if e.SessionID == "" || e.ClientReferenceID != op.OrderID || e.Metadata["order_id"] != op.OrderID || e.Metadata["operation_id"] != op.ID || e.AmountTotal != s.Amount || e.Currency != s.Currency || e.Mode != "payment" || e.Livemode || op.SessionID != nil && *op.SessionID != e.SessionID || op.PaymentIntentID != nil && (e.PaymentIntentID == nil || *op.PaymentIntentID != *e.PaymentIntentID) {
+	if !correlated(op, e) {
 		return "unresolved", false
 	}
 	if e.PaymentStatus != "unpaid" {
@@ -227,9 +226,16 @@ func (s *Service) execute(ctx context.Context, v View, b *externalBudget, accept
 				ambiguous = false
 			}
 			if !valid {
-				kind = "evidence_mismatch"
-				e = SessionEvidence{ErrorClass: kind}
-				ambiguous = true
+				if correlated(op, e) && e.Status == "complete" && e.PaymentStatus == "paid" && e.PaymentIntentID != nil && *e.PaymentIntentID != "" {
+					kind = "confirmation_required"
+					e.URL = ""
+					e.ErrorClass = kind
+					ambiguous = false
+				} else {
+					kind = "evidence_mismatch"
+					e = SessionEvidence{ErrorClass: kind}
+					ambiguous = true
+				}
 			}
 		} else {
 			kind = errorKind(e, callErr)
@@ -281,6 +287,9 @@ func (s *Service) execute(ctx context.Context, v View, b *externalBudget, accept
 			return out, e.ErrorClass, failure("checkout_rejected", v, callErr)
 		}
 		if callErr == nil {
+			if !accepted {
+				return out, kind, failure("checkout_blocked", v, nil)
+			}
 			return out, kind, nil
 		}
 		if !b.retry(ctx, e) {
@@ -299,4 +308,9 @@ func optionalString(s string) *string {
 		return nil
 	}
 	return &s
+}
+
+func correlated(op Operation, e SessionEvidence) bool {
+	s := op.Snapshot
+	return e.SessionID != "" && e.ClientReferenceID == op.OrderID && e.Metadata["order_id"] == op.OrderID && e.Metadata["operation_id"] == op.ID && e.AmountTotal == s.Amount && e.Currency == s.Currency && e.Mode == "payment" && !e.Livemode && (op.SessionID == nil || *op.SessionID == e.SessionID) && (op.PaymentIntentID == nil || e.PaymentIntentID != nil && *op.PaymentIntentID == *e.PaymentIntentID)
 }

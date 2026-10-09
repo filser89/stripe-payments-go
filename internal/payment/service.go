@@ -148,7 +148,7 @@ func (s *Service) view(v View) View {
 	v.CanResume = active && compatible && !mismatch && op.OwnerToken == "" && op.State == "open" && op.CheckoutURL != nil && *op.CheckoutURL != "" && op.ExpiresAt != nil && op.ExpiresAt.After(s.opts.Now())
 	v.CanRetrySameOperation = active && compatible && !mismatch && op.OwnerToken == "" && (op.State == "prepared" || op.State == "unresolved" && (op.SessionID != nil || s.safe(op)))
 	v.CanStartNewAttempt = active && compatible && !mismatch && op.ID == v.Order.CurrentOperationID && op.OwnerToken == "" && ((op.State == "rejected" && !op.PriorAmbiguity) || (op.State == "expired" && op.EvidenceSource == "stripe" && !mismatch))
-	v.NeedsInvestigation = op.InvestigationRequired || mismatch || !compatible || op.State == "rejected" || op.FailureCode != nil && (*op.FailureCode == "server" || *op.FailureCode == "idempotency" || *op.FailureCode == "validation" || *op.FailureCode == "credential" || *op.FailureCode == "permission" || *op.FailureCode == "generic" || *op.FailureCode == "temporarily_unavailable") || op.State == "unresolved" && op.FirstDispatchAt != nil && s.opts.Now().Sub(*op.FirstDispatchAt) >= 15*time.Minute
+	v.NeedsInvestigation = op.InvestigationRequired || mismatch || !compatible || op.State == "rejected" || op.FailureCode != nil && (*op.FailureCode == "server" || *op.FailureCode == "idempotency" || *op.FailureCode == "validation" || *op.FailureCode == "credential" || *op.FailureCode == "permission" || *op.FailureCode == "generic" || *op.FailureCode == "temporarily_unavailable" || *op.FailureCode == "confirmation_required") || op.State == "unresolved" && op.FirstDispatchAt != nil && s.opts.Now().Sub(*op.FirstDispatchAt) >= 15*time.Minute
 	if !v.CanResume {
 		v.Operation.CheckoutURL = nil
 	}

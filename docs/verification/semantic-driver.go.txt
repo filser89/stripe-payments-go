@@ -104,6 +104,12 @@ func main() {
 				obj["url"] = ""
 			}
 		}
+		if mode == "await_confirmation" {
+			obj["status"] = "complete"
+			obj["payment_status"] = "paid"
+			obj["payment_intent"] = "pi_verification"
+			obj["url"] = ""
+		}
 		if mode == "mismatch" {
 			obj["client_reference_id"] = "mismatch"
 		}
@@ -186,7 +192,7 @@ func main() {
 		handler.ServeHTTP(w, r)
 		record(name, w.Code, w.Header().Get("X-Request-ID"))
 	}
-	for _, name := range []string{"timeout", "server", "rejected", "mismatch"} {
+	for _, name := range []string{"timeout", "server", "rejected", "mismatch", "await_confirmation"} {
 		mu.Lock()
 		scenario = name
 		mu.Unlock()
