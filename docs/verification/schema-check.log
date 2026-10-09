@@ -1,8 +1,0 @@
-health_missing_schema=200
-ready_missing_schema=503
-{"time":"2026-10-09T13:21:07.198052-03:00","level":"ERROR","msg":"service failed","error":"application not ready"}
-probe_missing_schema_exit=1
-{"time":"2026-10-09T13:21:07.265739-03:00","level":"INFO","msg":"migrations complete","direction":"up"}
-{"time":"2026-10-09T13:21:07.284112-03:00","level":"INFO","msg":"migrations complete","direction":"up"}
-{"time":"2026-10-09T13:21:07.322008-03:00","level":"INFO","msg":"migrations complete","direction":"down"}
-t
