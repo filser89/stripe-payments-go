@@ -234,7 +234,7 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (out Outcome, err 
 		if b.Method != "POST" || b.Target != "/api/orders" || b.Description != in.Description || b.Amount != in.Amount || b.Currency != s.opts.Currency {
 			return out, &Error{Code: "idempotency_conflict"}
 		}
-		out, kind, err = s.execute(ctx, b.View, &externalBudget{s: s}, true)
+		out, kind, err = s.execute(ctx, b.View, &externalBudget{s: s}, true, in.RequestKey)
 		return
 	}
 	if code(e) != "not_found" {
@@ -265,7 +265,7 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (out Outcome, err 
 		return out, &Error{Code: "temporarily_unavailable", Cause: e}
 	}
 	fresh := v.Operation.ID == op.ID
-	out, kind, err = s.execute(ctx, v, &externalBudget{s: s}, true)
+	out, kind, err = s.execute(ctx, v, &externalBudget{s: s}, true, in.RequestKey)
 	out.NewlyAccepted = fresh
 	return
 }
@@ -288,7 +288,7 @@ func (s *Service) Continue(ctx context.Context, id, key string) (out Outcome, er
 			out = s.outcome(b.View)
 			return out, failure("checkout_blocked", b.View, nil)
 		}
-		out, kind, err = s.execute(ctx, b.View, &externalBudget{s: s}, true)
+		out, kind, err = s.execute(ctx, b.View, &externalBudget{s: s}, true, key)
 		return
 	}
 	if code(e) != "not_found" {
@@ -309,7 +309,7 @@ func (s *Service) Continue(ctx context.Context, id, key string) (out Outcome, er
 		return out, failure("checkout_blocked", v, nil)
 	}
 	if v.Operation.SessionID != nil {
-		out, kind, err = s.execute(ctx, v, budget, false)
+		out, kind, err = s.execute(ctx, v, budget, false, "")
 		if kind == "ownership_lost" {
 			return out, failure("checkout_blocked", View{Order: out.Order, Operation: out.Operation}, nil)
 		}
@@ -354,7 +354,7 @@ func (s *Service) Continue(ctx context.Context, id, key string) (out Outcome, er
 		out = s.outcome(bound)
 		return out, nil
 	}
-	out, kind, err = s.execute(ctx, bound, budget, true)
+	out, kind, err = s.execute(ctx, bound, budget, true, key)
 	out.NewlyAccepted = op.ID != v.Operation.ID
 	return
 }

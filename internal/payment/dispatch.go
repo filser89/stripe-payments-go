@@ -134,7 +134,7 @@ func (s *Service) release(ctx context.Context, v View) {
 		s.log(ctx, action, s.outcome(v), err, kind)
 	}
 }
-func (s *Service) readback(ctx context.Context, v View, kind string, cause error) (Outcome, string, error) {
+func (s *Service) readback(ctx context.Context, v View, kind string, cause error, boundKey string) (Outcome, string, error) {
 	ctx, cancel := s.finalContext(ctx)
 	defer cancel()
 	s.release(ctx, v)
@@ -150,6 +150,16 @@ func (s *Service) readback(ctx context.Context, v View, kind string, cause error
 		return s.outcome(v), "database_read", failure("temporarily_unavailable", v, err)
 	}
 	if fresh.Operation.ID != v.Operation.ID {
+		// Accepted requests report their immutable binding, including the saved
+		// historical state after a concurrent replacement. Fresh-key eligibility
+		// work has no binding yet and must retain the current-operation guard.
+		if boundKey != "" {
+			binding, err := s.repo.LoadBinding(ctx, boundKey)
+			if err != nil {
+				return s.outcome(v), "database_read", failure("temporarily_unavailable", v, err)
+			}
+			fresh = binding.View
+		}
 		return s.outcome(fresh), "ownership_lost", nil
 	}
 	out := s.outcome(fresh)
@@ -158,7 +168,7 @@ func (s *Service) readback(ctx context.Context, v View, kind string, cause error
 	}
 	return out, kind, nil
 }
-func (s *Service) execute(ctx context.Context, v View, b *externalBudget, accepted bool) (Outcome, string, error) {
+func (s *Service) execute(ctx context.Context, v View, b *externalBudget, accepted bool, boundKey string) (Outcome, string, error) {
 	out := s.outcome(v)
 	op := v.Operation
 	if v.Order.Status == "paid" || op.State == "paid" {
@@ -212,9 +222,9 @@ func (s *Service) execute(ctx context.Context, v View, b *externalBudget, accept
 			prepared, err := s.repo.PrepareDispatch(ctx, Dispatch{OrderID: v.Order.ID, OperationID: op.ID, ExpectedVersion: op.Version, ExpectedCurrentOperationID: v.Order.CurrentOperationID, OwnerToken: token, Snapshot: snap, FirstDispatchAt: first, LastDispatchAt: at})
 			if err != nil {
 				if code(err) == "ownership_lost" || code(err) == "checkout_blocked" {
-					return s.readback(ctx, v, "ownership_lost", err)
+					return s.readback(ctx, v, "ownership_lost", err, boundKey)
 				}
-				return s.readback(ctx, v, "database_dispatch", err)
+				return s.readback(ctx, v, "database_dispatch", err, boundKey)
 			}
 			op = prepared
 			v.Operation = op
@@ -222,7 +232,7 @@ func (s *Service) execute(ctx context.Context, v View, b *externalBudget, accept
 		// Database work can consume the remaining idempotency safety window.
 		// Check the committed first dispatch again at the physical send boundary.
 		if !retrieve && !s.safe(op) {
-			return s.readback(ctx, v, "safe_age_exhausted", nil)
+			return s.readback(ctx, v, "safe_age_exhausted", nil, boundKey)
 		}
 		e, callErr := b.call(ctx, op, retrieve)
 		state := "unresolved"
@@ -260,7 +270,7 @@ func (s *Service) execute(ctx context.Context, v View, b *externalBudget, accept
 			}
 		}
 		if ctx.Err() != nil {
-			return s.readback(ctx, v, errorKind(e, ctx.Err()), ctx.Err())
+			return s.readback(ctx, v, errorKind(e, ctx.Err()), ctx.Err(), boundKey)
 		}
 		history := HistoryEntry{OrderID: v.Order.ID, OperationID: op.ID, Kind: "operation_state_changed", State: state, SessionID: optionalString(e.SessionID), PaymentIntentID: e.PaymentIntentID, RequestID: optionalString(e.RequestID), ObservedAt: s.opts.Now().UTC().Truncate(time.Microsecond), FromState: ptr(op.State), ToState: ptr(state)}
 		if kind != "" {
@@ -281,7 +291,7 @@ func (s *Service) execute(ctx context.Context, v View, b *externalBudget, accept
 			if code(err) == "ownership_lost" {
 				kind = "ownership_lost"
 			}
-			out, category, readErr := s.readback(observeCtx, v, kind, err)
+			out, category, readErr := s.readback(observeCtx, v, kind, err, boundKey)
 			cancelObserve()
 			return out, category, readErr
 		}

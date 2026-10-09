@@ -494,6 +494,23 @@
       }
     },
     {
+      "id": "github.com/filser89/stripe-payments-go/internal/payment::TestBoundReplayReplacementDuringRetrieval",
+      "full_description": "TestBoundReplayReplacementDuringRetrieval",
+      "file_path": "internal/payment/checkout_test.go",
+      "line_number": 782,
+      "digest": "cd3a8c029e022cd62ef6b90091e81e949c6d1d22b044a6464b228490cec68c7d",
+      "package": "github.com/filser89/stripe-payments-go/internal/payment",
+      "test_name": "TestBoundReplayReplacementDuringRetrieval",
+      "parent_id": "",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/payment::TestBoundReplayReplacementDuringRetrieval",
+      "is_group": true,
+      "source": {
+        "kind": "function",
+        "start_offset": 33688,
+        "end_offset": 39567
+      }
+    },
+    {
       "id": "github.com/filser89/stripe-payments-go/internal/payment::TestDirectInspectionOutcomeLogs",
       "full_description": "TestDirectInspectionOutcomeLogs",
       "file_path": "internal/payment/outcome_logging_test.go",
@@ -1862,9 +1879,9 @@
   "overlay_packages": [],
   "scaffolds": [],
   "metadata": {
-    "captured_at": "2026-10-09T18:59:17Z",
+    "captured_at": "2026-10-09T19:40:27Z",
     "branch": "002-02-order-and-checkout",
-    "commit": "cef7cfa",
+    "commit": "0eb4b26",
     "feature": "002-02-order-and-checkout",
     "name": "post-impl"
   },
@@ -4432,6 +4449,44 @@
         "kind": "function",
         "start_offset": 6052,
         "end_offset": 7985
+      },
+      "status": "passed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/payment::TestBoundReplayReplacementDuringRetrieval/bound_continuation_key",
+      "full_description": "TestBoundReplayReplacementDuringRetrieval/bound_continuation_key",
+      "file_path": "internal/payment/checkout_test.go",
+      "line_number": 788,
+      "digest": "504f077c672d63c0de3dadf4a2f22062ce0730a6d158501fcec0550ae05d56af",
+      "package": "github.com/filser89/stripe-payments-go/internal/payment",
+      "test_name": "TestBoundReplayReplacementDuringRetrieval/bound_continuation_key",
+      "parent_id": "github.com/filser89/stripe-payments-go/internal/payment::TestBoundReplayReplacementDuringRetrieval",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/payment::TestBoundReplayReplacementDuringRetrieval",
+      "is_group": false,
+      "source": {
+        "kind": "table-row",
+        "start_offset": 33866,
+        "end_offset": 33898,
+        "row_index": 1
+      },
+      "status": "passed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/payment::TestBoundReplayReplacementDuringRetrieval/original_creation_key",
+      "full_description": "TestBoundReplayReplacementDuringRetrieval/original_creation_key",
+      "file_path": "internal/payment/checkout_test.go",
+      "line_number": 787,
+      "digest": "4ffac810942945dd8cebdc34f43080977fcf769fed5802f36668ad327b4d3929",
+      "package": "github.com/filser89/stripe-payments-go/internal/payment",
+      "test_name": "TestBoundReplayReplacementDuringRetrieval/original_creation_key",
+      "parent_id": "github.com/filser89/stripe-payments-go/internal/payment::TestBoundReplayReplacementDuringRetrieval",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/payment::TestBoundReplayReplacementDuringRetrieval",
+      "is_group": false,
+      "source": {
+        "kind": "table-row",
+        "start_offset": 33820,
+        "end_offset": 33852,
+        "row_index": 0
       },
       "status": "passed"
     },
@@ -14702,8 +14757,8 @@
     }
   ],
   "summary": {
-    "total": 684,
-    "passed": 684,
+    "total": 686,
+    "passed": 686,
     "failed": 0,
     "pending": 0
   },
@@ -14780,7 +14835,7 @@
     },
     {
       "path": "internal/payment/checkout_test.go",
-      "sha256": "6c8d71f1882ca5b147fd069ad4232b11fb0be46f8f443d4c9a5ea599f023a60a",
+      "sha256": "bb01fec521760ba8bc5240804cea1adb49cf422ea5bcb02c69950ba6b262daf3",
       "symlink": ""
     },
     {
