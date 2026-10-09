@@ -1,641 +1,200 @@
 # Acceptance Criteria: Authenticate service and browser access
 
-**Feature**: `001-authenticate-service-and-browser`
+**Feature**: `001-authentication-refresh`
 **Spec**: [spec.md](spec.md)
-**Created**: 2026-10-09
 **Status**: Draft
 
 ## Summary
 
-- Total criteria: 101
-- New: 90 | Modify: 11 | Exists: 0
-- Categories: Authentication configuration; Credential enforcement and browser authentication; Auth-check response and input contract; Secret handling and request observability; Foundation compatibility; Local usage and integration boundaries
-
-Category breakdown:
-
-| Category | New | Modify | Exists | Total |
-| --- | ---: | ---: | ---: | ---: |
-| Authentication configuration | 17 | 0 | 0 | 17 |
-| Credential enforcement and browser authentication | 23 | 0 | 0 | 23 |
-| Auth-check response and input contract | 25 | 0 | 0 | 25 |
-| Secret handling and request observability | 12 | 0 | 0 | 12 |
-| Foundation compatibility | 5 | 11 | 0 | 16 |
-| Local usage and integration boundaries | 8 | 0 | 0 | 8 |
-
-Source notation: `AS1`–`AS8` reference numbered items in **Acceptance Scenarios**. `EC1`–`EC10` reference bullets in **Edge Cases**, in document order. `SC1`–`SC8` reference bullets in **Success Criteria**, in document order. `FR-001`–`FR-012` retain the specification identifiers.
-
-Ownership: the configured Go test paths are `**/*_test.go`, `**/testdata/**`, and `internal/testutil/**`. Feature artifacts plus `go.mod`/`go.sum` are shared paths. There is no single test directory. The path classifier identifies `internal/config/config_test.go` as test-owned. The configured rules are `AGENTS.md` and `FEATURE-QUALITY-STANDARDS.md`; no `CLAUDE.md` is present.
-
-Existing test inventory: `cmd/service/main_test.go`, `internal/config/config_test.go`, `internal/web/server_test.go`, and `internal/integration/foundation_test.go`. Supporting fixtures include `internal/integration/testdata/` and `scripts/testdata/workflows.sh`. Existing web/integration fixtures omit authentication values, so foundation criteria needing those fixtures are `MODIFY`. New assertions are `NEW` even when the test writer can place them in an existing file. Status denotes coverage work, not an executed test result.
-
-Go test planning must use runner-discovered identities, supported named tests/subtests or literal table rows, and criterion markers beside the assertions they cover. Shared test-helper edits require planning the affected test inventory. This document assigns no test identities, scaffolds, production interfaces, or implementation structure.
+- Total criteria: 22
+- Required behavioral variants: 108
+- New: 20 | Modify: 2 | Exists: 0
+- Categories: Serving and command configuration; Protected boundary and credentials; Landing and transport; Foundation compatibility; Secrets and observability; Browser journey
+- Source notation: numbered Acceptance Scenario and Edge Case references identify their ordered spec entries; FR IDs are literal requirements.
 
 ## Criteria
 
-### Authentication configuration
+### Serving and command configuration
 
-#### CFG-001: Configured username
+#### CFG-001: Serving startup validates account settings
 - **Status**: NEW
-- **Source**: FR-001; FR-005
-- **Assertion**: The protected-request username comes from `AUTH_USERNAME`.
-- **Notes**: Use distinct environment values to detect a hard-coded username.
-
-#### CFG-002: Missing username
-- **Status**: NEW
-- **Source**: AS4; FR-005; EC2
-- **Assertion**: Serving startup rejects an unset or empty `AUTH_USERNAME`.
-- **Notes**: Supply otherwise valid configuration; no default username is permitted.
-
-#### CFG-003: Missing password
-- **Status**: NEW
-- **Source**: AS4; FR-005; EC2
-- **Assertion**: Serving startup rejects an unset or empty `AUTH_PASSWORD`.
-- **Notes**: Supply otherwise valid configuration; no default password is permitted.
-
-#### CFG-004: Invalid UTF-8
-- **Status**: NEW
-- **Source**: AS4; FR-005
-- **Assertion**: Serving startup rejects invalid UTF-8 in either configured credential.
-- **Notes**: Exercise each field independently.
-
-#### CFG-005: ASCII controls
-- **Status**: NEW
-- **Source**: AS4; FR-005
-- **Assertion**: Serving startup rejects any ASCII control character U+0000–U+001F or U+007F in either configured credential.
-- **Notes**: Cover both fields. NUL cannot be supplied through a process environment; verify that boundary through configuration input.
-
-#### CFG-006: Username colon
-- **Status**: NEW
-- **Source**: AS4; FR-005; EC6
-- **Assertion**: Serving startup rejects a colon in the configured username.
-
-#### CFG-007: Password colon
-- **Status**: NEW
-- **Source**: FR-005; EC6
-- **Assertion**: Authentication configuration accepts a password containing a colon.
-
-#### CFG-008: Whitespace preservation
-- **Status**: NEW
-- **Source**: FR-005; EC6
-- **Assertion**: Authentication configuration preserves whitespace in each credential.
-- **Notes**: Include leading/trailing spaces and nonempty all-space values; control characters remain invalid under CFG-005.
-
-#### CFG-009: UTF-8 acceptance
-- **Status**: NEW
-- **Source**: FR-005
-- **Assertion**: Authentication configuration accepts non-ASCII UTF-8 credentials that satisfy the stated syntax constraints.
-
-#### CFG-010: Short password
-- **Status**: NEW
-- **Source**: AS4; FR-005; FR-010; SC3
-- **Assertion**: Authentication configuration accepts the password `123`.
-
-#### CFG-011: No extra length or strength policy
-- **Status**: NEW
-- **Source**: FR-005; SC3
-- **Assertion**: Authentication configuration accepts syntactically valid nonempty credentials without an application-level length or complexity restriction.
-- **Notes**: Include a one-character password and long credentials; HTTP header limits apply separately under HTTP-023.
-
-#### CFG-012: Fail-closed startup
-- **Status**: NEW
-- **Source**: AS4; FR-005; EC2
-- **Assertion**: Invalid authentication configuration prevents the application from serving protected requests.
-- **Notes**: Exercise actual serving startup with otherwise valid configuration, rather than only a configuration validator.
-
-#### CFG-013: Useful diagnostic
-- **Status**: NEW
-- **Source**: AS4; FR-005
-- **Assertion**: An authentication configuration error identifies the invalid setting or constraint.
-- **Notes**: Do not prescribe exact wording; credential-value exclusion is SEC-004.
-
-#### CFG-014: Migrations without HTTP credentials
-- **Status**: NEW
-- **Source**: FR-002; FR-005
-- **Assertion**: The migration command can execute with absent or invalid HTTP authentication configuration.
-- **Notes**: Use valid database configuration; cover missing values and protocol-invalid values independently.
-
-#### CFG-015: Probes without HTTP credentials
-- **Status**: NEW
-- **Source**: FR-002; FR-005; EC8
-- **Assertion**: The probe command can execute with absent or invalid HTTP authentication configuration.
-- **Notes**: Check successful readiness and existing failure behavior; the probe must not need an Authorization header.
-
-#### CFG-016: No HTTP authorization of internal commands
-- **Status**: NEW
-- **Source**: FR-002; Out of Scope
-- **Assertion**: Internal command execution requires no incoming HTTP authentication exchange.
-- **Notes**: Serving still requires valid authentication configuration; starting a process is not a protected HTTP request.
-
-#### CFG-017: Configured password
-- **Status**: NEW
-- **Source**: FR-001; FR-005
-- **Assertion**: The protected-request password comes from `AUTH_PASSWORD`.
-- **Notes**: Use distinct environment values to detect a hard-coded password.
-
-### Credential enforcement and browser authentication
-
-#### AUTH-001: Matching environment credentials
-- **Status**: NEW
-- **Source**: AS1; FR-001; FR-004; FR-010; SC1
-- **Assertion**: A request with the configured pair reaches `/auth-check` through the connected configuration-to-HTTP path.
-- **Notes**: Use the actual application entry point; HTTP-001 through HTTP-003 specify the success response.
-
-#### AUTH-002: Missing credentials
-- **Status**: NEW
-- **Source**: AS2; FR-006; EC1
-- **Assertion**: A request without an Authorization header receives `401 Unauthorized`.
-
-#### AUTH-003: Wrong username
-- **Status**: NEW
-- **Source**: AS2; FR-006; EC1
-- **Assertion**: A request with an incorrect username receives `401 Unauthorized`.
-
-#### AUTH-004: Wrong password
-- **Status**: NEW
-- **Source**: AS2; FR-006; EC1
-- **Assertion**: A request with an incorrect password receives `401 Unauthorized`.
-
-#### AUTH-005: Malformed credentials
-- **Status**: NEW
-- **Source**: AS2; FR-006; EC4
-- **Assertion**: A request with malformed Basic credentials receives `401 Unauthorized`.
-- **Notes**: Cover an empty header, missing encoded credentials, malformed Base64, and decoded credentials without a colon.
-
-#### AUTH-006: Duplicate headers
-- **Status**: NEW
-- **Source**: AS2; FR-006; EC4
-- **Assertion**: A request with multiple Authorization headers receives `401 Unauthorized`.
-- **Notes**: Include two valid identical headers and valid/invalid headers in both orders.
-
-#### AUTH-007: Unsupported scheme
-- **Status**: NEW
-- **Source**: AS2; FR-006; EC4
-- **Assertion**: A request using an authentication scheme other than Basic receives `401 Unauthorized`.
-
-#### AUTH-008: Basic challenge
-- **Status**: NEW
-- **Source**: AS2; AS3; FR-003; FR-006; SC2
-- **Assertion**: Every authentication rejection includes `WWW-Authenticate: Basic realm="stripe-payments-go"`.
-- **Notes**: Apply to each rejection family in AUTH-002 through AUTH-007; use the same generic challenge for browser requests.
-
-#### AUTH-009: Generic authentication error
-- **Status**: NEW
-- **Source**: AS2; FR-006; EC4
-- **Assertion**: Authentication rejection uses the same generic error regardless of the rejected credential defect.
-- **Notes**: No exact error body is specified; distinguish generic wording from the secret-exclusion assertions.
-
-#### AUTH-010: Protected behavior not invoked
-- **Status**: NEW
-- **Source**: AS2; FR-002; FR-004; SC1
-- **Assertion**: An unauthorized request never invokes protected behavior.
-- **Notes**: Verify middleware enforcement as well as the real `/auth-check` route; a handler that runs then hides its response is incorrect.
-
-#### AUTH-011: Protected content withheld
-- **Status**: NEW
-- **Source**: AS2; FR-002; SC1
-- **Assertion**: An unauthorized response contains no protected success content.
+- **Source**: Acceptance Scenario 1; FR-001; Edge Cases 1, 9
+- **Behavior**: Starting serve with otherwise valid runtime settings accepts valid credentials; invalid Basic settings prevent accepting requests, exit nonzero, and identify only the invalid setting.
+- **Required variants**: V1: accepted username lengths 1/128; V2: rejected 0/129; V3: accepted password lengths 1/256; V4: rejected 0/257; V5: each missing setting; V6: username space/colon/control/non-ASCII; V7: password control/non-ASCII; V8: password spaces/colon accepted; V9: invalid diagnostic values sanitized
+- **Evidence kind**: automated test; establish every listed outcome and variant.
 
-#### AUTH-012: Query credentials ignored
+#### CFG-002: Local commands retain independent configuration
 - **Status**: NEW
-- **Source**: FR-006
-- **Assertion**: Credentials supplied only in a query string do not authenticate a request.
+- **Source**: Acceptance Scenario 9; FR-002
+- **Behavior**: Actual probe/migrate execution ignores absent or invalid Basic settings while preserving existing runtime/database requirements and outcomes.
+- **Required variants**: V1: probe ready; V2: probe not ready; V3: probe unavailable bounded; V4: migrate successful; V5: invalid database/runtime setting still fails; V6: each command with absent/invalid Basic settings
+- **Evidence kind**: automated test; establish every listed outcome and variant.
 
-#### AUTH-013: Body credentials ignored
+#### CFG-003: Credential lifetime and restart rotation
 - **Status**: NEW
-- **Source**: FR-006
-- **Assertion**: Credentials supplied only in a request body do not authenticate a request.
+- **Source**: Acceptance Scenario 11; FR-002
+- **Behavior**: The running service uses its startup pair until restart; restarting uses the new pair.
+- **Required variants**: V1: environment changed while running: original succeeds/new fails; V2: restart: original fails/new succeeds
+- **Evidence kind**: automated test; establish every listed outcome and variant.
 
-#### AUTH-014: Per-request enforcement
-- **Status**: NEW
-- **Source**: FR-002
-- **Assertion**: Every protected request is authenticated independently of earlier successful requests.
-- **Notes**: Include successive requests from the same client or connection; no application session may authorize a later credential-free request.
-
-#### AUTH-015: Case-sensitive credentials
-- **Status**: NEW
-- **Source**: FR-005; EC6
-- **Assertion**: Changing the case of either submitted credential prevents authentication.
-- **Notes**: Exercise username and password independently.
-
-#### AUTH-016: Exact whitespace comparison
-- **Status**: NEW
-- **Source**: FR-005; EC6
-- **Assertion**: Changing whitespace in either submitted credential prevents authentication.
-- **Notes**: A matching pair with preserved spaces must succeed under AUTH-001; include all-space configured values.
-
-#### AUTH-017: No Unicode normalization
-- **Status**: NEW
-- **Source**: FR-005
-- **Assertion**: A canonically equivalent but byte-distinct Unicode credential does not authenticate.
-- **Notes**: Include a matching non-ASCII UTF-8 control case.
-
-#### AUTH-018: Case-insensitive scheme
-- **Status**: NEW
-- **Source**: EC6
-- **Assertion**: A case variant of the Basic scheme name authenticates when the credential pair matches.
-
-#### AUTH-019: Colon-containing password
-- **Status**: NEW
-- **Source**: FR-005; EC6
-- **Assertion**: A matching password containing a colon authenticates successfully.
+### Protected boundary and credentials
 
-#### AUTH-020: Short password through HTTP
+#### AUTH-001: Missing credentials reject before work
 - **Status**: NEW
-- **Source**: FR-005; FR-010; SC3
-- **Assertion**: The configured password `123` authenticates a matching request through the actual configuration-to-HTTP path.
+- **Source**: Acceptance Scenario 2; FR-003, FR-005; Edge Case 4
+- **Behavior**: A credential-free protected request returns generic challenge rejection before handler/body/side effects.
+- **Required variants**: V1: fresh missing header; V2: missing header after authenticated success; V3: GET/HEAD rejection headers; V4: HEAD no body
+- **Evidence kind**: automated test; establish every listed outcome and variant.
 
-#### AUTH-021: Browser completion
-- **Status**: NEW
-- **Source**: AS3; FR-003; SC2
-- **Assertion**: A browser supplying the configured pair displays the fixed plain-text success response.
-- **Notes**: The built-in prompt is enabled by AUTH-008; no custom login page or application session is part of this feature. Browser rendering may require a documented manual check.
-
-#### AUTH-022: Reusable authentication
-- **Status**: NEW
-- **Source**: FR-004; FR-006
-- **Assertion**: A protected operation other than `/auth-check` can use the same authentication enforcement.
-- **Notes**: Demonstrate with test-owned protected behavior; do not introduce a payment route or choose a new production API here.
-
-#### AUTH-023: Endpoint body policy stays local
+#### AUTH-002: Exact credential matching
 - **Status**: NEW
-- **Source**: FR-006
-- **Assertion**: Authentication middleware permits a nonempty body on an otherwise valid authenticated request to protected behavior outside `/auth-check`.
-- **Notes**: Use test-owned behavior with an explicit body allowance; this is not a payment schema.
+- **Source**: Acceptance Scenario 3; FR-004; Edge Case 1
+- **Behavior**: Only the exact configured username/password authenticates.
+- **Required variants**: V1: wrong username; V2: wrong password; V3: both wrong; V4: case mismatch in either; V5: password leading/trailing spaces significant; V6: supported min/max byte bounds; V7: no trimming/normalization
+- **Evidence kind**: automated test; establish every listed outcome and variant.
 
-### Auth-check response and input contract
-
-#### HTTP-001: GET success status
+#### AUTH-003: Authorization syntax and header bounds
 - **Status**: NEW
-- **Source**: AS1; FR-006; SC1
-- **Assertion**: An authenticated bodyless `GET /auth-check` without a query returns `200 OK`.
+- **Source**: Acceptance Scenario 5; FR-004, FR-005; Edge Cases 1–3
+- **Behavior**: Malformed or unsupported Authorization is rejected before work, while valid scheme case variants authenticate.
+- **Required variants**: V1: empty field; V2: Basic without token; V3: unsupported scheme; V4: malformed Base64; V5: missing separator; V6: decoded empty username/password; V7: invalid controls/non-ASCII incl invalid UTF-8; V8: repeated fields; V9: mixed-case Basic; V10: password separator colon retained; V11: matching Basic token with legal scheme-separator SP padding to 4096 bytes accepted; invalid in-cap values still rejected; V12: equivalent matching-token value with separator SP padding to 4097 bytes rejected before decoding
+- **Evidence kind**: automated test; establish every listed outcome and variant.
 
-#### HTTP-002: GET success media type
-- **Status**: NEW
-- **Source**: AS1; FR-006
-- **Assertion**: A successful `GET /auth-check` returns `Content-Type: text/plain; charset=utf-8`.
+- **Notes**: AUTH-003 V11/V12 use the one-or-more-SP scheme separator permitted by [RFC 9110 §11.4](https://www.rfc-editor.org/rfc/rfc9110.html#section-11.4); decoded credentials remain supported and exact. This distinguishes cap enforcement from malformed-input rejection.
 
-#### HTTP-003: GET success body
+#### AUTH-004: Credentials are accepted only from Authorization
 - **Status**: NEW
-- **Source**: AS1; FR-006
-- **Assertion**: A successful `GET /auth-check` returns exactly `Authenticated\n` as its body.
-- **Notes**: The final character is a newline, not the two literal characters backslash and n.
-
-#### HTTP-004: HEAD success
-- **Status**: NEW
-- **Source**: FR-006
-- **Assertion**: An authenticated bodyless `HEAD /auth-check` without a query returns `200 OK`.
+- **Source**: Acceptance Scenario 5; FR-004
+- **Behavior**: Only Authorization authenticates protected access.
+- **Required variants**: V1: query-only credentials; V2: cookie-only credentials; V3: body-only credentials; V4: rejected body not read
+- **Evidence kind**: automated test; establish every listed outcome and variant.
 
-#### HTTP-005: HEAD status parity
-- **Status**: NEW
-- **Source**: AS5; FR-006
-- **Assertion**: A `HEAD /auth-check` request receives the same status as the equivalent GET request for every applicable authentication or input outcome.
-- **Notes**: Include unauthorized, nonempty query, nonempty body, and body-read failure cases.
-
-#### HTTP-006: HEAD header parity
-- **Status**: NEW
-- **Source**: FR-006
-- **Assertion**: A `HEAD /auth-check` response has the same contract-required headers as the equivalent GET response.
-- **Notes**: Compare relevant values, not per-request correlation IDs; include content type, challenge, and cache policy where applicable.
-
-#### HTTP-007: HEAD body suppression
+#### AUTH-005: Delegation preserves request and result
 - **Status**: NEW
-- **Source**: FR-006
-- **Assertion**: A `HEAD /auth-check` response has no response body for any outcome.
-- **Notes**: Verify actual HTTP behavior for successful and rejected requests.
-
-#### HTTP-008: Unsupported methods
-- **Status**: NEW
-- **Source**: AS5; FR-006
-- **Assertion**: An authenticated request using a method other than GET or HEAD receives `405 Method Not Allowed`.
-- **Notes**: Cover common mutation methods plus OPTIONS and a valid extension method; no method-specific bypass is permitted.
-
-#### HTTP-009: Allow header
-- **Status**: NEW
-- **Source**: FR-006
-- **Assertion**: A method rejection includes `Allow: GET, HEAD`.
+- **Source**: Acceptance Scenario 4; FR-006
+- **Behavior**: Valid credentials delegate exactly once and preserve request and handler response.
+- **Required variants**: V1: method/path/query/body intact; V2: handler success status/header/body; V3: handler error status/header/body; V4: no auth-created effects
+- **Evidence kind**: automated test; establish every listed outcome and variant.
 
-#### HTTP-010: Nonempty query
+#### AUTH-006: Concurrent caller isolation
 - **Status**: NEW
-- **Source**: AS5; FR-006
-- **Assertion**: An authenticated GET or HEAD with a nonempty query string receives `400 Bad Request`.
-- **Notes**: Include unknown keys, credential-shaped keys, and raw nonempty queries without an equals sign.
-
-#### HTTP-011: Known nonempty body
-- **Status**: NEW
-- **Source**: AS5; FR-006; EC3
-- **Assertion**: An authenticated GET or HEAD with a nonempty known-length body receives `413 Content Too Large`.
-- **Notes**: No query; include exactly one byte as the first rejected boundary.
-
-#### HTTP-012: Unknown-length nonempty body
-- **Status**: NEW
-- **Source**: AS5; FR-006; EC3
-- **Assertion**: An authenticated GET or HEAD with a nonempty unknown-length body receives `413 Content Too Large`.
+- **Source**: Acceptance Scenario 12; FR-010
+- **Behavior**: Overlapping valid and invalid requests have independent outcomes and exact handler invocation count.
+- **Required variants**: V1: coordinated valid/invalid/missing callers; V2: rejected body/side effects untouched; V3: race-detected execution
+- **Evidence kind**: automated test; establish every listed outcome and variant.
 
-#### HTTP-013: Chunked nonempty body
-- **Status**: NEW
-- **Source**: AS5; FR-006; EC3
-- **Assertion**: An authenticated GET or HEAD with a nonempty chunked body receives `413 Content Too Large`.
-- **Notes**: Exercise wire-level chunked encoding rather than only a declared length.
-
-#### HTTP-014: Empty streamed body
-- **Status**: NEW
-- **Source**: FR-006; EC3
-- **Assertion**: An authenticated GET or HEAD with an empty streamed body satisfies the zero-byte body limit.
-- **Notes**: Include unknown-length and chunked forms without a nonempty query.
-
-#### HTTP-015: Body-read failure status
-- **Status**: NEW
-- **Source**: FR-006
-- **Assertion**: A body-read failure returns `400 Bad Request` when the connection still permits a response.
-- **Notes**: Use a failure before a body byte is established; no exact error wording is specified.
-
-#### HTTP-016: Body-read failure cannot succeed
-- **Status**: NEW
-- **Source**: FR-006
-- **Assertion**: A body-read failure never produces an authentication success response.
+### Landing and transport
 
-#### HTTP-017: Generic body-read error
-- **Status**: NEW
-- **Source**: FR-006
-- **Assertion**: A body-read failure response contains only a generic error.
-- **Notes**: Check detailed injected error text is absent; SEC-001 also excludes credential values.
-
-#### HTTP-018: Authentication precedes validation
+#### HTTP-001: Protected static landing response
 - **Status**: NEW
-- **Source**: AS5; FR-006; EC5
-- **Assertion**: An unauthorized request reaching `/auth-check` receives `401` regardless of endpoint method, query, or body defects.
-- **Notes**: Cross unauthorized credential families with individual and combined defects. HTTP parsing/header-limit rejection and existing shutdown rejection are permitted before authentication.
-
-#### HTTP-019: Method precedes input validation
-- **Status**: NEW
-- **Source**: FR-006
-- **Assertion**: An authenticated unsupported method receives `405` even when its query or body is invalid.
+- **Source**: Acceptance Scenario 7; FR-007
+- **Behavior**: Authenticated GET / yields the static service identification HTML; HEAD yields corresponding headers without body.
+- **Required variants**: V1: GET success; V2: HEAD success; V3: query preserved/accepted; V4: no credential/form/payment-control/token HTML
+- **Evidence kind**: automated test; establish every listed outcome and variant.
 
-#### HTTP-020: Query precedes body validation
+#### HTTP-002: Authentication before routing and methods
 - **Status**: NEW
-- **Source**: FR-006
-- **Assertion**: An authenticated GET or HEAD with a nonempty query receives `400` even when its body is nonempty.
+- **Source**: Acceptance Scenario 7; FR-003, FR-007; Edge Case 8
+- **Behavior**: Authentication precedes normal route/method handling and never makes unsupported requests successful.
+- **Required variants**: V1: authenticated unsupported method on / rejected; V2: authenticated unknown path 404; V3: missing credentials on both rejected first; V4: no downstream business work
+- **Evidence kind**: automated test; establish every listed outcome and variant.
 
-#### HTTP-021: Rejected input prevents operation
+#### HTTP-003: Actual body bytes and normal EOF
 - **Status**: NEW
-- **Source**: AS5; FR-010; SC4
-- **Assertion**: A request rejected by endpoint input validation does not perform the protected success operation.
+- **Source**: Acceptance Scenario 8; FR-008; Edge Case 5
+- **Behavior**: Landing accepts actual byte-empty EOF and rejects any received body byte with generic 400 using bounded reading.
+- **Required variants**: V1: nil/ordinary empty EOF accepted; V2: zero-byte EOF reader accepted; V3: immediate nonempty byte rejected; V4: declared length cannot bypass actual-byte inspection; V5: GET/HEAD nonempty rejection and HEAD no body
+- **Evidence kind**: automated test; establish every listed outcome and variant.
 
-#### HTTP-022: No-store responses
-- **Status**: NEW
-- **Source**: FR-006
-- **Assertion**: Every `/auth-check` endpoint response includes `Cache-Control: no-store`.
-- **Notes**: Cover 200, 401, 405, 400, and 413, including HEAD. Server-level parsing/header-limit errors or pre-routing shutdown rejection are outside endpoint responses.
-
-#### HTTP-023: Existing header limit
+#### HTTP-004: Body-read failures never become success
 - **Status**: NEW
-- **Source**: FR-005; FR-006
-- **Assertion**: The HTTP server retains the `http.DefaultMaxHeaderBytes` header limit of 1 MiB.
-- **Notes**: Preserve Go's actual parsing behavior; do not invent a stricter credential-length limit or assert an unsupported byte-exact wire cutoff.
-
-#### HTTP-024: Bounded body inspection
-- **Status**: NEW
-- **Source**: FR-006; EC3
-- **Assertion**: Inspection of an incomplete `/auth-check` request body is bounded by the existing HTTP read timeout.
-- **Notes**: Use the real HTTP serving path with controlled input; a response is not required after an unusable connection.
-
-#### HTTP-025: Exact endpoint path
-- **Status**: NEW
-- **Source**: FR-006
-- **Assertion**: A distinct path such as `/auth-check/` does not directly execute the `/auth-check` success operation.
-- **Notes**: The spec does not prescribe a particular response status for other paths.
-
-### Secret handling and request observability
+- **Source**: Acceptance Scenario 8; FR-008; Edge Cases 5, 6
+- **Behavior**: An operating connection with a body-read failure receives generic 400 without false success or sensitive error details.
+- **Required variants**: V1: zero-byte injected read failure; V2: byte plus read failure; V3: GET/HEAD response/header/body contracts; V4: transport/shutdown inability to respond distinguished
+- **Evidence kind**: automated test; establish every listed outcome and variant.
 
-#### SEC-001: Response data minimization
+#### HTTP-005: Real streamed-body handling
 - **Status**: NEW
-- **Source**: AS6; FR-007; EC7; SC5
-- **Assertion**: Authentication-related responses contain no configured credentials, submitted credentials, raw authorization values, or unnecessary personal data.
-- **Notes**: Inspect success and each rejection outcome, including attempted credentials in query strings or bodies.
-
-#### SEC-002: Log data minimization
-- **Status**: NEW
-- **Source**: AS6; FR-007; EC7; SC5
-- **Assertion**: Authentication-related logs contain no configured credentials, submitted credentials, raw authorization values, or unnecessary personal data.
-- **Notes**: Include successful attempts, malformed input, query/body credential attempts, and injected failure text; use distinguishable synthetic sentinels.
-
-#### SEC-003: Stored-data minimization
-- **Status**: NEW
-- **Source**: FR-007; FR-010; SC5
-- **Assertion**: Any stored data affected by authentication excludes credentials or unnecessary personal data.
-- **Notes**: Inspect actual affected paths. Do not introduce storage just to test this; absence of a write path is inspection evidence only.
-
-#### SEC-004: Configuration diagnostic sanitization
-- **Status**: NEW
-- **Source**: AS4; FR-005; EC7
-- **Assertion**: Authentication configuration diagnostics contain no credential values.
-- **Notes**: Inspect both returned startup errors and emitted startup logs for each invalid-configuration family.
-
-#### SEC-005: Browser-delivered credentials
-- **Status**: NEW
-- **Source**: AS3; AS6; FR-003; FR-007
-- **Assertion**: Browser-delivered content contains no embedded privileged credential values.
-- **Notes**: Inspect delivered content; absent future HTML/JavaScript is not proof of security for future browser pages.
-
-#### SEC-006: Example placeholders
-- **Status**: NEW
-- **Source**: AS6; FR-007; SC5
-- **Assertion**: Committed authentication configuration examples contain only placeholder credential values.
-- **Notes**: Repository inspection; do not copy real local credentials into evidence.
-
-#### SEC-007: Ignored local secrets
-- **Status**: NEW
-- **Source**: FR-007
-- **Assertion**: Local secret configuration files are ignored by Git.
-- **Notes**: Inspect ignore behavior, including `.env`; committed `.env.example` remains available.
-
-#### SEC-008: Version-control secret exclusion
-- **Status**: NEW
-- **Source**: FR-007
-- **Assertion**: The feature's version-controlled files contain no real credential values.
-- **Notes**: Repository inspection is distinct from runtime logging checks.
-
-#### SEC-009: Structured outcome logging
-- **Status**: NEW
-- **Source**: AS6; FR-008; SC5
-- **Assertion**: Each introduced request outcome is recorded in structured logs.
-- **Notes**: Include successful requests, authorization rejection, and endpoint validation/read failures.
-
-#### SEC-010: Outcome status
-- **Status**: NEW
-- **Source**: AS6; FR-008
-- **Assertion**: Each introduced request outcome log identifies the resulting HTTP status.
+- **Source**: Acceptance Scenario 8; FR-008; Edge Case 5
+- **Behavior**: Real HTTP streaming bodies obey actual emptiness and nonempty rejection.
+- **Required variants**: V1: real empty unknown-length/chunked stream accepted; V2: real nonempty chunked stream rejected; V3: no reliance only on recorder ContentLength=-1
+- **Evidence kind**: automated test; establish every listed outcome and variant.
 
-#### SEC-011: Request correlation
-- **Status**: NEW
-- **Source**: AS6; FR-006; FR-008
-- **Assertion**: Each introduced request outcome log carries the corresponding request correlation identifier.
-- **Notes**: Cover successes and failures; preserve the existing response correlation behavior.
-
-#### SEC-012: Sanitized error context
+#### HTTP-006: Stalled-body request deadline
 - **Status**: NEW
-- **Source**: AS6; FR-008
-- **Assertion**: A logged authentication-related failure includes useful sanitized error context.
-- **Notes**: The spec does not prescribe event names or exact diagnostic wording; secret exclusion remains SEC-002.
+- **Source**: Acceptance Scenario 8; FR-008, FR-009; Edge Cases 5, 6
+- **Behavior**: A real stalled request body cannot wait beyond the foundation read budget; no false successful landing result occurs.
+- **Required variants**: V1: chunked stream stalls before first byte; V2: configured read deadline effective; V3: close/transport failure allowed when response impossible
+- **Evidence kind**: automated test; establish every listed outcome and variant.
 
 ### Foundation compatibility
 
-#### FND-001: Public health
+#### FND-001: Exact public probe boundaries
+- **Status**: NEW
+- **Source**: Acceptance Scenario 6; FR-003, FR-009
+- **Behavior**: Exact probes remain public with preserved liveness/readiness/method semantics and no protected work.
+- **Required variants**: V1: GET/HEAD health/ready without credentials; V2: failed readiness/recovery; V3: readiness deadline; V4: POST/other probe method rejection; V5: health/ready prefix paths protected
+- **Evidence kind**: automated test; establish every listed outcome and variant.
+
+#### FND-002: Shutdown admission and bounded lifecycle
 - **Status**: MODIFY
-- **Source**: AS7; FR-009; EC8; SC6
-- **Assertion**: `/healthz` returns its existing healthy-process response without HTTP credentials.
-- **Notes**: Existing TestHealthReadinessAndSanitizedLogs asserts status 200; extend coverage to the authentication-configured service.
+- **Source**: Acceptance Scenarios 6, 12; FR-009
+- **Behavior**: Foundation shutdown preserves admission rejection, active draining/cancellation, resource cleanup, and bounded lifetime.
+- **Required variants**: V1: shutdown protected with/without credentials may return existing 503 first; V2: admitted authenticated work completes within grace; V3: overdue authenticated work canceled; V4: cleanup error/timeout; V5: serve failure cleanup
+- **Evidence kind**: automated test; establish every listed outcome and variant.
 - **Existing file**: `internal/web/server_test.go`
 
-#### FND-002: Health independent of database
+#### FND-003: PostgreSQL readiness and cancellation
 - **Status**: MODIFY
-- **Source**: AS7; FR-009; SC6
-- **Assertion**: `/healthz` remains successful during a database outage.
-- **Notes**: Existing outage_recovery_and_retained_data covers real PostgreSQL outage; its configuration setup needs authentication values.
+- **Source**: Acceptance Scenarios 6, 12; FR-009
+- **Behavior**: Real PostgreSQL readiness recovers after outage and active database work is canceled before shutdown cleanup.
+- **Required variants**: V1: database unavailable/restarted readiness; V2: retained data/migrations; V3: active authenticated PostgreSQL query cancellation; V4: unavailable startup deadline
+- **Evidence kind**: automated test; establish every listed outcome and variant.
 - **Existing file**: `internal/integration/foundation_test.go`
 
-#### FND-003: Public ready
-- **Status**: MODIFY
-- **Source**: AS7; FR-009; EC8
-- **Assertion**: `/readyz` returns its existing ready response without HTTP credentials when the database is available.
-- **Notes**: Existing TestHealthReadinessAndSanitizedLogs covers status 200 with a successful dependency.
-- **Existing file**: `internal/web/server_test.go`
-
-#### FND-004: Unavailable readiness
-- **Status**: MODIFY
-- **Source**: AS7; FR-009; SC6
-- **Assertion**: `/readyz` returns `503` while the database is unavailable.
-- **Notes**: Existing outage_recovery_and_retained_data verifies actual PostgreSQL unavailability.
-- **Existing file**: `internal/integration/foundation_test.go`
-
-#### FND-005: Readiness recovery
-- **Status**: MODIFY
-- **Source**: AS7; FR-009; SC6
-- **Assertion**: `/readyz` returns to `200` after the database recovers.
-- **Notes**: Existing outage_recovery_and_retained_data verifies actual PostgreSQL restart.
-- **Existing file**: `internal/integration/foundation_test.go`
-
-#### FND-006: Readiness deadline
-- **Status**: MODIFY
-- **Source**: AS7; FR-009
-- **Assertion**: Readiness checking remains bounded by its configured deadline.
-- **Notes**: Existing TestReadinessDeadline; retain the observed timeout outcome with valid authentication configuration.
-- **Existing file**: `internal/web/server_test.go`
-
-#### FND-007: Graceful active request
-- **Status**: MODIFY
-- **Source**: AS7; FR-009
-- **Assertion**: An admitted request can finish normally within the shutdown grace period.
-- **Notes**: Existing TestGracefulShutdownAllowsActiveRequestToFinish; supply valid authentication wherever the request is protected.
-- **Existing file**: `internal/web/server_test.go`
-
-#### FND-008: Overdue request cancellation
-- **Status**: MODIFY
-- **Source**: AS7; FR-009
-- **Assertion**: An overdue active request is canceled after the shutdown grace period.
-- **Notes**: Existing TestShutdownCancelsOverdueWorkAndWaitsForCleanup; preserve deliberately coordinated overlap.
-- **Existing file**: `internal/web/server_test.go`
-
-#### FND-009: Database cancellation
-- **Status**: MODIFY
-- **Source**: FR-009; SC6
-- **Assertion**: Shutdown cancellation reaches an active PostgreSQL operation.
-- **Notes**: Existing TestShutdownCancelsActivePostgresQuery; retain real PostgreSQL evidence.
-- **Existing file**: `internal/integration/foundation_test.go`
-
-#### FND-010: Cleanup ordering
-- **Status**: MODIFY
-- **Source**: AS7; FR-009
-- **Assertion**: Resource cleanup waits for canceled active request work to finish.
-- **Notes**: Existing TestShutdownCancelsOverdueWorkAndWaitsForCleanup.
-- **Existing file**: `internal/web/server_test.go`
-
-#### FND-011: Cleanup budget
-- **Status**: MODIFY
-- **Source**: AS7; FR-009
-- **Assertion**: Shutdown cleanup remains bounded by its configured budget.
-- **Notes**: Existing TestCleanupIsBounded uses the web test configuration helper that requires valid authentication values.
-- **Existing file**: `internal/web/server_test.go`
-
-#### FND-012: Shutdown admission
+#### FND-004: Shared HTTP transport deadlines
 - **Status**: NEW
-- **Source**: FR-009; EC5
-- **Assertion**: Requests arriving after shutdown admission closes retain the foundation's shutdown rejection behavior.
-- **Notes**: Cover `/auth-check` with and without credentials; shutdown rejection may precede authentication.
+- **Source**: Acceptance Scenario 6; FR-009; Edge Case 6
+- **Behavior**: Shared HTTP transport keeps finite header/read/write/idle deadlines and header handling; transport-invalid requests follow transport behavior.
+- **Required variants**: V1: real incomplete header deadline; V2: real stalled body deadline (HTTP-006); V3: blocked write deadline; V4: idle keepalive expiry; V5: over-limit/malformed HTTP header transport rejection without guaranteed challenge
+- **Evidence kind**: automated test; establish every listed outcome and variant.
 
-#### FND-013: HTTP header timeout
+### Secrets and observability
+
+#### SEC-001: Sanitized correlated outcomes
 - **Status**: NEW
-- **Source**: FR-006
-- **Assertion**: The HTTP server preserves its configured header-read timeout behavior.
-- **Notes**: Existing configuration-default assertions alone do not verify server behavior.
+- **Source**: Acceptance Scenario 10; FR-001, FR-005, FR-008, FR-010
+- **Behavior**: Diagnostics and all feature request outcomes expose no supplied secrets or sensitive failure details and retain sanitized structured correlation/outcomes.
+- **Required variants**: V1: startup invalid credentials; V2: accepted landing; V3: missing/wrong/malformed/duplicate/oversize auth; V4: body rejection; V5: zero-byte read failure; V6: HEAD errors; V7: encoded and decoded distinctive secret sentinels; V8: configuration value/Authorization/body leak paths
+- **Evidence kind**: automated test; establish every listed outcome and variant.
 
-#### FND-014: HTTP read timeout
+#### SEC-002: Runtime secret boundaries
 - **Status**: NEW
-- **Source**: FR-006
-- **Assertion**: The HTTP server preserves its configured request-read timeout behavior.
-- **Notes**: HTTP-024 specifically exercises body inspection on the new endpoint; this criterion covers preservation of the shared server contract.
+- **Source**: Acceptance Scenario 10; FR-010
+- **Behavior**: Runtime browser-delivered assets expose no privileged credentials, authentication sends no credentials to Stripe, and credential comparison avoids content-dependent early exit.
+- **Required variants**: V1: runtime browser assets expose no privileged credentials; V2: no authentication Stripe calls or credential disclosure to Stripe; V3: comparisons avoid content-dependent early exit
+- **Evidence kind**: source/configuration inspection; establish every listed outcome and variant.
 
-#### FND-015: HTTP write timeout
+### Browser journey
+
+#### BRW-001: Native browser authentication journey
 - **Status**: NEW
-- **Source**: FR-006
-- **Assertion**: The HTTP server preserves its configured response-write timeout behavior.
+- **Source**: Acceptance Scenarios 7, 11; FR-011
+- **Behavior**: Browser uses the native challenge to access the protected landing and no application sessions/login/logout are introduced.
+- **Required variants**: V1: fresh browser challenge and credential success; V2: server rejects credential-free later request; V3: no session cookie/custom login/logout; V4: browser controls reuse/prompting
+- **Evidence kind**: manual check plus automated HTTP evidence; establish every listed outcome and variant.
 
-#### FND-016: HTTP idle timeout
-- **Status**: NEW
-- **Source**: FR-006
-- **Assertion**: The HTTP server preserves its configured idle-connection timeout behavior.
+## Delivery Obligations
 
-### Local usage and integration boundaries
-
-#### DOC-001: Configuration instructions
-- **Status**: NEW
-- **Source**: AS8; FR-011; SC7
-- **Assertion**: Documentation explains how to configure `AUTH_USERNAME` and `AUTH_PASSWORD` under the stated validation rules.
-- **Notes**: Include no defaults, UTF-8, whitespace preservation, protocol restrictions, and absence of password-strength enforcement.
-
-#### DOC-002: Service request example
-- **Status**: NEW
-- **Source**: AS8; FR-011; SC7
-- **Assertion**: The documented service-client request reaches the authenticated `/auth-check` success response.
-- **Notes**: Use synthetic credentials for reproducible verification.
-
-#### DOC-003: Browser instructions
-- **Status**: NEW
-- **Source**: AS8; FR-011; SC7
-- **Assertion**: Documentation explains use of the browser's built-in HTTP Basic prompt.
-
-#### DOC-004: Local setup
-- **Status**: NEW
-- **Source**: AS8; FR-011
-- **Assertion**: The documented local setup supplies usable authentication configuration to the serving application.
-- **Notes**: Verify affected configuration examples and local startup wiring; migrations and probes remain covered by CFG-014 and CFG-015.
-
-#### DOC-005: Delivered scope
-- **Status**: NEW
-- **Source**: AS8; FR-011; EC9
-- **Assertion**: Documentation describes `/auth-check` as the delivered protected operation rather than claiming payment operations or browser pages exist.
-
-#### DOC-006: Future route responsibility
-- **Status**: NEW
-- **Source**: FR-004; FR-011; EC9
-- **Assertion**: Documentation assigns protection verification at order, checkout, payment-status/history, and browser-page entry points to the features that introduce them.
-
-#### DOC-007: Webhook independence
-- **Status**: NEW
-- **Source**: FR-012; EC10
-- **Assertion**: Documentation states that Stripe webhooks use signature verification independent of application HTTP Basic credentials.
-
-#### DOC-008: Webhook ownership
-- **Status**: NEW
-- **Source**: FR-012; SC7
-- **Assertion**: Documentation assigns environment-configured Stripe SDK webhook signature-verification integration to feature 3.
-- **Notes**: Installing the SDK alone is not verification; no webhook handler is introduced here.
+- **DO-001** — Source: FR-001, FR-002, FR-010; AGENTS.md configuration/security requirements. Deliverable: Empty BASIC_AUTH_USERNAME/PASSWORD placeholders and local/container credential setup. Completion check: Review .env.example for empty Basic credential placeholders, verify local secret files are ignored and untracked, and inspect tracked files/image-build inputs and image artifacts for credential exclusion. Review Compose wiring; resolve and launch the local application with synthetic credentials; verify values are supplied without diagnostic or browser disclosure. Never commit local credential values.
+- **DO-002** — Source: FR-007, FR-011; Acceptance Scenarios 7, 11. Deliverable: Current service/browser usage and lifecycle documentation. Completion check: Run documented request with placeholders replaced by synthetic values or interactive entry; perform native-browser challenge smoke check; inspect restart and browser caching/logout instructions.
+- **DO-003** — Source: Summary, Out of Scope; FR-003, FR-010. Deliverable: Local sandbox security and future-route/webhook boundaries. Completion check: Review docs for lack of Basic encryption, dedicated local credentials, local-only/TLS boundary, subsequent payment-route protection, and separate SDK webhook signature verification; do not claim undelivered routes exist.
+- **DO-004** — Source: Acceptance Scenarios 1–12; Success Criteria; shared quality standards. Deliverable: Accepted feature and foundation verification evidence. Completion check: Run make verify and affected race checks using local HTTP and PostgreSQL infrastructure; report actual results and gaps without live Stripe dependencies.
 
 ## Gaps & Open Questions
 
-- No blocking behavioral ambiguities are identified in the current specification. Generic errors, diagnostic wording, and nonmatching-path status codes have no exact specified text/value; criteria deliberately do not invent them.
-- **Verification gates (FR-010, SC8):** `make verify` is the local/CI gate, through `scripts/verify.sh` and `.github/workflows/verify.yml`. It covers formatting, generated-query freshness, workflow checks, static analysis, vulnerability checks, build, unit/integration tests, and race detection. These are hook-level execution obligations, not new behavioral test examples. Report actual results separately from outstanding checks; no application checks are run by this criteria derivation.
-- **Inspection/manual evidence (FR-007, FR-010, FR-011; SC2, SC5, SC7):** SEC-003 and SEC-005 through SEC-008 require inspection of actual delivered artifacts/data paths. DOC criteria require documentation review or local usage verification. AUTH-021 includes browser rendering. The test plan must assign suitable evidence rather than infer these outcomes from a passing middleware unit test. No product clarification is needed for these evidence obligations.
-- **Deferred entry points (FR-003, FR-004, FR-012; EC9, EC10):** payment routes and browser pages have no current runtime entry points. Future features must verify their own protection; their absence supplies no authentication evidence. Webhook signature verification belongs to feature 3. DOC-005 through DOC-008 record these boundaries; this feature must not introduce payment operations or a webhook handler to test them.
-- **Shared quality applicability (FR-010):** Q1/Q5 require actual entry-point and connected configuration-to-HTTP evidence. Q4/Q6 require preservation of request cancellation, timeout, readiness, logging, and shutdown guarantees; retain PostgreSQL-backed foundation evidence and race checks. Q2 payment persistence, Q3 Stripe recovery, and worker-pool requirements are outside this feature because it introduces none of those behaviors. Automated checks require no live Stripe access or credentials.
-- **Existing-test planning:** configuration validation changes may require fixture updates beyond the specific foundation assertions listed here, including configuration-default and command tests. The test plan must inventory every affected registration and shared helper under the Go runner contract; criterion statuses do not authorize unplanned edits. No existing authentication coverage is claimed.
+No unresolved behavior. All 12 acceptance scenarios, FR-001–FR-011, edge cases, and success outcomes are represented. Supporting Context adds no behavior. Documentation/setup/CI tasks remain DO-001–DO-004.
+
+Completeness witnesses: a sticky success flag violates AUTH-001; ignoring zero-byte read errors violates HTTP-004; trusting declared body length violates HTTP-003/HTTP-005; removing ReadTimeout violates HTTP-006; prefix-based public exceptions violate FND-001; unwired middleware violates CFG-001 and the connected landing journey. Byte bounds, normal EOF, read failure, real chunking, and stalled transport remain separate evidence.
+
+Existing foundation assertions were inspected. FND-002/FND-003 need authenticated setup and additional boundary evidence, so neither is labeled EXISTS. Browser and source inspection evidence is planned, not completed.

@@ -1,79 +1,94 @@
 # Feature: Authenticate service and browser access
 
-**Branch**: `001-authenticate-service-and-browser` · **Status**: draft
+**Branch**: `001-authentication-refresh` · **Status**: draft
 
 ## Summary
 
-Authentication applies to incoming HTTP requests from browser and service clients to protected backend endpoints. The backend checks these requests against one environment-configured HTTP Basic username/password pair. Internal command execution does not use HTTP authentication. The same mechanism supports the eventual browser interface through the browser's built-in authentication prompt, without embedding privileged credentials in delivered HTML or JavaScript. This feature exposes a protected `GET /auth-check` endpoint returning a fixed plain-text success response and establishes reusable authentication for subsequent payment features while preserving the foundation's health, readiness, and shutdown behavior.
+Service callers authenticate with one environment-configured local account, and browser users access the same protected service through the browser's native Basic prompt. A minimal protected landing page at `/` identifies the running service before payment operations are available.
+
+The service uses Go `net/http` and the browser's native Basic prompt. Authentication adds no database tables or Stripe calls. Preserve the application's foundation behavior and apply AGENTS.md and FEATURE-QUALITY-STANDARDS.md.
 
 ## Acceptance Scenarios
 
-1. **Authenticated service access**: Given valid authentication configuration, when a service caller requests `GET /auth-check` with the configured HTTP Basic credentials, then the endpoint returns `200 OK`, `Content-Type: text/plain; charset=utf-8`, and the body `Authenticated\n`.
-2. **Unauthorized access**: Given a request to `GET /auth-check`, when a caller omits credentials or supplies incorrect or malformed credentials, then the endpoint returns `401 Unauthorized` with `WWW-Authenticate: Basic realm="stripe-payments-go"`, without invoking the protected handler or returning its success response.
-3. **Browser authentication**: Given a browser request to `GET /auth-check` without credentials, when the application challenges the request, then it uses HTTP Basic authentication compatible with the browser's built-in prompt. When the browser supplies the configured credentials, it displays the fixed plain-text success response without a custom login page or application session.
-4. **Invalid configuration**: Given missing or invalid authentication configuration, when the application starts serving requests, then startup fails with a useful error that does not disclose credential values.
-5. **Input validation and limits**: Given an entry point introduced or changed by this feature, when a request violates its defined accepted input format, value constraints, or maximum body size, then the application rejects the invalid request without performing the protected operation. The `/auth-check` contract in FR-006 defines the accepted methods, input, and rejection behavior.
-6. **Secret handling and observability**: Given successful and rejected authentication attempts, when responses and correlated structured logs are inspected, then they identify the request outcome without exposing credentials, raw authorization values, or unnecessary personal data. Browser-delivered code and committed configuration examples contain no privileged credential values.
-7. **Foundation compatibility**: Given the authentication feature is configured, when callers exercise health/readiness checks, database-outage readiness recovery, and service shutdown, then the foundation's existing probe meanings and bounded shutdown behavior remain intact.
-8. **Local usage documentation**: Given a caller following the application documentation, when they configure and use authentication, then the instructions explain service requests, the browser's built-in prompt, and the boundary between delivered authentication support and subsequent payment/browser features.
+1. **Serving configuration:** Valid `BASIC_AUTH_USERNAME` and `BASIC_AUTH_PASSWORD` allow HTTP service startup. Missing, empty, invalid-character, non-ASCII, and over-limit values for either setting prevent serving, with a nonzero exit and a diagnostic identifying the invalid setting without disclosing its value. Exercise each setting and its accepted/rejected boundaries independently; no cross-product with unrelated invalid configuration is required.
+2. **Rejection before work:** A protected request without credentials receives `401`, the specified challenge and generic rejection headers/message. The selected protected handler, its body reader, and its side effects remain untouched. Repeat a credential-free request after an authenticated success: prior success does not authorize it.
+3. **Exact credential enforcement:** Wrong username, wrong password, and both wrong are rejected. Correct credentials authenticate case-sensitively without trimming or normalization. Verify supported character and byte-length boundaries so accepting any nonempty password, checking only the username, or silently normalizing credentials cannot satisfy the contract.
+4. **Authenticated delegation:** Correct credentials invoke the selected protected handler exactly once. Its method, path, query, and body are preserved. Preserve an observable successful result and an observable handler error result, including status, headers, and body; authentication does not replace errors with success.
+5. **Authorization parsing:** Unsupported schemes, malformed Base64, absent separators, empty/invalid decoded credentials, repeated Authorization fields, and values over 4 KiB produce rejection without handler execution or secret disclosure. A differently cased Basic scheme authenticates. Credentials supplied only through query parameters, cookies, or bodies do not authenticate.
+6. **Public foundation routes:** Exact `GET`/`HEAD /healthz` and `/readyz` work without credentials. Preserve liveness, database readiness failure/recovery, probe method rejection, and bounded shutdown behavior. Probe-prefix paths such as `/healthz/private` remain protected. Unsupported probe methods cannot execute protected business work.
+7. **Connected landing journey:** Start the service through its real configuration and routing. Unauthenticated `/` is rejected; authenticated `GET /` returns the static identification page and authenticated `HEAD /` returns corresponding headers with no body. HTML contains no credentials, forms, payment controls, or privileged tokens. Verify authenticated method rejection, unknown-path `404`, and the body outcomes below.
+8. **Body-free landing behavior:** Authenticated requests containing any body byte return generic `400`. Empty bodies, including byte-empty EOF and a real empty unknown-length/chunked stream, permit the landing response. A real nonempty chunked stream is rejected. A body-read failure with no byte obtained produces generic `400` when the connection can still respond; it never produces a false successful landing response or exposes the underlying error. Real stalled body delivery remains bounded by the foundation's request-read deadline. These are distinct observations: immediate byte bounds alone do not establish a stalled-stream deadline.
+9. **Command independence:** Serving requires valid Basic settings. Actual local `probe` and `migrate` execution remains usable when Basic settings are absent or invalid, subject to each command's existing database/runtime requirements. Readiness failure remains observable through the probe command; these commands are not authenticated HTTP endpoints.
+10. **Sanitized observability:** Inspect captured startup diagnostics, responses, and structured request logs using distinctive supplied secrets, including encoded submitted credentials. Successful landing, authentication rejection, malformed authorization, body rejection, and body-read failure retain sanitized request correlation and outcomes. Relevant HEAD failures retain response headers without bodies. No credential value, raw Authorization header, request body, or sensitive error detail appears.
+11. **Credential lifetime:** Changing environment values during a running process does not change its account. After restarting with a different configured pair, the old pair fails and the new pair succeeds. Every protected request is checked independently; no application session or logout endpoint is needed.
+12. **Concurrent isolation and lifecycle:** Coordinate overlapping valid and invalid requests and check each outcome and the exact protected invocation count. Rejected requests never perform protected work. Run affected paths under race detection and preserve foundation lifecycle evidence, including shutdown admission and cleanup budgets. Authentication requires no new payment/database-concurrency scenarios.
+
+Scenarios are behavioral groups, not a required one-assertion, one-test, or one-file layout. Exercise the actual application boundary and startup wiring; an isolated parsing or comparison helper is insufficient. Retain valuable existing foundation checks without duplicating them into every authentication scenario.
 
 ## Edge Cases
 
-- Missing credentials, a wrong username, a wrong password, and malformed authentication input must not grant access to a protected operation.
-- Missing or invalid configured credentials must not leave the application serving protected operations without authentication. A nonempty password such as `123` is valid; password strength is not a configuration requirement.
-- `/auth-check` accepts no body (maximum 0 bytes). A nonempty body is rejected even when its length is unknown or it uses chunked transfer encoding; body inspection remains bounded by the existing HTTP read timeout.
-- Duplicate `Authorization` headers, unsupported authentication schemes, malformed Base64, and decoded credentials without a username/password separator receive the same `401` challenge as incorrect credentials. Neither submitted usernames nor password values appear in errors.
-- Authentication takes precedence over endpoint method, query, and body validation for requests reaching `/auth-check`. HTTP parsing/header-limit errors and existing shutdown rejection may occur before authentication middleware.
-- Credential comparison is exact and case-sensitive; spaces are preserved, and the Basic scheme name is case-insensitive. A colon is permitted in the password but not in the username.
-- Authentication failures and configuration errors must not echo submitted or configured secrets in responses or logs.
-- Health and readiness checks must retain their existing operational behavior; authentication must not disrupt the foundation's probe command or shutdown handling.
-- There are no payment operations or browser pages in the current runtime. Their absence must not be represented as proof that their eventual entry points are protected.
-- Stripe webhook requests use a separate signature-verification mechanism. Application HTTP Basic credentials must not become a webhook prerequisite or a substitute for signature verification.
+- The username is 1–128 ASCII bytes in `!` through `~`, excluding `:`; spaces and control characters are invalid. The password is 1–256 printable ASCII bytes (` ` through `~`), including spaces and `:`. Empty values, non-ASCII bytes, controls, and over-limit values are invalid. Leading/trailing password spaces are significant. Base64 is still the Basic wire encoding.
+- An empty Authorization field or Basic scheme without a token is unauthenticated. Split decoded credentials at the username/password separator; password colons remain password data. Scheme casing has no effect on credential casing.
+- Authorization values of exactly 4096 bytes are within the header-value cap; 4097 bytes are rejected before decoding. An at-limit value still needs valid syntax and matching supported decoded credentials; the boundary must distinguish size rejection from other rejection mechanisms. Passing the cap does not exempt a value from syntax or credential validation. [RFC 9110 §11.4](https://www.rfc-editor.org/rfc/rfc9110.html#section-11.4) permits one or more separator SP bytes between the scheme and token. A matching Basic token preceded by enough legal separator SP bytes to make the entire value exactly 4096 bytes remains valid and authenticates; the equivalent 4097-byte value is rejected before decoding. Padding applies to the wire separator, not to decoded credential values. Invalid in-cap values still return `401`.
+- Missing Authorization after a successful request still returns `401`. Browser credential reuse does not create server-side remembered authentication.
+- A declared body length does not establish actual emptiness. Inspect bounded actual input; distinguish EOF with no bytes from a read error, a received byte, and a stream that has not yet completed. Authentication rejection does not consume the body in application code.
+- Transport-rejected malformed HTTP messages follow transport behavior. When a transport failure or shutdown prevents a response, no application-level `400` or challenge delivery is promised. An operating connection's body-read error must not become `200`.
+- Shutdown admission may return the foundation's existing `503` before authentication. Preserve that ordering and bounded cleanup.
+- Exact probe exceptions do not extend to similar prefixes. Valid credentials do not make an unknown path or unsupported method successful.
+- Multiple unrelated startup settings may be invalid; no diagnostic precedence is prescribed.
 
 ## Functional Requirements
 
-1. **FR-001 — Authentication mechanism**: The system MUST use HTTP Basic authentication with one username/password pair configured through environment variables for protected service operations and the local browser interface.
-2. **FR-002 — Request enforcement**: The system MUST check credentials in Go HTTP middleware on each incoming protected request and prevent unauthenticated callers from reaching protected behavior or content. HTTP authentication MUST NOT be used to authorize starting the application, running migrations, invoking probes, or executing other internal commands.
-3. **FR-003 — Browser support**: The system MUST support the browser's built-in authentication prompt through HTTP Basic challenges. The eventual browser payment journey MUST NOT require privileged service credentials embedded in delivered HTML or JavaScript.
-4. **FR-004 — Feature integration boundary**: The system MUST expose protected `GET /auth-check` with a fixed plain-text success response and establish reusable protection that subsequent payment features can apply to order creation, checkout, payment status/history, and their browser pages. This feature MUST verify unauthorized-request rejection at the actual application entry points it introduces or changes; subsequent features MUST verify protection at their own entry points.
-5. **FR-005 — Configuration validation**: The backend MUST have a configured username/password pair against which it verifies incoming protected HTTP requests. Missing or invalid configuration MUST prevent serving protected requests and produce a diagnostic without credential values. The system MUST accept nonempty passwords such as `123` without minimum-length or character-complexity requirements. Migrations and probe commands MUST NOT require HTTP authentication configuration. The pair is configured using `AUTH_USERNAME` and `AUTH_PASSWORD`, with no default credentials. Both values MUST be nonempty UTF-8 strings; whitespace MUST NOT be trimmed. HTTP Basic protocol constraints prohibit ASCII control characters (U+0000–U+001F and U+007F) in either value and a colon in the username. No additional application-level credential-length or strength policy applies; requests remain subject to the existing Go HTTP server header limit. Clients encode credentials as UTF-8 and values are compared without case folding or Unicode normalization. The control-character and username-colon restrictions follow the [HTTP Basic credential syntax](https://www.rfc-editor.org/rfc/rfc7617#section-2).
-6. **FR-006 — HTTP contract**: The system MUST apply the following contract to the exact `/auth-check` path:
-
-   - Require exactly one valid HTTP Basic `Authorization` header. Missing, incorrect, malformed, or duplicate credentials return `401 Unauthorized` with `WWW-Authenticate: Basic realm="stripe-payments-go"` and a generic error. Credentials in query strings or bodies do not authenticate a request.
-   - After successful authentication, accept `GET` and `HEAD`; other methods return `405 Method Not Allowed` with `Allow: GET, HEAD`.
-   - Accept no query parameters or request body. After method validation, a nonempty query string returns `400 Bad Request`; otherwise a nonempty body returns `413 Content Too Large`. The maximum accepted body size is 0 bytes, including requests with an unknown length or chunked encoding. A body read failure returns a generic `400` when the connection still permits a response; it never produces success.
-   - Successful `GET` returns `200 OK`, `Content-Type: text/plain; charset=utf-8`, and `Authenticated\n`. `HEAD` follows the same authentication and validation rules and returns the corresponding status and headers without a response body.
-   - Responses from this endpoint include `Cache-Control: no-store`. Request correlation, HTTP timeouts, and header limits retain their existing behavior; the [Go HTTP header limit](https://pkg.go.dev/net/http#DefaultMaxHeaderBytes) remains `http.DefaultMaxHeaderBytes` (1 MiB). Authentication middleware MUST NOT impose this endpoint's zero-body contract on future payment routes.
-   - Health/readiness routes retain their existing contracts. This feature introduces no payment request schema or webhook handler.
-
-7. **FR-007 — Data minimization**: The system MUST keep secrets in environment-based configuration, keep real secrets out of version control, and exclude credentials and unnecessary personal data from logs, responses, and stored data. Committed configuration examples MUST contain placeholders; local secret configuration MUST remain ignored by Git.
-8. **FR-008 — Logging**: The system MUST log outcomes of introduced or changed application operations and failures with request correlation identifiers and sanitized error context, following the shared logging and security standards.
-9. **FR-009 — Foundation compatibility**: The system MUST keep `/healthz` and `/readyz` public and preserve their existing behavior, request cancellation, and bounded shutdown behavior.
-10. **FR-010 — Verification**: The system MUST have tests for valid authentication, unauthorized requests, invalid configuration, rejected inputs, and request-size limits at the entry points introduced or changed here. Tests MUST demonstrate that a configured password of `123` is accepted and permits a matching protected HTTP request. Verification MUST exercise the connected configuration-to-HTTP path where it is changed and inspect configuration, responses, logs, and any affected stored-data paths for secret exposure. Applicable shared quality standards and the existing local/CI checks MUST remain satisfied.
-11. **FR-011 — Documentation**: The system MUST document authentication configuration, local service usage, browser prompt behavior, and the limits of the delivered functionality. Affected local setup instructions and configuration examples MUST remain usable. Documentation MUST state that later payment features wire and verify their own protected entry points.
-12. **FR-012 — Webhook boundary**: The system MUST keep Stripe webhooks independent of application HTTP Basic credentials. Feature 3 owns wiring the Stripe SDK's signature verification into its webhook handler with an environment-configured webhook secret; installing the SDK alone does not provide that verification.
+- **FR-001 — Startup account:** Read `BASIC_AUTH_USERNAME` and `BASIC_AUTH_PASSWORD` for HTTP serving and validate them against the ASCII policy. Missing, empty, or invalid settings prevent startup before requests are accepted. No built-in account, default password, or authentication-disable switch exists. Diagnostics identify the setting without its value.
+- **FR-002 — Lifetime and commands:** Capture credentials for the process lifetime. Rotation requires restart; there is no hot reload or credential-management endpoint. Basic validation must not block local `migrate` or `probe`; preserve their existing configuration and execution behavior.
+- **FR-003 — Protected boundary:** Authenticate `GET`/`HEAD /` and other application paths/methods before ordinary route/method handling. Exact `GET`/`HEAD /healthz` and `/readyz` remain public; other methods on those exact paths retain method rejection without business execution. Future payment routes/pages must verify their own protected wiring. Introduce no anonymous business-route exception.
+- **FR-004 — Parsing and matching:** Accept one syntactically valid Basic Authorization header whose decoded values match the configured pair exactly. Recognize the scheme case-insensitively. Reject repeated Authorization fields, values longer than 4 KiB before decoding, unsupported/malformed credentials, and incorrect pairs. Never authenticate from a query, cookie, or body.
+- **FR-005 — Authentication rejection:** Return `401` with `WWW-Authenticate: Basic realm="stripe-payments"`, `Content-Type: text/plain; charset=utf-8`, `Cache-Control: no-store`, and generic `Unauthorized` content. HEAD has no response body. Do not disclose which value failed, echo input, or redirect to a custom login page. Reject before downstream invocation, body parsing, or side effects.
+- **FR-006 — Delegation:** For valid credentials, invoke the selected protected handler once, preserving method, path, query, body, and the handler's observable response. Authentication creates no payment effects and substitutes no success response.
+- **FR-007 — Landing:** Authenticated `GET /` returns `200` with small static HTML identifying the local payment service. `HEAD /` returns corresponding headers without a body. Include no credentials, forms, payment controls, or privileged tokens. Reject other methods after authentication; authenticated unknown paths return `404`.
+- **FR-008 — Landing input:** Accept no payload on the landing endpoint. Detect actual body bytes through bounded reading under existing request deadlines and return generic `400` for nonempty input. Byte-empty EOF is accepted. Body-read failures return generic `400` when a response is possible, without leaked error detail or false success. Transport/shutdown inability to respond follows foundation behavior. Authentication failures stay `401` without application body consumption. Do not introduce a query-rejection policy.
+- **FR-009 — Foundation preservation:** Preserve public liveness/readiness, readiness deadlines and database failure/recovery, generated request identifiers, structured outcome logging, finite HTTP header/read/write/idle deadlines and header handling, shutdown admission, draining, and bounded cleanup. Keep loopback host publishing. Distinguish transport behavior from application rejection contracts.
+- **FR-010 — Security and isolation:** Validate every protected request independently and maintain correct outcomes under concurrency. Keep credentials out of logs, responses, browser assets, setup diagnostics, and Stripe requests. Do not log raw Authorization, decoded credentials, configuration secrets, request bodies, or unnecessary personal data. Credential comparisons avoid content-dependent early exit; no timing-sensitive acceptance threshold is prescribed.
+- **FR-011 — Browser behavior:** Use the native Basic challenge journey without application sessions or login/session cookies. The browser determines prompting and credential reuse; no guarantee of prompting on every load or application-controlled logout exists.
 
 ## Success Criteria
 
-- Correct HTTP Basic credentials allow `GET /auth-check` to return its fixed plain-text success response; missing, incorrect, and malformed credentials cannot invoke protected behavior or reveal protected content.
-- Browser requests receive the HTTP Basic challenge needed for the built-in prompt and can authenticate using the configured pair, without a custom login/session system or privileged credentials in browser-delivered code.
-- Missing and invalid authentication configuration prevent serving protected operations and produce sanitized diagnostic errors. A configured nonempty password such as `123` passes validation and authenticates matching HTTP requests; no password-strength policy applies.
-- Tests demonstrate enforcement of the defined input contracts and body-size boundaries at each entry point introduced or changed in this feature.
-- Configuration examples, responses, logs, and affected data paths contain no real secrets or unnecessary personal data; request outcomes remain correlated and observable.
-- Existing health/readiness behavior, readiness recovery, and bounded shutdown remain verified through the foundation checks.
-- Local callers can follow the documented `AUTH_USERNAME`/`AUTH_PASSWORD` configuration, request `GET /auth-check` from a service client, and exercise the built-in browser prompt. Documentation accurately describes support for the eventual browser interface and assigns payment-route and webhook integration to their respective features.
-- Local and CI verification use the same documented formatting, static-analysis, vulnerability, unit/integration-test, and race-detection checks. Reported verification distinguishes checks actually run from outstanding evidence.
+- Valid configured service and browser requests reach the actual protected landing route; invalid or missing credentials cannot invoke protected work, including after an earlier success.
+- Startup and command behavior obey the serving-only credential requirement and credential lifetime contract.
+- Parsing, exact matching, routing, body-stream outcomes, and independent concurrent requests meet the specified observable contract.
+- Foundation probes, HTTP deadlines, request observability, and lifecycle guarantees remain effective, with regression evidence at their meaningful boundaries.
+- Responses, startup diagnostics, logs, and delivered browser assets disclose no supplied secrets or sensitive failure details.
 
 ## Out of Scope
 
-- Authentication of internal command execution and password-strength enforcement.
-- Order creation, checkout, payment status/history behavior, and their browser pages; these belong to subsequent features.
-- A custom login page, user database, application sessions, registration, multiple users or merchants, or multi-tenant authorization.
-- Stripe webhook handler implementation and signature-verification integration; these belong to feature 3.
-- Changes to the application scope: one local Go application with PostgreSQL, one merchant, one Stripe sandbox account, and one configured currency.
-- Real-money operation, cloud deployment, and the other lifecycle and infrastructure exclusions in `AGENTS.md`.
-- New payment persistence, Stripe calls, reconciliation workers, or unrelated application behavior solely to demonstrate authentication.
+Payment operations/pages, order creation, checkout, payment status/history, webhook handlers, and endpoint-specific body limits for future payment payloads. Authentication introduces no database state, user database, registration, multiple accounts/tenants, custom login page, application sessions, logout, remote/network deployment, or TLS setup. Future webhook verification is independent of Basic authentication.
+
+## Delivery Obligations
+
+### DO-001 — Empty BASIC_AUTH_USERNAME/PASSWORD placeholders and local/container credential setup
+
+- **Source**: FR-001, FR-002, FR-010; AGENTS.md configuration/security requirements
+- **Completion check**: Review .env.example for empty Basic credential placeholders, verify local secret files are ignored and untracked, and inspect tracked files/image-build inputs and image artifacts for credential exclusion. Review Compose wiring; resolve and launch the local application with synthetic credentials; verify values are supplied without diagnostic or browser disclosure. Never commit local credential values.
+
+### DO-002 — Current service/browser usage and lifecycle documentation
+
+- **Source**: FR-007, FR-011; Acceptance Scenarios 7, 11
+- **Completion check**: Run documented request with placeholders replaced by synthetic values or interactive entry; perform native-browser challenge smoke check; inspect restart and browser caching/logout instructions.
+
+### DO-003 — Local sandbox security and future-route/webhook boundaries
+
+- **Source**: Summary, Out of Scope; FR-003, FR-010
+- **Completion check**: Review docs for lack of Basic encryption, dedicated local credentials, local-only/TLS boundary, subsequent payment-route protection, and separate SDK webhook signature verification; do not claim undelivered routes exist.
+
+### DO-004 — Accepted feature and foundation verification evidence
+
+- **Source**: Acceptance Scenarios 1–12; Success Criteria; shared quality standards
+- **Completion check**: Run make verify and affected race checks using local HTTP and PostgreSQL infrastructure; report actual results and gaps without live Stripe dependencies.
+
+## Supporting Context
+
+The application is one local Go service with PostgreSQL, one merchant, and one Stripe sandbox account. Authentication establishes the service/browser boundary without adding payment persistence or Stripe interactions. Existing foundation evidence remains relevant; no new database-concurrency or Stripe-recovery behavior is introduced.
 
 ## Open Questions
 
-None.
+No unresolved behavioral questions. Implementation details and evidence organization remain subject to the application engineering standards.

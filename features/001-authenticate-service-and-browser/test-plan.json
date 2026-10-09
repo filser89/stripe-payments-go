@@ -1,0 +1,96 @@
+{
+  "version": 3,
+  "feature": "001-authenticate-service-and-browser",
+  "source": "test-plan.md",
+  "entries": [
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/cmd/service::TestRunRejectsMissingConfiguration",
+      "file": "cmd/service/main_test.go",
+      "description": "TestRunRejectsMissingConfiguration"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/integration::TestDatabaseMigrationsReadinessAndRestart/outage_recovery_and_retained_data",
+      "file": "internal/integration/foundation_test.go",
+      "description": "TestDatabaseMigrationsReadinessAndRestart/outage_recovery_and_retained_data"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/integration::TestShutdownCancelsActivePostgresQuery",
+      "file": "internal/integration/foundation_test.go",
+      "description": "TestShutdownCancelsActivePostgresQuery"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/web::TestCleanupFailureIsReported",
+      "file": "internal/web/server_test.go",
+      "description": "TestCleanupFailureIsReported"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/web::TestCleanupIsBounded",
+      "file": "internal/web/server_test.go",
+      "description": "TestCleanupIsBounded"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/web::TestGracefulShutdownAllowsActiveRequestToFinish",
+      "file": "internal/web/server_test.go",
+      "description": "TestGracefulShutdownAllowsActiveRequestToFinish"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/web::TestHealthReadinessAndSanitizedLogs",
+      "file": "internal/web/server_test.go",
+      "description": "TestHealthReadinessAndSanitizedLogs"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/web::TestPanicProducesSanitizedFailureLog",
+      "file": "internal/web/server_test.go",
+      "description": "TestPanicProducesSanitizedFailureLog"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/web::TestReadinessDeadline",
+      "file": "internal/web/server_test.go",
+      "description": "TestReadinessDeadline"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/web::TestServeFailureClosesResources",
+      "file": "internal/web/server_test.go",
+      "description": "TestServeFailureClosesResources"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/web::TestShutdownCancelsOverdueWorkAndWaitsForCleanup",
+      "file": "internal/web/server_test.go",
+      "description": "TestShutdownCancelsOverdueWorkAndWaitsForCleanup"
+    },
+    {
+      "action": "PIN",
+      "expected_landing": "passed",
+      "file": "cmd/service/authentication_test.go",
+      "description": "TestAuthenticationCommandIndependence"
+    },
+    {
+      "action": "PIN",
+      "expected_landing": "passed",
+      "file": "internal/web/authentication_transport_test.go",
+      "description": "TestAuthenticationFoundationTransport"
+    }
+  ]
+}
