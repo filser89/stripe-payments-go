@@ -4,17 +4,19 @@
 
 ## Summary
 
-- Criteria reviewed: 2 / 22 (scoped: CFG-001, SEC-001), covering 17 required variants and their source dependencies.
+- Criteria reviewed: 2 / 22 (scoped: CFG-001, SEC-001), including CFG-001 V1–V9, SEC-001 V1–V8, and their source dependencies.
 - Findings: 0 critical, 0 high, 0 medium, 0 low.
-- Verdict: GO — no blocking weaknesses identified in the scoped evidence; no unrelated findings remain in the report.
-- Review method: static inspection of specification, criteria, plan, test bodies, helpers, and relevant production boundaries. The suite was not run.
+- Verdict: GO — selected evidence meaningfully constrains serving validation and sanitized correlated outcomes; no findings remain in the merged report.
+- Review method: static inspection of specification, criteria, plan, test bodies, helpers, project rules, and relevant startup boundaries. No tests, measurement harness, or project verification commands were run during this review.
 
 ## Findings
 
 | ID | Criterion | Location (file:block) | Severity | Weakness | Counterexample / evidence | Recommendation |
 |----|-----------|-----------------------|----------|----------|--------------------------|----------------|
 
-No findings.
+No findings remain. `TestAuthenticationServingConfiguration` uses a single 3-second context for executable cancellation and observation, continuously probes for listener acceptance, rejects killed processes, requires normal nonzero termination and the exact invalid-setting diagnostic, and checks raw, decoded, normalized, and encoded secret representations. Accepted credential boundaries exercise actual serving and require unauthenticated rejection.
+
+`TestAuthenticationSanitizedOutcomes` exercises accepted landing, missing/wrong/malformed/duplicate/oversize Authorization, body rejection, zero-byte read failure, and HEAD errors. It checks response contracts, server-generated correlation, matching structured completion status, and supplied secret exclusion across response headers/body and raw/decoded log values. Startup diagnostics are separately mapped to the command witness. The selected source obligations and their planned delivery checks have evidence mappings; implementation-dependent completion remains outside this static review.
 
 ## Strength Summary
 
@@ -30,4 +32,5 @@ No findings.
 
 ## Next Actions
 
-- No blocking issues — proceed to human review. The human owns the final go/no-go decision. Phase 3 planning with `/kaba:plan-code` in a fresh session follows that gate.
+- No blocking issues — proceed to human review. The verdict is advisory; the human owns the final go/no-go decision.
+- Complete the required project verification, snapshot gates, and delivery checks in the appropriate workflow; this static review does not establish their execution results.

@@ -189,7 +189,9 @@ func TestAuthenticationServingConfiguration(t *testing.T) { // CFG-001 V1–V9, 
 			stop()
 			continue
 		}
-		ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+		// This observation budget includes executable launch and suite scheduling;
+		// it is a test hang guard, not a startup performance requirement.
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 		logs := &commandOutput{}
 		process := exec.CommandContext(ctx, binary, "serve")
 		for key, value := range values {
@@ -203,7 +205,6 @@ func TestAuthenticationServingConfiguration(t *testing.T) { // CFG-001 V1–V9, 
 		var accepted bool
 		var runErr error
 		observe := time.NewTicker(5 * time.Millisecond)
-		startupBudget := time.NewTimer(3 * time.Second)
 	observeStartup:
 		for {
 			select {
@@ -215,13 +216,15 @@ func TestAuthenticationServingConfiguration(t *testing.T) { // CFG-001 V1–V9, 
 					accepted = true
 					assert.NoError(t, conn.Close())
 				}
-			case <-startupBudget.C:
-				cancel()
-				t.Fatal("invalid serving configuration did not terminate")
+			case <-ctx.Done():
+				// CommandContext kills overdue execution. Join the owned goroutine
+				// and keep checking the result: a kill is not normal rejection.
+				runErr = <-done
+				t.Errorf("invalid serving configuration did not terminate within observation budget: %s", tc.name)
+				break observeStartup
 			}
 		}
 		observe.Stop()
-		startupBudget.Stop()
 		cancel()
 		assert.False(t, accepted, tc.name)
 		assert.NotContains(t, logs.contents(), "service listening", tc.name)

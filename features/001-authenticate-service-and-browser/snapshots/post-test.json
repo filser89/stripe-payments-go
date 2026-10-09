@@ -65,9 +65,9 @@
   "overlay_packages": [],
   "scaffolds": [],
   "metadata": {
-    "captured_at": "2026-10-09T09:54:09Z",
+    "captured_at": "2026-10-09T10:51:03Z",
     "branch": "001-authenticate-service-and-browser",
-    "commit": "b36244c",
+    "commit": "d908260",
     "feature": "001-authenticate-service-and-browser",
     "name": "post-test"
   },
@@ -76,7 +76,7 @@
       "id": "github.com/filser89/stripe-payments-go/cmd/service::TestAuthenticationCommandIndependence",
       "full_description": "TestAuthenticationCommandIndependence",
       "file_path": "cmd/service/authentication_test.go",
-      "line_number": 269,
+      "line_number": 272,
       "digest": "4efde9297eca5347837a4dd112036de906a6065cc25a93c1832e9de6bb63ec9d",
       "package": "github.com/filser89/stripe-payments-go/cmd/service",
       "test_name": "TestAuthenticationCommandIndependence",
@@ -85,8 +85,8 @@
       "is_group": false,
       "source": {
         "kind": "function",
-        "start_offset": 11069,
-        "end_offset": 15616
+        "start_offset": 11344,
+        "end_offset": 15891
       },
       "status": "passed"
     },
@@ -94,7 +94,7 @@
       "id": "github.com/filser89/stripe-payments-go/cmd/service::TestAuthenticationCredentialLifetime",
       "full_description": "TestAuthenticationCredentialLifetime",
       "file_path": "cmd/service/authentication_test.go",
-      "line_number": 378,
+      "line_number": 381,
       "digest": "83292fcf85eb212082b37e73506c74570e79f2fd470cd60eb5db7fddad03755e",
       "package": "github.com/filser89/stripe-payments-go/cmd/service",
       "test_name": "TestAuthenticationCredentialLifetime",
@@ -103,17 +103,17 @@
       "is_group": false,
       "source": {
         "kind": "function",
-        "start_offset": 15618,
-        "end_offset": 16720
+        "start_offset": 15893,
+        "end_offset": 16995
       },
-      "status": "failed"
+      "status": "passed"
     },
     {
       "id": "github.com/filser89/stripe-payments-go/cmd/service::TestAuthenticationServingConfiguration",
       "full_description": "TestAuthenticationServingConfiguration",
       "file_path": "cmd/service/authentication_test.go",
       "line_number": 142,
-      "digest": "e344362e1e3ede99b1af87c451fa0011b2cde5670520a48552b123c128f7bc83",
+      "digest": "4846ba4d9c97198e21251232e0085412560b0f29d858c87d150795227a41b78d",
       "package": "github.com/filser89/stripe-payments-go/cmd/service",
       "test_name": "TestAuthenticationServingConfiguration",
       "parent_id": "",
@@ -122,9 +122,9 @@
       "source": {
         "kind": "function",
         "start_offset": 4601,
-        "end_offset": 11067
+        "end_offset": 11342
       },
-      "status": "failed"
+      "status": "passed"
     },
     {
       "id": "github.com/filser89/stripe-payments-go/cmd/service::TestRunRejectsInvalidDatabaseWithoutExposingCredentials",
@@ -701,7 +701,7 @@
         "start_offset": 8167,
         "end_offset": 12012
       },
-      "status": "failed"
+      "status": "passed"
     },
     {
       "id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationBodyReadFailure",
@@ -719,7 +719,7 @@
         "start_offset": 21154,
         "end_offset": 21871
       },
-      "status": "failed"
+      "status": "passed"
     },
     {
       "id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationConcurrentIsolation",
@@ -737,7 +737,7 @@
         "start_offset": 14953,
         "end_offset": 16872
       },
-      "status": "failed"
+      "status": "passed"
     },
     {
       "id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationCredentialSources",
@@ -755,7 +755,7 @@
         "start_offset": 12014,
         "end_offset": 13184
       },
-      "status": "failed"
+      "status": "passed"
     },
     {
       "id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationDelegation",
@@ -791,7 +791,7 @@
         "start_offset": 5593,
         "end_offset": 8165
       },
-      "status": "failed"
+      "status": "passed"
     },
     {
       "id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationFoundationTransport",
@@ -827,7 +827,7 @@
         "start_offset": 16874,
         "end_offset": 18026
       },
-      "status": "failed"
+      "status": "passed"
     },
     {
       "id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationLandingBodyBytes",
@@ -845,7 +845,7 @@
         "start_offset": 19244,
         "end_offset": 21152
       },
-      "status": "failed"
+      "status": "passed"
     },
     {
       "id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationMissingCredentials",
@@ -863,7 +863,7 @@
         "start_offset": 4611,
         "end_offset": 5591
       },
-      "status": "failed"
+      "status": "passed"
     },
     {
       "id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationPublicProbeBoundary",
@@ -881,7 +881,7 @@
         "start_offset": 21873,
         "end_offset": 24035
       },
-      "status": "failed"
+      "status": "passed"
     },
     {
       "id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationRealStreamingBodies",
@@ -899,7 +899,7 @@
         "start_offset": 1729,
         "end_offset": 2915
       },
-      "status": "failed"
+      "status": "passed"
     },
     {
       "id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationRouting",
@@ -917,7 +917,7 @@
         "start_offset": 18028,
         "end_offset": 18726
       },
-      "status": "failed"
+      "status": "passed"
     },
     {
       "id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationSanitizedOutcomes",
@@ -935,7 +935,7 @@
         "start_offset": 24037,
         "end_offset": 28655
       },
-      "status": "failed"
+      "status": "passed"
     },
     {
       "id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationShutdownAdmission",
@@ -971,7 +971,7 @@
         "start_offset": 2917,
         "end_offset": 4204
       },
-      "status": "failed"
+      "status": "passed"
     },
     {
       "id": "github.com/filser89/stripe-payments-go/internal/web::TestCleanupFailureIsReported",
@@ -1120,14 +1120,14 @@
   ],
   "summary": {
     "total": 57,
-    "passed": 42,
-    "failed": 15,
+    "passed": 57,
+    "failed": 0,
     "pending": 0
   },
   "protected_files": [
     {
       "path": "cmd/service/authentication_test.go",
-      "sha256": "70b1f597a0db5a8b0ac54457e27c2776e2a5071b76eed13839eb6c2f92f90cf9",
+      "sha256": "caa7df0cd67ce90aa5f911fbd73cb2d042d14d83fdfb361f9b870963befd28a2",
       "symlink": ""
     },
     {
@@ -1175,26 +1175,5 @@
       "sha256": "7d779af047b4deabcc3204b4f41fa9f291056b07f83c77c690de297a174bd480",
       "symlink": ""
     }
-  ],
-  "implementation_required": [
-    "github.com/filser89/stripe-payments-go/cmd/service::TestAuthenticationCommandIndependence",
-    "github.com/filser89/stripe-payments-go/cmd/service::TestAuthenticationCredentialLifetime",
-    "github.com/filser89/stripe-payments-go/cmd/service::TestAuthenticationServingConfiguration",
-    "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationAuthorizationParsing",
-    "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationBodyReadFailure",
-    "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationConcurrentIsolation",
-    "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationCredentialSources",
-    "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationDelegation",
-    "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationExactCredentials",
-    "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationFoundationTransport",
-    "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationLanding",
-    "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationLandingBodyBytes",
-    "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationMissingCredentials",
-    "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationPublicProbeBoundary",
-    "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationRealStreamingBodies",
-    "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationRouting",
-    "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationSanitizedOutcomes",
-    "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationShutdownAdmission",
-    "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationStalledBodyDeadline"
   ]
 }
