@@ -8,6 +8,7 @@ import (
 	"github.com/filser89/stripe-payments-go/internal/config"
 	"github.com/filser89/stripe-payments-go/internal/payment"
 	"github.com/filser89/stripe-payments-go/internal/postgres"
+	"github.com/filser89/stripe-payments-go/internal/stripeapi"
 	"github.com/filser89/stripe-payments-go/internal/testutil"
 	"github.com/filser89/stripe-payments-go/internal/web"
 	"github.com/google/uuid"
@@ -95,7 +96,7 @@ func TestConnectedCheckoutBudgetsAndShutdown(t *testing.T) { // STR-004 STR-005 
 		require.Equal(t, binding.OperationID, view.Operation.ID)
 		require.NotEmpty(t, view.Operation.StripeKey)
 		require.NotNil(t, view.Operation.FirstDispatchAt)
-		requireMeaningfulLog(t, j.Logs, "", binding.OrderID, binding.OperationID, "cancel", "canceled")
+		requireMeaningfulLog(t, j.Logs, "", binding.OrderID, binding.OperationID, 0)
 	})
 }
 
@@ -565,13 +566,13 @@ func TestActualCheckoutServerShutdown(t *testing.T) {
 	}
 }
 
-// STR-004 STR-005 LIFE-009
+// STR-004 STR-005 STR-006 LIFE-009
 func TestMixedElapsedBudgetCapsCallsAndRetainsPreparedIntent(t *testing.T) {
 	for _, tc := range []struct {
 		name     string
 		getDelay time.Duration
 		post     bool
-	}{{"remaining_call_cap", 200 * time.Millisecond, true}, {"elapsed_exhausted_after_get", 300 * time.Millisecond, false}} {
+	}{{"remaining_call_cap", 200 * time.Millisecond, true}, {"elapsed_exhausted_after_get", 200 * time.Millisecond, false}} {
 		t.Run(tc.name, func(t *testing.T) {
 			j := journey(t)
 			v, status := create(t, j, uuid.NewString())
@@ -605,9 +606,35 @@ func TestMixedElapsedBudgetCapsCallsAndRetainsPreparedIntent(t *testing.T) {
 			opts.RequestTimeout = 2 * time.Second
 			current := journeyWith(t, j.DB, j.DB.Independent(t), j.Stripe, opts)
 			key := uuid.NewString()
+			var held *committedPreparationHold
+			if !tc.post {
+				held = &committedPreparationHold{Repository: current.Repo, until: func() time.Time {
+					wires := j.Stripe.Wires()
+					// The shared external budget starts no later than the first GET wire.
+					// Holding only the already-committed return preserves final-work time.
+					return wires[len(wires)-1].At.Add(opts.RetryBudget + 20*time.Millisecond)
+				}}
+				gateway := stripeapi.New("sk_test_fixture", stripeapi.Options{BackendURL: j.Stripe.Server.URL, HTTPClient: j.Stripe.Server.Client()})
+				service := payment.New(held, gateway, current.Options)
+				env := testutil.Environment(j.DB.URL, "localhost:8080")
+				env["CHECKOUT_REQUEST_TIMEOUT"] = opts.RequestTimeout.String()
+				env["STRIPE_CALL_TIMEOUT"] = opts.CallTimeout.String()
+				env["STRIPE_RETRY_BUDGET"] = opts.RetryBudget.String()
+				env["STRIPE_MAX_ATTEMPTS"] = fmt.Sprint(opts.MaxAttempts)
+				c, err := config.Load(func(k string) string { return env[k] })
+				require.NoError(t, err)
+				require.NoError(t, c.ValidateServing())
+				current.Handler = web.New(c, current.Logs.Logger(), j.DB.Pool.Ping, web.NewCheckoutHandler(service, opts.RequestTimeout, current.Logs.Logger())).Handler
+			}
 			before := len(j.Stripe.Wires())
 			start := time.Now()
-			w := testutil.Response(t, current.Handler, testutil.Request("POST", "/api/orders/"+id+"/checkout", `{"request_key":"`+key+`"}`, true))
+			request := testutil.Request("POST", "/api/orders/"+id+"/checkout", `{"request_key":"`+key+`"}`, true)
+			requestCtx, cancel := context.WithTimeout(request.Context(), opts.RequestTimeout)
+			defer cancel()
+			if held != nil {
+				held.requestCtx = requestCtx
+			}
+			w := testutil.Response(t, current.Handler, request.WithContext(requestCtx))
 			require.Equal(t, 202, w.Code)
 			require.Less(t, time.Since(start), time.Second)
 			result := testutil.JSON(t, w)
@@ -624,6 +651,11 @@ func TestMixedElapsedBudgetCapsCallsAndRetainsPreparedIntent(t *testing.T) {
 				}
 			} else {
 				require.Len(t, wires, 1)
+				require.Equal(t, "GET", wires[0].Method)
+				require.Equal(t, op, held.committed.Operation.ID)
+				require.Equal(t, "prepared", held.committed.Operation.State)
+				require.True(t, held.releasedAt.After(wires[0].At.Add(opts.RetryBudget)), "external elapsed budget is genuinely exhausted before prepared work returns")
+				require.GreaterOrEqual(t, time.Since(start), opts.RetryBudget)
 				require.Equal(t, "prepared", result["operation"].(map[string]any)["state"])
 			}
 			binding, err := current.Repo.LoadBinding(context.Background(), key)
@@ -696,4 +728,31 @@ func TestRealRetriesExposeDurableLastDispatchBeforeEachSend(t *testing.T) {
 	}
 	require.Equal(t, *saved.Operation.LastDispatchAt, previous.last)
 	require.Len(t, j.Stripe.Wires(), 3)
+}
+
+// committedPreparationHold delays only the return of a successful, committed
+// eligibility/preparation transaction. No DB transaction is held while waiting.
+type committedPreparationHold struct {
+	payment.Repository
+	until      func() time.Time
+	requestCtx context.Context
+	committed  payment.View
+	releasedAt time.Time
+}
+
+func (r *committedPreparationHold) BindContinuation(ctx context.Context, intent payment.ContinuationIntent) (payment.View, error) {
+	v, err := r.Repository.BindContinuation(ctx, intent)
+	if err != nil {
+		return v, err
+	}
+	r.committed = v
+	timer := time.NewTimer(time.Until(r.until()))
+	defer timer.Stop()
+	select {
+	case <-timer.C:
+		r.releasedAt = time.Now()
+		return v, nil
+	case <-r.requestCtx.Done():
+		return v, r.requestCtx.Err()
+	}
 }

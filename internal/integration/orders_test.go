@@ -168,7 +168,7 @@ func TestConnectedOrderCheckoutAndInspection(t *testing.T) { // HTTP-001 HTTP-00
 		require.NotContains(t, j.Logs.Contents(), "sensitive-sentinel")
 	})
 }
-func TestConnectedInputAndAuthenticationEffects(t *testing.T) { // INP-001 INP-002 INP-003 INP-004 INP-005 INP-006 SEC-001 HTTP-004 HTTP-005
+func TestConnectedInputAndAuthenticationEffects(t *testing.T) { // INP-001 INP-002 INP-003 INP-004 INP-005 INP-006 SEC-001 SEC-003 HTTP-004 HTTP-005
 	for _, tc := range []struct {
 		name, method, path, body, media string
 		auth                            bool
@@ -196,6 +196,7 @@ func TestConnectedInputAndAuthenticationEffects(t *testing.T) { // INP-001 INP-0
 			req.Header.Set("Content-Type", tc.media)
 			w := testutil.Response(t, j.Handler, req)
 			require.Equal(t, tc.status, w.Code)
+			testutil.RequireRejectedLog(t, j.Logs, w.Header().Get("X-Request-ID"), w.Code, "", "", tc.body)
 			require.Equal(t, before, j.DB.Counts(t))
 			require.Empty(t, j.Stripe.Wires())
 			if tc.body != "" {
@@ -302,12 +303,12 @@ func TestConnectedHistoryValuesPaginationAndIsolation(t *testing.T) {
 }
 func utcOffset(t time.Time) int { _, n := t.Zone(); return n }
 
-// SEC-001
+// SEC-001 SEC-003
 func TestConnectedFeatureCredentialIsolation(t *testing.T) {
 	j := journey(t)
 	v, status := create(t, j, uuid.NewString())
 	require.Equal(t, 201, status)
-	id, _ := envelopeIDs(t, v)
+	id, op := envelopeIDs(t, v)
 	for _, endpoint := range []struct{ method, path, body string }{
 		{"POST", "/api/orders", purchaseBody(uuid.NewString(), "isolated", 2500)},
 		{"POST", "/api/orders/" + id + "/checkout", `{"request_key":"` + uuid.NewString() + `"}`},
@@ -324,6 +325,7 @@ func TestConnectedFeatureCredentialIsolation(t *testing.T) {
 			}
 			w := testutil.Response(t, j.Handler, r)
 			require.Equal(t, 401, w.Code)
+			testutil.RequireRejectedLog(t, j.Logs, w.Header().Get("X-Request-ID"), w.Code, id, op)
 			require.Zero(t, spy.reads)
 			require.Equal(t, before, j.DB.Durable(t))
 			require.Equal(t, wireBefore, len(j.Stripe.Wires()))
@@ -359,6 +361,7 @@ func TestConnectedFeatureCredentialIsolation(t *testing.T) {
 		r.Body = spy
 		w := testutil.Response(t, j.Handler, r)
 		require.Equal(t, 401, w.Code)
+		testutil.RequireRejectedLog(t, j.Logs, w.Header().Get("X-Request-ID"), w.Code, id, op)
 		require.Zero(t, spy.reads)
 	}
 	require.Equal(t, before, j.DB.Durable(t))
@@ -380,7 +383,7 @@ type readSpy struct {
 func (s *readSpy) Read(p []byte) (int, error) { s.reads++; return s.Reader.Read(p) }
 func (*readSpy) Close() error                 { return nil }
 
-func requireMeaningfulLog(t *testing.T, logs *testutil.Logs, requestID, orderID, operationID string, semantics ...string) {
+func requireMeaningfulLog(t *testing.T, logs *testutil.Logs, requestID, orderID, operationID string, status int) {
 	t.Helper()
 	records, err := logs.Records()
 	require.NoError(t, err)
@@ -395,20 +398,11 @@ func requireMeaningfulLog(t *testing.T, logs *testutil.Logs, requestID, orderID,
 		if requestID != "" && record["request_id"] != requestID {
 			continue
 		}
-		context := ""
-		for key, value := range record {
-			if key == "request_id" || key == "order_id" || key == "operation_id" || key == "time" || key == "level" {
-				continue
-			}
-			context += " " + strings.ToLower(fmt.Sprint(value))
-		}
-		for _, meaning := range semantics {
-			if strings.Contains(context, meaning) {
-				found = true
-			}
+		if testutil.OutcomeLogContext(record, status) {
+			found = true
 		}
 	}
-	require.True(t, found, "correlated log must describe outcome/state/error context (%v)", semantics)
+	require.True(t, found, "correlated log must carry useful structured outcome/error context")
 	for _, sentinel := range []string{"sk_test_fixture", "checkout-fixture-password", "test-only-fixture", "sensitive-sentinel", "4242424242424242", "CVC_SENTINEL"} {
 		require.NotContains(t, logs.Contents(), sentinel)
 	}
@@ -417,14 +411,14 @@ func requireMeaningfulLog(t *testing.T, logs *testutil.Logs, requestID, orderID,
 // SEC-003 SEC-002
 func TestConnectedUsefulSanitizedCheckoutOutcomeLogs(t *testing.T) {
 	for _, tc := range []struct {
-		name, category string
-		status         int
-		reply          testutil.StripeReply
+		name   string
+		status int
+		reply  testutil.StripeReply
 	}{
-		{"accepted", "open", 201, testutil.StripeReply{}},
-		{"confirmed_rejection", "reject", 502, testutil.StripeReply{Status: 400, Body: `{"error":{"type":"invalid_request_error","code":"parameter_invalid_integer","param":"line_items","message":"sensitive-sentinel"}}`}},
-		{"server_pending", "server", 202, testutil.StripeReply{Status: 500, Body: `{"error":{"type":"api_error","message":"sensitive-sentinel"}}`}},
-		{"mismatched_correlation", "mismatch", 202, testutil.StripeReply{Mutation: func(o map[string]any) { o["client_reference_id"] = "wrong" }}},
+		{"accepted", 201, testutil.StripeReply{}},
+		{"confirmed_rejection", 502, testutil.StripeReply{Status: 400, Body: `{"error":{"type":"invalid_request_error","code":"parameter_invalid_integer","param":"line_items","message":"sensitive-sentinel"}}`}},
+		{"server_pending", 202, testutil.StripeReply{Status: 500, Body: `{"error":{"type":"api_error","message":"sensitive-sentinel"}}`}},
+		{"mismatched_correlation", 202, testutil.StripeReply{Mutation: func(o map[string]any) { o["client_reference_id"] = "wrong" }}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			j := journey(t)
@@ -440,14 +434,7 @@ func TestConnectedUsefulSanitizedCheckoutOutcomeLogs(t *testing.T) {
 			} else {
 				id, op = envelopeIDs(t, body)
 			}
-			semantics := []string{tc.category}
-			if tc.name == "accepted" {
-				semantics = []string{"open", "success", "accepted", "established"}
-			}
-			if tc.name == "mismatched_correlation" {
-				semantics = []string{"mismatch", "correlation", "invalid_evidence"}
-			}
-			requireMeaningfulLog(t, j.Logs, w.Header().Get("X-Request-ID"), id, op, semantics...)
+			requireMeaningfulLog(t, j.Logs, w.Header().Get("X-Request-ID"), id, op, w.Code)
 		})
 	}
 	t.Run("stripe_timeout", func(t *testing.T) {
@@ -464,7 +451,7 @@ func TestConnectedUsefulSanitizedCheckoutOutcomeLogs(t *testing.T) {
 		w := testutil.Response(t, j.Handler, testutil.Request("POST", "/api/orders", purchaseBody(uuid.NewString(), "Timeout product", 2500), true))
 		require.Equal(t, 202, w.Code)
 		id, op := envelopeIDs(t, testutil.JSON(t, w))
-		requireMeaningfulLog(t, j.Logs, w.Header().Get("X-Request-ID"), id, op, "transport", "timeout", "deadline")
+		requireMeaningfulLog(t, j.Logs, w.Header().Get("X-Request-ID"), id, op, w.Code)
 		select {
 		case <-barrier.Done:
 		case <-time.After(time.Second):
@@ -477,6 +464,6 @@ func TestConnectedUsefulSanitizedCheckoutOutcomeLogs(t *testing.T) {
 		defer release()
 		w := testutil.Response(t, j.Handler, testutil.Request("POST", "/api/orders", purchaseBody(uuid.NewString(), "Database product", 2500), true))
 		require.Equal(t, 503, w.Code)
-		requireMeaningfulLog(t, j.Logs, w.Header().Get("X-Request-ID"), "", "", "database", "unavailable", "persist")
+		requireMeaningfulLog(t, j.Logs, w.Header().Get("X-Request-ID"), "", "", w.Code)
 	})
 }

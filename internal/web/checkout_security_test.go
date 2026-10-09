@@ -3,23 +3,21 @@ package web
 import (
 	"context"
 	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"github.com/filser89/stripe-payments-go/internal/payment"
 	"github.com/filser89/stripe-payments-go/internal/testutil"
 	"github.com/stretchr/testify/require"
 	"io"
 	"net/http/httptest"
-	"strings"
 	"testing"
 	"time"
 )
 
-func TestCheckoutEndpointAuthentication(t *testing.T) { // SEC-001
+func TestCheckoutEndpointAuthentication(t *testing.T) { // SEC-001 SEC-003
 	for _, tc := range []struct{ name, method, path, credential string }{{"initial_missing", "POST", "/api/orders", ""}, {"checkout_wrong", "POST", "/api/orders/11111111-1111-4111-8111-111111111111/checkout", "wrong"}, {"order_missing", "GET", "/api/orders/11111111-1111-4111-8111-111111111111", ""}, {"history_wrong", "HEAD", "/api/orders/11111111-1111-4111-8111-111111111111/history", "wrong"}, {"unknown_protected", "PATCH", "/api/unknown", ""}, {"cookie", "POST", "/api/orders", "cookie"}, {"query", "GET", "/api/orders?username=checkout-fixture-user&password=checkout-fixture-password", ""}, {"body_credentials", "POST", "/api/orders", ""}} {
 		t.Run(tc.name, func(t *testing.T) {
 			f := preparedCheckout()
-			h, _ := checkoutHandler(t, f, time.Second)
+			h, logs := checkoutHandler(t, f, time.Second)
 			r := testutil.Request(tc.method, tc.path, "", false)
 			reader := &checkoutReadFault{Data: []byte(`{"username":"checkout-fixture-user","password":"checkout-fixture-password"}`), Error: errors.New("read-sentinel")}
 			r.Body = reader
@@ -32,6 +30,7 @@ func TestCheckoutEndpointAuthentication(t *testing.T) { // SEC-001
 			}
 			w := testutil.Response(t, h, r)
 			require.Equal(t, 401, w.Code)
+			testutil.RequireRejectedLog(t, logs, w.Header().Get("X-Request-ID"), w.Code, "", "")
 			require.Zero(t, reader.Reads.Load(), "authentication must precede body parsing")
 			require.Zero(t, f.Effects())
 			require.NotContains(t, w.Body.String(), "checkout-fixture-password")
@@ -57,7 +56,7 @@ func TestCheckoutSanitizedLogsAndResponses(t *testing.T) { // SEC-002 SEC-003
 			}
 			var feature bool
 			for _, record := range records {
-				if record["order_id"] == f.Outcome.Order.ID && record["operation_id"] == f.Outcome.Operation.ID && record["request_id"] == w.Header().Get("X-Request-ID") && checkoutLogContext(record, tc.code, f.Outcome.Operation.State) {
+				if record["order_id"] == f.Outcome.Order.ID && record["operation_id"] == f.Outcome.Operation.ID && record["request_id"] == w.Header().Get("X-Request-ID") && testutil.OutcomeLogContext(record, w.Code) {
 					feature = true
 				}
 			}
@@ -66,43 +65,7 @@ func TestCheckoutSanitizedLogsAndResponses(t *testing.T) { // SEC-002 SEC-003
 	}
 }
 
-func checkoutLogContext(record map[string]any, code, state string) bool {
-	// The field names are implementation choices; semantic values must describe
-	// the actual outcome in addition to IDs and generic request-completion data.
-	relevant := map[string]any{}
-	for key, value := range record {
-		switch key {
-		case "order_id", "operation_id", "request_id", "time", "level", "duration_ms", "status":
-			continue
-		}
-		relevant[key] = value
-	}
-	body, _ := json.Marshal(relevant)
-	text := strings.ToLower(string(body))
-	if code != "" {
-		if strings.Contains(text, code) {
-			return true
-		}
-		terms := map[string][]string{"checkout_rejected": {"reject"}, "temporarily_unavailable": {"unavailable", "database", "deadline", "timeout", "cancel", "server", "mismatch", "ownership"}, "idempotency_conflict": {"conflict"}}
-		for _, term := range terms[code] {
-			if strings.Contains(text, term) {
-				return true
-			}
-		}
-		return false
-	}
-	if strings.Contains(text, state) {
-		return true
-	}
-	if state == "open" {
-		return strings.Contains(text, "success") || strings.Contains(text, "accepted") || strings.Contains(text, "established")
-	}
-	if state == "prepared" || state == "unresolved" {
-		return strings.Contains(text, "pending") || strings.Contains(text, "accepted")
-	}
-	return false
-}
-func TestCheckoutAuthenticationMethodMatrix(t *testing.T) { // SEC-001
+func TestCheckoutAuthenticationMethodMatrix(t *testing.T) { // SEC-001 SEC-003
 	for _, tc := range []struct{ name, method, suffix, body string }{
 		{"initial", "POST", "", `{"description":"single product","amount":2500,"request_key":"11111111-1111-4111-8111-111111111111"}`},
 		{"checkout", "POST", "/11111111-1111-4111-8111-111111111111/checkout", `{"request_key":"11111111-1111-4111-8111-111111111111"}`},
@@ -118,7 +81,7 @@ func TestCheckoutAuthenticationMethodMatrix(t *testing.T) { // SEC-001
 			}{{"valid", true, false}, {"missing", false, false}, {"wrong", false, true}} {
 				t.Run(credential.name, func(t *testing.T) {
 					f := preparedCheckout()
-					h, _ := checkoutHandler(t, f, 2*time.Second)
+					h, logs := checkoutHandler(t, f, 2*time.Second)
 					r := testutil.Request(tc.method, "/api/orders"+tc.suffix, tc.body, credential.valid)
 					if credential.wrong {
 						r.SetBasicAuth("checkout-fixture-user", "wrong")
@@ -132,6 +95,7 @@ func TestCheckoutAuthenticationMethodMatrix(t *testing.T) { // SEC-001
 						require.EqualValues(t, 1, f.Effects())
 					} else {
 						require.Equal(t, 401, w.Code)
+						testutil.RequireRejectedLog(t, logs, w.Header().Get("X-Request-ID"), w.Code, "", "")
 						require.Zero(t, reader.Reads.Load())
 						require.Zero(t, f.Effects())
 					}
@@ -143,9 +107,9 @@ func TestCheckoutAuthenticationMethodMatrix(t *testing.T) { // SEC-001
 		})
 	}
 }
-func TestCheckoutSequentialCredentialIsolation(t *testing.T) { // SEC-001
+func TestCheckoutSequentialCredentialIsolation(t *testing.T) { // SEC-001 SEC-003
 	f := preparedCheckout()
-	h, _ := checkoutHandler(t, f, 2*time.Second)
+	h, logs := checkoutHandler(t, f, 2*time.Second)
 	valid := testutil.Response(t, h, testutil.Request("POST", "/api/orders", `{"description":"single product","amount":2500,"request_key":"11111111-1111-4111-8111-111111111111"}`, true))
 	require.Equal(t, 201, valid.Code)
 	effects := f.Effects()
@@ -159,16 +123,17 @@ func TestCheckoutSequentialCredentialIsolation(t *testing.T) { // SEC-001
 			r.ContentLength = -1
 			w := testutil.Response(t, h, r)
 			require.Equal(t, 401, w.Code)
+			testutil.RequireRejectedLog(t, logs, w.Header().Get("X-Request-ID"), w.Code, "", "")
 			require.Zero(t, reader.Reads.Load())
 			require.Equal(t, effects, f.Effects())
 		}
 	}
 }
-func TestCheckoutOverlappingCredentialIsolation(t *testing.T) { // SEC-001
+func TestCheckoutOverlappingCredentialIsolation(t *testing.T) { // SEC-001 SEC-003
 	f := preparedCheckout()
 	barrier := testutil.NewBarrier()
 	f.Before = func(ctx context.Context) { _ = barrier.Wait(ctx) }
-	h, _ := checkoutHandler(t, f, 2*time.Second)
+	h, logs := checkoutHandler(t, f, 2*time.Second)
 	valid := testutil.Request("POST", "/api/orders", `{"description":"single product","amount":2500,"request_key":"11111111-1111-4111-8111-111111111111"}`, true)
 	ctx, cancel := context.WithCancel(valid.Context())
 	defer cancel()
@@ -192,6 +157,7 @@ func TestCheckoutOverlappingCredentialIsolation(t *testing.T) { // SEC-001
 			r.ContentLength = -1
 			w := testutil.Response(t, h, r)
 			require.Equal(t, 401, w.Code)
+			testutil.RequireRejectedLog(t, logs, w.Header().Get("X-Request-ID"), w.Code, "", "")
 			require.Zero(t, reader.Reads.Load())
 			require.EqualValues(t, 1, f.Effects())
 		}
@@ -243,7 +209,7 @@ func TestCheckoutPendingFailureLogContext(t *testing.T) { // SEC-002 SEC-003
 			require.NoError(t, err)
 			found := false
 			for _, record := range records {
-				if record["request_id"] == w.Header().Get("X-Request-ID") && record["order_id"] == f.Outcome.Order.ID && record["operation_id"] == f.Outcome.Operation.ID && checkoutLogContext(record, tc.code, tc.state) {
+				if record["request_id"] == w.Header().Get("X-Request-ID") && record["order_id"] == f.Outcome.Order.ID && record["operation_id"] == f.Outcome.Operation.ID && testutil.OutcomeLogContext(record, w.Code) {
 					found = true
 				}
 			}

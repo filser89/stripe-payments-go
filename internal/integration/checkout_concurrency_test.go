@@ -197,7 +197,7 @@ func TestConnectedDelayedWireCannotOverwritePaidOrOwner(t *testing.T) {
 				t.Fatal("stale result did not join")
 			}
 			require.Equal(t, before, j.DB.Durable(t), "stale result itself cannot change current owner, business or history")
-			requireMeaningfulLog(t, j.Logs, "", binding.OrderID, binding.OperationID, "ownership", "owner", "stale", "paid")
+			requireMeaningfulLog(t, j.Logs, "", binding.OrderID, binding.OperationID, 0)
 			require.Equal(t, 1, j.DB.Counts(t)["payment_operations"])
 		})
 	}

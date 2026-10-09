@@ -105,7 +105,7 @@ func TestConnectedCheckoutRecovery(t *testing.T) { // HTTP-007 ID-001 STR-001 ST
 		id, op := envelopeIDs(t, v)
 		require.Equal(t, binding.OrderID, id)
 		require.Equal(t, binding.OperationID, op)
-		requireMeaningfulLog(t, j.Logs, w.Header().Get("X-Request-ID"), id, op, "database", "result", "persist", "unavailable")
+		requireMeaningfulLog(t, j.Logs, w.Header().Get("X-Request-ID"), id, op, w.Code)
 		view, err := j.Repo.LoadOrder(context.Background(), id)
 		require.NoError(t, err)
 		require.Equal(t, businessRows(t, durable), businessRows(t, j.DB.Durable(t)), "result failure preserves business state/history; safe ownership release is separate")
@@ -168,7 +168,7 @@ func businessRows(t *testing.T, rows map[string][]string) map[string][]string {
 	return out
 }
 
-// HTTP-007 REC-001 ID-001
+// HTTP-007 REC-001 ID-001 DATA-003 DATA-004
 func TestCallerResponseLossAfterCommittedCheckout(t *testing.T) {
 	j := journey(t)
 	key := uuid.NewString()
@@ -217,7 +217,13 @@ func TestCallerResponseLossAfterCommittedCheckout(t *testing.T) {
 		require.Equal(t, b.OperationID, op)
 	}
 	require.Equal(t, objects, j.Stripe.LogicalObjects())
-	require.Equal(t, before, j.DB.Durable(t), "repeated established replay has no transition")
+	require.Equal(t, establishedReplayRows(t, before, b.OrderID, b.OperationID), establishedReplayRows(t, j.DB.Durable(t), b.OrderID, b.OperationID), "established replay preserves immutable data, business state, associations and exact history")
+	after, err := fresh.Repo.LoadOrder(context.Background(), b.OrderID)
+	require.NoError(t, err)
+	require.Empty(t, after.Operation.OwnerToken, "retrieval coordination must be safely released")
+	require.GreaterOrEqual(t, after.Operation.Version, saved.Operation.Version)
+	require.False(t, after.Operation.UpdatedAt.Before(saved.Operation.UpdatedAt))
+	require.False(t, after.Order.UpdatedAt.Before(saved.Order.UpdatedAt))
 }
 
 // STR-002 REC-001 REC-002
@@ -312,7 +318,7 @@ func TestResultAndReadUnavailableReturnKnownIdentity(t *testing.T) {
 	require.Equal(t, "temporarily_unavailable", e["code"])
 	require.Equal(t, binding.OrderID, e["order_id"])
 	require.Equal(t, binding.OperationID, e["operation_id"])
-	requireMeaningfulLog(t, j.Logs, w.Header().Get("X-Request-ID"), binding.OrderID, binding.OperationID, "database", "read", "unavailable")
+	requireMeaningfulLog(t, j.Logs, w.Header().Get("X-Request-ID"), binding.OrderID, binding.OperationID, w.Code)
 	require.Equal(t, 1, j.Stripe.LogicalObjects())
 	require.NoError(t, j.DB.Container.Start(ctx))
 	require.Eventually(t, func() bool { return j.DB.Pool.Ping(ctx) == nil }, 15*time.Second, 100*time.Millisecond)
@@ -403,4 +409,32 @@ func TestFailedDispatchCommitSendsNoWire(t *testing.T) {
 			require.Equal(t, 1, j.Stripe.LogicalObjects())
 		})
 	}
+}
+
+// establishedReplayRows permits bookkeeping only on the observed order/operation.
+// Every other row and the complete append-only history stay byte-equivalent in
+// content. Failed transactions and stale/unauthorized paths use full Durable rows.
+func establishedReplayRows(t *testing.T, rows map[string][]string, orderID, operationID string) map[string][]string {
+	t.Helper()
+	out := map[string][]string{}
+	for table, values := range rows {
+		out[table] = []string{}
+		for _, raw := range values {
+			var row map[string]any
+			require.NoError(t, json.Unmarshal([]byte(raw), &row))
+			if table == "payment_orders" && row["id"] == orderID {
+				delete(row, "updated_at")
+				delete(row, "version")
+			}
+			if table == "payment_operations" && row["id"] == operationID {
+				for _, field := range []string{"owner_token", "version", "updated_at", "observed_at", "last_observed_at", "evidence_source"} {
+					delete(row, field)
+				}
+			}
+			encoded, err := json.Marshal(row)
+			require.NoError(t, err)
+			out[table] = append(out[table], string(encoded))
+		}
+	}
+	return out
 }

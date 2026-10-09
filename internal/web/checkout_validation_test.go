@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-func TestCheckoutValidation(t *testing.T) { // INP-001 INP-002 INP-003 INP-004 INP-005 INP-006
+func TestCheckoutValidation(t *testing.T) { // INP-001 INP-002 INP-003 INP-004 INP-005 INP-006 SEC-003
 	for _, tc := range []struct {
 		name, method, path, body, media, encoding string
 		status                                    int
@@ -105,7 +105,7 @@ func TestCheckoutValidation(t *testing.T) { // INP-001 INP-002 INP-003 INP-004 I
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			f := preparedCheckout()
-			h, _ := checkoutHandler(t, f, 10*time.Second)
+			h, logs := checkoutHandler(t, f, 10*time.Second)
 			r := testutil.Request(tc.method, tc.path, tc.body, true)
 			r.Header.Set("Content-Type", tc.media)
 			if tc.encoding != "" {
@@ -114,6 +114,7 @@ func TestCheckoutValidation(t *testing.T) { // INP-001 INP-002 INP-003 INP-004 I
 			w := testutil.Response(t, h, r)
 			require.Equal(t, tc.status, w.Code)
 			if tc.status >= 400 {
+				testutil.RequireRejectedLog(t, logs, w.Header().Get("X-Request-ID"), w.Code, "", "", tc.body)
 				require.Zero(t, f.Effects())
 				if tc.method != "HEAD" {
 					code := "invalid_request"
