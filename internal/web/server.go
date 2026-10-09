@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/filser89/stripe-payments-go/internal/config"
+	"github.com/filser89/stripe-payments-go/internal/payment"
 )
 
 type Server struct {
@@ -148,6 +149,7 @@ func (s *Server) logRequests(next http.Handler) http.Handler {
 		_, _ = rand.Read(raw[:])
 		id := hex.EncodeToString(raw[:])
 		w.Header().Set("X-Request-ID", id)
+		r = r.WithContext(payment.WithRequestID(r.Context(), id))
 		rw := &responseWriter{ResponseWriter: w}
 		defer func() {
 			if recovered := recover(); recovered != nil {

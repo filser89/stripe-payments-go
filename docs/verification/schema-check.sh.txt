@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd /Users/serg/code/filser89/stripe-payments-go
+export DATABASE_URL=postgres://verification:local-verification-only@127.0.0.1:55492/verification?sslmode=disable
+export BASIC_AUTH_USERNAME=verification-user BASIC_AUTH_PASSWORD=verification-password STRIPE_SECRET_KEY=sk_test_local_verification LISTEN_ADDR=127.0.0.1:18094
+bin/service serve > /private/tmp/feature2-schema-server.jsonl 2>&1 &
+feature2_service_pid=$!
+trap 'kill "$feature2_service_pid" 2>/dev/null || true' EXIT
+for attempt in {1..30}; do if curl --silent --fail --output /dev/null http://127.0.0.1:18094/healthz; then break; fi; sleep 0.1; done
+curl --silent --output /dev/null --write-out 'health_missing_schema=%{http_code}\n' http://127.0.0.1:18094/healthz
+curl --silent --output /dev/null --write-out 'ready_missing_schema=%{http_code}\n' http://127.0.0.1:18094/readyz
+if STRIPE_SECRET_KEY= BASIC_AUTH_USERNAME= BASIC_AUTH_PASSWORD= bin/service probe; then echo unexpected_ready; exit 1; else echo probe_missing_schema_exit=1; fi
+kill -TERM "$feature2_service_pid"
+wait "$feature2_service_pid"
+trap - EXIT
+bin/service migrate up
+bin/service migrate up
+bin/service migrate down
+docker exec feature2-verification-db psql -U verification -d verification -At -c "SELECT to_regclass('payment_orders') IS NULL AND to_regclass('payment_operations') IS NULL AND to_regclass('payment_request_bindings') IS NULL AND to_regclass('payment_history') IS NULL"

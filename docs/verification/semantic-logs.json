@@ -1,0 +1,720 @@
+[
+  {
+    "records": [
+      {
+        "action": "create",
+        "level": "INFO",
+        "msg": "payment outcome",
+        "operation_id": "a9f573cf-7aab-419f-97f5-36a7a51ef19c",
+        "operation_state": "open",
+        "order_id": "e2c4828e-641b-425c-bd1f-53d59e9eff2f",
+        "outcome": "accepted",
+        "payment_status": "unpaid",
+        "request_id": "55c58347a46649b69ca32a0fee4cb6c3",
+        "time": "2026-10-09T13:34:22.718235-03:00"
+      },
+      {
+        "action": "create",
+        "level": "INFO",
+        "msg": "checkout outcome",
+        "operation_id": "a9f573cf-7aab-419f-97f5-36a7a51ef19c",
+        "operation_state": "open",
+        "order_id": "e2c4828e-641b-425c-bd1f-53d59e9eff2f",
+        "outcome": "accepted",
+        "payment_status": "unpaid",
+        "request_id": "55c58347a46649b69ca32a0fee4cb6c3",
+        "status": 201,
+        "time": "2026-10-09T13:34:22.718275-03:00"
+      },
+      {
+        "duration_ms": 33.697,
+        "level": "INFO",
+        "msg": "request completed",
+        "request_id": "55c58347a46649b69ca32a0fee4cb6c3",
+        "status": 201,
+        "time": "2026-10-09T13:34:22.718325-03:00"
+      }
+    ],
+    "request_id": "55c58347a46649b69ca32a0fee4cb6c3",
+    "scenario": "accepted",
+    "status": 201
+  },
+  {
+    "records": [
+      {
+        "action": "create",
+        "level": "INFO",
+        "msg": "payment outcome",
+        "operation_id": "a9f573cf-7aab-419f-97f5-36a7a51ef19c",
+        "operation_state": "open",
+        "order_id": "e2c4828e-641b-425c-bd1f-53d59e9eff2f",
+        "outcome": "established",
+        "payment_status": "unpaid",
+        "request_id": "f390533549336afc7011a45c77cfe370",
+        "time": "2026-10-09T13:34:22.727699-03:00"
+      },
+      {
+        "action": "create",
+        "level": "INFO",
+        "msg": "checkout outcome",
+        "operation_id": "a9f573cf-7aab-419f-97f5-36a7a51ef19c",
+        "operation_state": "open",
+        "order_id": "e2c4828e-641b-425c-bd1f-53d59e9eff2f",
+        "outcome": "established",
+        "payment_status": "unpaid",
+        "request_id": "f390533549336afc7011a45c77cfe370",
+        "status": 200,
+        "time": "2026-10-09T13:34:22.727718-03:00"
+      },
+      {
+        "duration_ms": 9.345,
+        "level": "INFO",
+        "msg": "request completed",
+        "request_id": "f390533549336afc7011a45c77cfe370",
+        "status": 200,
+        "time": "2026-10-09T13:34:22.727765-03:00"
+      }
+    ],
+    "request_id": "f390533549336afc7011a45c77cfe370",
+    "scenario": "established_replay",
+    "status": 200
+  },
+  {
+    "records": [
+      {
+        "action": "create",
+        "error_kind": "invalid_request",
+        "failure_code": "invalid_request",
+        "level": "INFO",
+        "msg": "checkout outcome",
+        "outcome": "rejected",
+        "request_id": "a09ae1f5719badac29471aafe36babb0",
+        "status": 400,
+        "time": "2026-10-09T13:34:22.727863-03:00"
+      },
+      {
+        "duration_ms": 0.064,
+        "level": "INFO",
+        "msg": "request completed",
+        "request_id": "a09ae1f5719badac29471aafe36babb0",
+        "status": 400,
+        "time": "2026-10-09T13:34:22.727879-03:00"
+      }
+    ],
+    "request_id": "a09ae1f5719badac29471aafe36babb0",
+    "scenario": "input_rejection",
+    "status": 400
+  },
+  {
+    "records": [
+      {
+        "action": "authenticate",
+        "error_kind": "auth_rejected",
+        "level": "INFO",
+        "msg": "authentication rejected",
+        "outcome": "rejected",
+        "request_id": "b4a035c398960dcf68fe48815b9977ec",
+        "status": 401,
+        "time": "2026-10-09T13:34:22.727922-03:00"
+      },
+      {
+        "duration_ms": 0.035,
+        "level": "INFO",
+        "msg": "request completed",
+        "request_id": "b4a035c398960dcf68fe48815b9977ec",
+        "status": 401,
+        "time": "2026-10-09T13:34:22.727953-03:00"
+      }
+    ],
+    "request_id": "b4a035c398960dcf68fe48815b9977ec",
+    "scenario": "auth_rejection",
+    "status": 401
+  },
+  {
+    "records": [
+      {
+        "action": "create",
+        "error_kind": "unsupported_media_type",
+        "failure_code": "unsupported_media_type",
+        "level": "INFO",
+        "msg": "checkout outcome",
+        "outcome": "rejected",
+        "request_id": "db5fc8ef2499ec7bc9230c70d9e545d5",
+        "status": 415,
+        "time": "2026-10-09T13:34:22.727991-03:00"
+      },
+      {
+        "duration_ms": 0.02,
+        "level": "INFO",
+        "msg": "request completed",
+        "request_id": "db5fc8ef2499ec7bc9230c70d9e545d5",
+        "status": 415,
+        "time": "2026-10-09T13:34:22.728001-03:00"
+      }
+    ],
+    "request_id": "db5fc8ef2499ec7bc9230c70d9e545d5",
+    "scenario": "unsupported_media",
+    "status": 415
+  },
+  {
+    "records": [
+      {
+        "action": "create",
+        "error_kind": "body_too_large",
+        "failure_code": "body_too_large",
+        "level": "INFO",
+        "msg": "checkout outcome",
+        "outcome": "rejected",
+        "request_id": "43d50a16110504dd0d43f35f29dcbc68",
+        "status": 413,
+        "time": "2026-10-09T13:34:22.728092-03:00"
+      },
+      {
+        "duration_ms": 0.028,
+        "level": "INFO",
+        "msg": "request completed",
+        "request_id": "43d50a16110504dd0d43f35f29dcbc68",
+        "status": 413,
+        "time": "2026-10-09T13:34:22.728103-03:00"
+      }
+    ],
+    "request_id": "43d50a16110504dd0d43f35f29dcbc68",
+    "scenario": "oversized",
+    "status": 413
+  },
+  {
+    "records": [
+      {
+        "action": "create",
+        "error_kind": "body_read",
+        "failure_code": "body_read",
+        "level": "INFO",
+        "msg": "checkout outcome",
+        "outcome": "rejected",
+        "request_id": "4ad0e0b382f95e869b0c47c9fda9316b",
+        "status": 400,
+        "time": "2026-10-09T13:34:22.728171-03:00"
+      },
+      {
+        "duration_ms": 0.088,
+        "level": "INFO",
+        "msg": "request completed",
+        "request_id": "4ad0e0b382f95e869b0c47c9fda9316b",
+        "status": 400,
+        "time": "2026-10-09T13:34:22.728216-03:00"
+      }
+    ],
+    "request_id": "4ad0e0b382f95e869b0c47c9fda9316b",
+    "scenario": "body_read",
+    "status": 400
+  },
+  {
+    "records": [
+      {
+        "action": "create",
+        "error_kind": "transport_timeout",
+        "failure_code": "transport_timeout",
+        "level": "INFO",
+        "msg": "payment outcome",
+        "operation_id": "cb797e22-626a-4164-8517-ca23daddeb9c",
+        "operation_state": "unresolved",
+        "order_id": "2a5833f2-29ba-4520-8ef5-6463ff35ac74",
+        "outcome": "pending",
+        "payment_status": "unpaid",
+        "request_id": "02104cffade43f8dd2037495f1ecfbcb",
+        "time": "2026-10-09T13:34:22.90896-03:00"
+      },
+      {
+        "action": "create",
+        "error_kind": "transport",
+        "failure_code": "transport",
+        "level": "INFO",
+        "msg": "checkout outcome",
+        "operation_id": "cb797e22-626a-4164-8517-ca23daddeb9c",
+        "operation_state": "unresolved",
+        "order_id": "2a5833f2-29ba-4520-8ef5-6463ff35ac74",
+        "outcome": "pending",
+        "payment_status": "unpaid",
+        "request_id": "02104cffade43f8dd2037495f1ecfbcb",
+        "status": 202,
+        "time": "2026-10-09T13:34:22.908983-03:00"
+      },
+      {
+        "duration_ms": 180.789,
+        "level": "INFO",
+        "msg": "request completed",
+        "request_id": "02104cffade43f8dd2037495f1ecfbcb",
+        "status": 202,
+        "time": "2026-10-09T13:34:22.909042-03:00"
+      }
+    ],
+    "request_id": "02104cffade43f8dd2037495f1ecfbcb",
+    "scenario": "timeout",
+    "status": 202
+  },
+  {
+    "records": [
+      {
+        "action": "create",
+        "error_kind": "server",
+        "failure_code": "server",
+        "level": "INFO",
+        "msg": "payment outcome",
+        "operation_id": "617abae6-aed7-4a9f-adce-97d7afc6a68f",
+        "operation_state": "unresolved",
+        "order_id": "026fa411-74d5-459d-944a-3e826a4c5670",
+        "outcome": "pending",
+        "payment_status": "unpaid",
+        "request_id": "d9020218229dabcf7e2e79632cb33a0b",
+        "time": "2026-10-09T13:34:22.92024-03:00"
+      },
+      {
+        "action": "create",
+        "error_kind": "server",
+        "failure_code": "server",
+        "level": "INFO",
+        "msg": "checkout outcome",
+        "operation_id": "617abae6-aed7-4a9f-adce-97d7afc6a68f",
+        "operation_state": "unresolved",
+        "order_id": "026fa411-74d5-459d-944a-3e826a4c5670",
+        "outcome": "pending",
+        "payment_status": "unpaid",
+        "request_id": "d9020218229dabcf7e2e79632cb33a0b",
+        "status": 202,
+        "time": "2026-10-09T13:34:22.920257-03:00"
+      },
+      {
+        "duration_ms": 11.183,
+        "level": "INFO",
+        "msg": "request completed",
+        "request_id": "d9020218229dabcf7e2e79632cb33a0b",
+        "status": 202,
+        "time": "2026-10-09T13:34:22.920296-03:00"
+      }
+    ],
+    "request_id": "d9020218229dabcf7e2e79632cb33a0b",
+    "scenario": "server",
+    "status": 202
+  },
+  {
+    "records": [
+      {
+        "action": "create",
+        "error_kind": "validation",
+        "failure_code": "validation",
+        "level": "INFO",
+        "msg": "payment outcome",
+        "operation_id": "2be784c9-dcf7-408a-a8e1-d3be1bf667ad",
+        "operation_state": "rejected",
+        "order_id": "803a3c33-8282-4620-aa4a-08697eca96d1",
+        "outcome": "rejected",
+        "payment_status": "unpaid",
+        "request_id": "82a27d5ef1c8e488dabfa096723e2f4d",
+        "time": "2026-10-09T13:34:22.930437-03:00"
+      },
+      {
+        "action": "create",
+        "error_kind": "validation",
+        "failure_code": "validation",
+        "level": "INFO",
+        "msg": "checkout outcome",
+        "operation_id": "2be784c9-dcf7-408a-a8e1-d3be1bf667ad",
+        "operation_state": "rejected",
+        "order_id": "803a3c33-8282-4620-aa4a-08697eca96d1",
+        "outcome": "rejected",
+        "payment_status": "unpaid",
+        "request_id": "82a27d5ef1c8e488dabfa096723e2f4d",
+        "status": 502,
+        "time": "2026-10-09T13:34:22.930452-03:00"
+      },
+      {
+        "duration_ms": 10.121,
+        "level": "INFO",
+        "msg": "request completed",
+        "request_id": "82a27d5ef1c8e488dabfa096723e2f4d",
+        "status": 502,
+        "time": "2026-10-09T13:34:22.930473-03:00"
+      }
+    ],
+    "request_id": "82a27d5ef1c8e488dabfa096723e2f4d",
+    "scenario": "rejected",
+    "status": 502
+  },
+  {
+    "records": [
+      {
+        "action": "create",
+        "error_kind": "evidence_mismatch",
+        "failure_code": "evidence_mismatch",
+        "level": "INFO",
+        "msg": "payment outcome",
+        "operation_id": "01a6a318-cae2-406e-8003-68c05bac4571",
+        "operation_state": "unresolved",
+        "order_id": "b25537f4-e880-4013-b42d-ddc6d64724ff",
+        "outcome": "pending",
+        "payment_status": "unpaid",
+        "request_id": "2a3c8fff222ceee0207e8e2acd7a354e",
+        "time": "2026-10-09T13:34:22.942009-03:00"
+      },
+      {
+        "action": "create",
+        "error_kind": "evidence_mismatch",
+        "failure_code": "evidence_mismatch",
+        "level": "INFO",
+        "msg": "checkout outcome",
+        "operation_id": "01a6a318-cae2-406e-8003-68c05bac4571",
+        "operation_state": "unresolved",
+        "order_id": "b25537f4-e880-4013-b42d-ddc6d64724ff",
+        "outcome": "pending",
+        "payment_status": "unpaid",
+        "request_id": "2a3c8fff222ceee0207e8e2acd7a354e",
+        "status": 202,
+        "time": "2026-10-09T13:34:22.942026-03:00"
+      },
+      {
+        "duration_ms": 11.522,
+        "level": "INFO",
+        "msg": "request completed",
+        "request_id": "2a3c8fff222ceee0207e8e2acd7a354e",
+        "status": 202,
+        "time": "2026-10-09T13:34:22.942063-03:00"
+      }
+    ],
+    "request_id": "2a3c8fff222ceee0207e8e2acd7a354e",
+    "scenario": "mismatch",
+    "status": 202
+  },
+  {
+    "records": [
+      {
+        "action": "continue",
+        "error_kind": "deferred_budget",
+        "failure_code": "deferred_budget",
+        "level": "INFO",
+        "msg": "payment outcome",
+        "operation_id": "33169b78-0110-4235-b010-19b18ee094aa",
+        "operation_state": "prepared",
+        "order_id": "e2c4828e-641b-425c-bd1f-53d59e9eff2f",
+        "outcome": "pending",
+        "payment_status": "unpaid",
+        "request_id": "fbde168da1a30c96e8a205465d748a35",
+        "time": "2026-10-09T13:34:22.949719-03:00"
+      },
+      {
+        "action": "continue",
+        "level": "INFO",
+        "msg": "checkout outcome",
+        "operation_id": "33169b78-0110-4235-b010-19b18ee094aa",
+        "operation_state": "prepared",
+        "order_id": "e2c4828e-641b-425c-bd1f-53d59e9eff2f",
+        "outcome": "pending",
+        "payment_status": "unpaid",
+        "request_id": "fbde168da1a30c96e8a205465d748a35",
+        "status": 202,
+        "time": "2026-10-09T13:34:22.949733-03:00"
+      },
+      {
+        "duration_ms": 7.644,
+        "level": "INFO",
+        "msg": "request completed",
+        "request_id": "fbde168da1a30c96e8a205465d748a35",
+        "status": 202,
+        "time": "2026-10-09T13:34:22.949767-03:00"
+      }
+    ],
+    "request_id": "fbde168da1a30c96e8a205465d748a35",
+    "scenario": "prepared_after_get_budget",
+    "status": 202
+  },
+  {
+    "records": [
+      {
+        "action": "create",
+        "error_kind": "database_acceptance",
+        "failure_code": "database_acceptance",
+        "level": "INFO",
+        "msg": "payment outcome",
+        "outcome": "failed",
+        "request_id": "320653c6007c84de66e518bb46c4709b",
+        "time": "2026-10-09T13:34:22.955441-03:00"
+      },
+      {
+        "action": "create",
+        "error_kind": "temporarily_unavailable",
+        "failure_code": "temporarily_unavailable",
+        "level": "INFO",
+        "msg": "checkout outcome",
+        "outcome": "failed",
+        "request_id": "320653c6007c84de66e518bb46c4709b",
+        "status": 503,
+        "time": "2026-10-09T13:34:22.955455-03:00"
+      },
+      {
+        "duration_ms": 3.421,
+        "level": "INFO",
+        "msg": "request completed",
+        "request_id": "320653c6007c84de66e518bb46c4709b",
+        "status": 503,
+        "time": "2026-10-09T13:34:22.955472-03:00"
+      }
+    ],
+    "request_id": "320653c6007c84de66e518bb46c4709b",
+    "scenario": "database_acceptance",
+    "status": 503
+  },
+  {
+    "records": [
+      {
+        "action": "create",
+        "error_kind": "database_dispatch",
+        "failure_code": "database_dispatch",
+        "level": "INFO",
+        "msg": "payment outcome",
+        "operation_id": "7ba519ef-17ac-4ee0-b14e-a6a1ffba3132",
+        "operation_state": "prepared",
+        "order_id": "81c9fef8-2959-458c-915e-9d385017e692",
+        "outcome": "pending",
+        "payment_status": "unpaid",
+        "request_id": "648d7e534d4e3a2167f0dc1f2b1f89cc",
+        "time": "2026-10-09T13:34:22.964509-03:00"
+      },
+      {
+        "action": "create",
+        "level": "INFO",
+        "msg": "checkout outcome",
+        "operation_id": "7ba519ef-17ac-4ee0-b14e-a6a1ffba3132",
+        "operation_state": "prepared",
+        "order_id": "81c9fef8-2959-458c-915e-9d385017e692",
+        "outcome": "pending",
+        "payment_status": "unpaid",
+        "request_id": "648d7e534d4e3a2167f0dc1f2b1f89cc",
+        "status": 202,
+        "time": "2026-10-09T13:34:22.964526-03:00"
+      },
+      {
+        "duration_ms": 7.126,
+        "level": "INFO",
+        "msg": "request completed",
+        "request_id": "648d7e534d4e3a2167f0dc1f2b1f89cc",
+        "status": 202,
+        "time": "2026-10-09T13:34:22.96456-03:00"
+      }
+    ],
+    "request_id": "648d7e534d4e3a2167f0dc1f2b1f89cc",
+    "scenario": "database_dispatch",
+    "status": 202
+  },
+  {
+    "records": [
+      {
+        "action": "create",
+        "error_kind": "database_result",
+        "failure_code": "database_result",
+        "level": "INFO",
+        "msg": "payment outcome",
+        "operation_id": "0446a1e8-4c67-4b05-b19f-4bf176c5e426",
+        "operation_state": "unresolved",
+        "order_id": "a32b6fe2-0b63-46fa-b3c4-15eb1030ca80",
+        "outcome": "pending",
+        "payment_status": "unpaid",
+        "request_id": "d90a3a3b7b1e6c7fe32817ec539608b5",
+        "time": "2026-10-09T13:34:22.982333-03:00"
+      },
+      {
+        "action": "create",
+        "level": "INFO",
+        "msg": "checkout outcome",
+        "operation_id": "0446a1e8-4c67-4b05-b19f-4bf176c5e426",
+        "operation_state": "unresolved",
+        "order_id": "a32b6fe2-0b63-46fa-b3c4-15eb1030ca80",
+        "outcome": "pending",
+        "payment_status": "unpaid",
+        "request_id": "d90a3a3b7b1e6c7fe32817ec539608b5",
+        "status": 202,
+        "time": "2026-10-09T13:34:22.98235-03:00"
+      },
+      {
+        "duration_ms": 17.113,
+        "level": "INFO",
+        "msg": "request completed",
+        "request_id": "d90a3a3b7b1e6c7fe32817ec539608b5",
+        "status": 202,
+        "time": "2026-10-09T13:34:22.982391-03:00"
+      }
+    ],
+    "request_id": "d90a3a3b7b1e6c7fe32817ec539608b5",
+    "scenario": "database_result",
+    "status": 202
+  },
+  {
+    "records": [
+      {
+        "action": "create",
+        "error_kind": "database_result",
+        "failure_code": "database_result",
+        "level": "INFO",
+        "msg": "payment outcome",
+        "operation_id": "4f05422d-995d-407e-9627-2fa1cb09344c",
+        "operation_state": "unresolved",
+        "order_id": "f558046c-0c7f-42de-9fc2-2816390cbbe5",
+        "outcome": "failed",
+        "payment_status": "unpaid",
+        "request_id": "4847297cf190d8904336ac2a531db674",
+        "time": "2026-10-09T13:34:22.993251-03:00"
+      },
+      {
+        "action": "create",
+        "error_kind": "database_read",
+        "failure_code": "database_read",
+        "level": "INFO",
+        "msg": "payment outcome",
+        "operation_id": "4f05422d-995d-407e-9627-2fa1cb09344c",
+        "operation_state": "unresolved",
+        "order_id": "f558046c-0c7f-42de-9fc2-2816390cbbe5",
+        "outcome": "failed",
+        "payment_status": "unpaid",
+        "request_id": "4847297cf190d8904336ac2a531db674",
+        "time": "2026-10-09T13:34:22.993896-03:00"
+      },
+      {
+        "action": "create",
+        "error_kind": "temporarily_unavailable",
+        "failure_code": "temporarily_unavailable",
+        "level": "INFO",
+        "msg": "checkout outcome",
+        "operation_id": "4f05422d-995d-407e-9627-2fa1cb09344c",
+        "operation_state": "unresolved",
+        "order_id": "f558046c-0c7f-42de-9fc2-2816390cbbe5",
+        "outcome": "failed",
+        "payment_status": "unpaid",
+        "request_id": "4847297cf190d8904336ac2a531db674",
+        "status": 503,
+        "time": "2026-10-09T13:34:22.993908-03:00"
+      },
+      {
+        "duration_ms": 10.86,
+        "level": "INFO",
+        "msg": "request completed",
+        "request_id": "4847297cf190d8904336ac2a531db674",
+        "status": 503,
+        "time": "2026-10-09T13:34:22.993931-03:00"
+      }
+    ],
+    "request_id": "4847297cf190d8904336ac2a531db674",
+    "scenario": "database_result_and_read",
+    "status": 503
+  },
+  {
+    "records": [
+      {
+        "action": "read",
+        "error_kind": "database_read",
+        "failure_code": "database_read",
+        "level": "INFO",
+        "msg": "payment outcome",
+        "outcome": "failed",
+        "request_id": "7279b37f2e8f8714b3f7375d395941ac",
+        "time": "2026-10-09T13:34:22.996457-03:00"
+      },
+      {
+        "action": "read",
+        "error_kind": "temporarily_unavailable",
+        "failure_code": "temporarily_unavailable",
+        "level": "INFO",
+        "msg": "checkout outcome",
+        "order_id": "e2c4828e-641b-425c-bd1f-53d59e9eff2f",
+        "outcome": "failed",
+        "request_id": "7279b37f2e8f8714b3f7375d395941ac",
+        "status": 503,
+        "time": "2026-10-09T13:34:22.996505-03:00"
+      },
+      {
+        "duration_ms": 1.271,
+        "level": "INFO",
+        "msg": "request completed",
+        "request_id": "7279b37f2e8f8714b3f7375d395941ac",
+        "status": 503,
+        "time": "2026-10-09T13:34:22.996528-03:00"
+      }
+    ],
+    "request_id": "7279b37f2e8f8714b3f7375d395941ac",
+    "scenario": "database_read",
+    "status": 503
+  },
+  {
+    "records": [
+      {
+        "action": "create",
+        "error_kind": "ownership_lost",
+        "failure_code": "ownership_lost",
+        "level": "INFO",
+        "msg": "payment outcome",
+        "operation_id": "984fa8cf-daa7-4080-bc31-6cf8ecf1fffb",
+        "operation_state": "unresolved",
+        "order_id": "4356cc7d-2b9f-4206-8429-fe7289ed105f",
+        "outcome": "failed",
+        "payment_status": "unpaid",
+        "request_id": "620c01684e2b9c19db767c5c7172b21e",
+        "time": "2026-10-09T13:34:23.014555-03:00"
+      },
+      {
+        "action": "create",
+        "error_kind": "ownership_lost",
+        "failure_code": "ownership_lost",
+        "level": "INFO",
+        "msg": "payment outcome",
+        "operation_id": "984fa8cf-daa7-4080-bc31-6cf8ecf1fffb",
+        "operation_state": "unresolved",
+        "order_id": "4356cc7d-2b9f-4206-8429-fe7289ed105f",
+        "outcome": "pending",
+        "payment_status": "unpaid",
+        "request_id": "620c01684e2b9c19db767c5c7172b21e",
+        "time": "2026-10-09T13:34:23.015002-03:00"
+      },
+      {
+        "action": "create",
+        "level": "INFO",
+        "msg": "checkout outcome",
+        "operation_id": "984fa8cf-daa7-4080-bc31-6cf8ecf1fffb",
+        "operation_state": "unresolved",
+        "order_id": "4356cc7d-2b9f-4206-8429-fe7289ed105f",
+        "outcome": "pending",
+        "payment_status": "unpaid",
+        "request_id": "620c01684e2b9c19db767c5c7172b21e",
+        "status": 202,
+        "time": "2026-10-09T13:34:23.015013-03:00"
+      },
+      {
+        "duration_ms": 17.891,
+        "level": "INFO",
+        "msg": "request completed",
+        "request_id": "620c01684e2b9c19db767c5c7172b21e",
+        "status": 202,
+        "time": "2026-10-09T13:34:23.015052-03:00"
+      }
+    ],
+    "request_id": "620c01684e2b9c19db767c5c7172b21e",
+    "scenario": "ownership_lost",
+    "status": 202
+  },
+  {
+    "records": [
+      {
+        "action": "create",
+        "error_kind": "canceled",
+        "failure_code": "canceled",
+        "level": "INFO",
+        "msg": "payment outcome",
+        "operation_id": "34e15fd0-98df-4efc-8b71-e6e7e53e1d34",
+        "operation_state": "unresolved",
+        "order_id": "7ea55a23-32aa-4a16-9cf6-1727ab6266d8",
+        "outcome": "failed",
+        "payment_status": "unpaid",
+        "time": "2026-10-09T13:34:23.048387-03:00"
+      }
+    ],
+    "request_id": "",
+    "scenario": "direct_canceled",
+    "status": 0
+  }
+]

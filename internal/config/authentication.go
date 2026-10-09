@@ -2,9 +2,9 @@ package config
 
 import "errors"
 
-// ValidateServing checks the captured account only for HTTP serving. Local
+// ValidateBasic checks the captured account only for HTTP serving. Local
 // probe and migration commands do not require a serving account.
-func (c Config) ValidateServing() error {
+func (c Config) ValidateBasic() error {
 	if len(c.BasicAuthUsername) < 1 || len(c.BasicAuthUsername) > 128 {
 		return errors.New("BASIC_AUTH_USERNAME must contain 1–128 ASCII bytes from ! through ~ excluding colon")
 	}

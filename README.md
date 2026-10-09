@@ -1,6 +1,6 @@
 # Stripe Payments Go
 
-Local Go payment service sandbox with a protected static browser landing page, PostgreSQL, typed SQL queries, transactional migrations, structured logs, and bounded shutdown.
+Local Go payment service sandbox with authenticated order creation, Stripe-hosted Checkout, durable replay/recovery, status/history, PostgreSQL, structured logs, and bounded shutdown. See [API usage](docs/api.md), [recovery](docs/recovery.md), and [architecture](docs/architecture.md).
 
 ## Prerequisites
 
@@ -12,7 +12,7 @@ Local Go payment service sandbox with a protected static browser landing page, P
 
 ```sh
 cp .env.example .env
-# Set your local database password and BASIC_AUTH_USERNAME/PASSWORD in .env.
+# Set your local database password, BASIC_AUTH_USERNAME/PASSWORD, and STRIPE_SECRET_KEY in .env.
 make setup
 make generate
 make build
@@ -27,7 +27,7 @@ make down
 
 `make up` builds the image, waits for PostgreSQL, stops any running application, runs migrations to completion, and gives application readiness up to 60 seconds. It prints diagnostic application/migration logs and exits nonzero on failure. `make down` preserves the named database volume. Change `APP_PORT` or `DB_PORT` in `.env` if a local port is occupied. Published ports bind only to loopback.
 
-The foundation requires no Stripe credentials. The optional `stripe` Compose profile contains a pinned CLI image; forwarding becomes useful when a webhook endpoint exists. `STRIPE_API_KEY` belongs only in the ignored `.env` file.
+Serving requires a `sk_test_` sandbox secret key. Enable card payments and ensure the sandbox supports USD amounts 50–100000 minor units. The optional `stripe` Compose profile contains a pinned CLI image; forwarding becomes useful when a webhook endpoint exists. `STRIPE_API_KEY` belongs only in the ignored `.env` file.
 
 Use a dedicated local Basic account. Both Basic placeholders in `.env.example` are empty; serving fails until valid values are supplied. In `.env`, single-quote values to preserve significant spaces and special characters such as `$` and `#`:
 
@@ -64,16 +64,25 @@ Compose reads `.env` and supplies `DATABASE_URL`, `PGUSER`, and `PGPASSWORD` to 
 | `DB_STARTUP_TIMEOUT` | `5s`; initial database connection and migration-command budget. |
 | `READINESS_TIMEOUT` | `1s`; each readiness database round trip. |
 | `HTTP_HEADER_TIMEOUT` | `5s`. |
-| `HTTP_READ_TIMEOUT` | `10s`. |
-| `HTTP_WRITE_TIMEOUT` | `15s`. |
+| `HTTP_READ_TIMEOUT` | `11s`; at least checkout request timeout plus 1s. |
+| `HTTP_WRITE_TIMEOUT` | `15s`; at least checkout request timeout plus 1s. |
 | `HTTP_IDLE_TIMEOUT` | `60s`. |
 | `SHUTDOWN_GRACE` | `10s`; admitted requests may complete without cancellation. |
 | `CLEANUP_TIMEOUT` | `5s`; wait for canceled work and close owned database resources. |
 | `COMPOSE_STOP_GRACE_PERIOD` | `20s`; must cover shutdown, cleanup, and an additional 5s margin. |
 
-All durations must be positive. Invalid configuration, failed initial database connection, or failed listener startup exits nonzero. Probe bodies and application logs exclude raw database errors, credentials, request bodies, and URLs. Each response has `X-Request-ID`; JSON request logs contain the matching identifier, status, and elapsed milliseconds.
+| `STRIPE_SECRET_KEY` | Required serving-only sandbox key beginning `sk_test_` with a nonempty printable suffix. |
+| `APP_BASE_URL` | `http://localhost:8080`; HTTP loopback origin, optional root slash, no credentials/path/query/fragment. |
+| `PAYMENT_CURRENCY` | `usd` only. |
+| `PAYMENT_MIN_AMOUNT`, `PAYMENT_MAX_AMOUNT` | `50`, `100000`; ordered decimal limits within this supported range. |
+| `CHECKOUT_REQUEST_TIMEOUT` | `10s`; 2–10s. |
+| `STRIPE_CALL_TIMEOUT` | `2s`; 100ms–2s, no greater than retry budget. |
+| `STRIPE_RETRY_BUDGET` | `7s`; 500ms–7s, no greater than request timeout minus 1s. |
+| `STRIPE_MAX_ATTEMPTS` | `3`; 1–3 combined SDK invocations across GET and POST. |
 
-Basic settings are captured exactly at process startup, without trimming or normalization. Serving validates them before opening the database or listener; diagnostics identify an invalid setting without showing its value. Local `bin/service probe` and `bin/service migrate up` do not validate Basic settings, but still require valid common runtime configuration and their database/runtime prerequisites. Direct execution requires exported environment variables; it does not read `.env`:
+All common durations must be positive. Invalid configuration, failed initial database connection, or failed listener startup exits nonzero. Probe bodies and application logs exclude raw database errors, credentials, request bodies, and URLs. Each response has `X-Request-ID`; JSON request logs contain the matching identifier, status, and elapsed milliseconds.
+
+Basic settings are captured exactly at process startup, without trimming or normalization. Serving validates them before opening the database or listener; diagnostics identify an invalid setting without showing its value. Local `bin/service probe` and `bin/service migrate up` do not validate Basic/Checkout settings, but still require valid common runtime configuration and their database/runtime prerequisites. Direct execution requires exported environment variables; it does not read `.env`:
 
 ```sh
 export DATABASE_URL='postgres://127.0.0.1:5432/payments?sslmode=disable'
@@ -81,13 +90,15 @@ export PGUSER=app
 read -r -s -p 'Database password: ' PGPASSWORD; printf '\n'; export PGPASSWORD
 export LISTEN_ADDR=127.0.0.1:8080
 export BASIC_AUTH_USERNAME=local-user
+# Export your sandbox key without placing it in shell history.
+read -r -s -p 'Stripe sandbox secret: ' STRIPE_SECRET_KEY; printf '\n'; export STRIPE_SECRET_KEY
 read -r -s -p 'Local Basic password: ' BASIC_AUTH_PASSWORD; printf '\n'; export BASIC_AUTH_PASSWORD
 bin/service serve
 ```
 
 The password-entry example uses Bash. Restart after rotating either account setting. For Compose, edit ignored `.env` and run `make up` to recreate `app`; a container restart alone does not replace its environment. A running process continues to use its original pair, and a process started with the new pair rejects the old pair.
 
-`GET /healthz` checks only HTTP process availability. `GET /readyz` executes a generated `SELECT 1` with a deadline and returns 503 during a database outage. Readiness recovers when the same database endpoint returns. SIGINT/SIGTERM makes the service unready and closes the listener. Active requests retain their contexts during the grace period; overdue work is canceled, including pgx calls. Cleanup must complete within its separate budget or the process exits nonzero.
+`GET /healthz` checks only HTTP process availability. `GET /readyz` executes a generated query checking all four business relations with a deadline and returns 503 during a database outage. Readiness recovers when the same database endpoint returns. SIGINT/SIGTERM makes the service unready and closes the listener. Active requests retain their contexts during the grace period; overdue work is canceled, including pgx calls. Cleanup must complete within its separate budget or the process exits nonzero.
 
 ## Service and browser access
 
@@ -110,7 +121,7 @@ Open `http://localhost:8080/` in a fresh browser profile or private context. The
 
 Basic uses Base64 encoding and provides no encryption. This feature is for the local sandbox with loopback publishing. Remote access and TLS setup are outside its scope; transmitting Basic credentials over a network requires a separately designed TLS boundary. Keep database and Stripe credentials separate from the dedicated local account. The browser receives no privileged credentials or tokens, and authentication makes no Stripe calls.
 
-Future order, payment-status, history, and browser routes must verify protected wiring. Future Stripe webhook handlers require independent signature verification through the official Stripe SDK; no anonymous webhook exception or webhook handler exists in this feature.
+Order creation, continuation, status and history share this protected wiring. Future Stripe webhook handlers require independent signature verification through the official Stripe SDK; no anonymous webhook exception or webhook handler exists in this feature.
 
 ## Manual outage check
 
@@ -126,7 +137,7 @@ During the outage, health returns 200 and readiness returns 503. Starting the co
 
 ## Database and tests
 
-`db/migrations/` contains production Goose SQL migrations. No business schema is installed by the foundation; an empty migration directory is a successful startup check. Add versioned migrations there when implementing persisted application behavior. Keep the sqlc schema input aligned with those migrations. Regenerate `internal/postgres/queries/` through `make generate`.
+`db/migrations/` contains production Goose SQL migrations. The payment migration installs orders, operations, permanent request bindings and append-only history with database invariants. The migration runner also accepts genuinely empty supplied sources. Keep the sqlc schema input aligned with those migrations. Regenerate `internal/postgres/queries/` through `make generate`.
 
 Integration tests run PostgreSQL 18.6 through Testcontainers using the same application migration runner. Test-only SQL under `internal/integration/testdata/` exercises apply, repeated apply, rollback, transaction failure, and restart retention in isolated containers. These fixtures are excluded from the production image. Tests also verify database-outage readiness recovery and cancellation of an active PostgreSQL query during shutdown. Missing Docker fails the checks; integration tests do not silently skip.
 
@@ -134,4 +145,4 @@ GitHub Actions runs `make setup` and `make verify` for pull requests and pushes 
 
 ## Scope
 
-The service exposes a Basic-protected static landing page and public health/readiness probes. Payment operations, order creation, webhook processing, and reconciliation are outside this feature. Local execution and automated checks are supported. Remote deployment, TLS setup, user registration, multiple accounts, application sessions, and logout are outside its scope.
+The service exposes authenticated order creation/Checkout continuation/status/history, a static landing page and public health/readiness probes. Webhook confirmation, browser payment controls and manual reconciliation are separate features. Checkout creation and browser returns cannot mark orders paid. Local execution and automated checks are supported. Remote deployment, TLS setup, user registration, multiple accounts, application sessions, and logout are outside its scope.

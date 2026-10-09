@@ -1,0 +1,8 @@
+{"time":"2026-10-09T13:21:07.123019-03:00","level":"INFO","msg":"service listening"}
+{"time":"2026-10-09T13:21:07.162211-03:00","level":"INFO","msg":"request completed","request_id":"ea78bd33b5e0704af64de32defe2f494","status":200,"duration_ms":0.018}
+{"time":"2026-10-09T13:21:07.171125-03:00","level":"INFO","msg":"request completed","request_id":"d14c7acb51e813f34795fe5ca58323b1","status":200,"duration_ms":0.003}
+{"time":"2026-10-09T13:21:07.18227-03:00","level":"WARN","msg":"readiness failed","request_id":"af16a4700258246e1fa63e63640052d5","error_kind":"database_unavailable"}
+{"time":"2026-10-09T13:21:07.182598-03:00","level":"INFO","msg":"request completed","request_id":"af16a4700258246e1fa63e63640052d5","status":503,"duration_ms":3.756}
+{"time":"2026-10-09T13:21:07.197868-03:00","level":"WARN","msg":"readiness failed","request_id":"f1477a8003f0bcc23c412679f68eeb98","error_kind":"database_unavailable"}
+{"time":"2026-10-09T13:21:07.197902-03:00","level":"INFO","msg":"request completed","request_id":"f1477a8003f0bcc23c412679f68eeb98","status":503,"duration_ms":0.837}
+{"time":"2026-10-09T13:21:07.199279-03:00","level":"INFO","msg":"service stopped"}
