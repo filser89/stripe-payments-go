@@ -63,8 +63,8 @@ func TestDatabaseMigrationsReadinessAndRestart(t *testing.T) {
 		require.NoError(t, err)
 		require.EqualValues(t, 1, value)
 	})
-	t.Run("empty_production_migrations", func(t *testing.T) {
-		require.NoError(t, postgres.Migrate(ctx, url, os.DirFS("../../db/migrations"), "up"))
+	t.Run("empty_production_migrations", func(t *testing.T) { // FND-002; DO-006 retains genuinely empty supplied sources
+		require.NoError(t, postgres.Migrate(ctx, url, os.DirFS(t.TempDir()), "up"))
 	})
 	t.Run("apply_repeat_and_rollback", func(t *testing.T) {
 		source := os.DirFS("testdata/migrations")

@@ -3,3 +3,73 @@
 //   sqlc v1.31.1
 
 package queries
+
+import (
+	"github.com/jackc/pgx/v5/pgtype"
+)
+
+type PaymentHistory struct {
+	OrderID               pgtype.UUID
+	Sequence              int64
+	Kind                  string
+	RecordedAt            pgtype.Timestamptz
+	OperationID           pgtype.UUID
+	FromState             pgtype.Text
+	ToState               pgtype.Text
+	StripeSessionID       pgtype.Text
+	StripePaymentIntentID pgtype.Text
+	StripeEventID         pgtype.Text
+	StripeRequestID       pgtype.Text
+	FailureCode           pgtype.Text
+	EventAt               pgtype.Timestamptz
+}
+
+type PaymentOperation struct {
+	ID                    pgtype.UUID
+	OrderID               pgtype.UUID
+	State                 string
+	StripeKey             string
+	Snapshot              []byte
+	Version               int64
+	OwnerToken            string
+	PriorAmbiguity        bool
+	EvidenceSource        string
+	InvestigationRequired bool
+	CreatedAt             pgtype.Timestamptz
+	UpdatedAt             pgtype.Timestamptz
+	StripeSessionID       pgtype.Text
+	StripePaymentIntentID pgtype.Text
+	CheckoutUrl           pgtype.Text
+	ExpiresAt             pgtype.Timestamptz
+	FirstDispatchAt       pgtype.Timestamptz
+	LastDispatchAt        pgtype.Timestamptz
+	DispatchExpiresAt     pgtype.Int8
+	LeaseUntil            pgtype.Timestamptz
+	LastObservedAt        pgtype.Timestamptz
+	StripeRequestID       pgtype.Text
+	FailureCode           pgtype.Text
+}
+
+type PaymentOrder struct {
+	ID                 pgtype.UUID
+	Description        string
+	Amount             int64
+	Currency           string
+	PaymentStatus      string
+	CurrentOperationID pgtype.UUID
+	CreatedAt          pgtype.Timestamptz
+	UpdatedAt          pgtype.Timestamptz
+	HistorySequence    int64
+}
+
+type PaymentRequestBinding struct {
+	RequestKey  pgtype.UUID
+	Method      string
+	Target      string
+	OrderID     pgtype.UUID
+	OperationID pgtype.UUID
+	Description string
+	Amount      int64
+	Currency    string
+	CreatedAt   pgtype.Timestamptz
+}

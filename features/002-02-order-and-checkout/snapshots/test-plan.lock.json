@@ -1,0 +1,469 @@
+{
+  "version": 3,
+  "feature": "002-02-order-and-checkout",
+  "source": "test-plan.md",
+  "entries": [
+    {
+      "action": "MODIFY",
+      "expected_landing": "failed",
+      "id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadValidConfiguration",
+      "file": "internal/config/config_test.go",
+      "description": "TestLoadValidConfiguration"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/cmd/service::TestAuthenticationCommandIndependence",
+      "file": "cmd/service/authentication_test.go",
+      "description": "TestAuthenticationCommandIndependence"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/cmd/service::TestAuthenticationServingConfiguration",
+      "file": "cmd/service/authentication_test.go",
+      "description": "TestAuthenticationServingConfiguration"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/cmd/service::TestAuthenticationCredentialLifetime",
+      "file": "cmd/service/authentication_test.go",
+      "description": "TestAuthenticationCredentialLifetime"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/integration::TestDatabaseMigrationsReadinessAndRestart/empty_production_migrations",
+      "file": "internal/integration/foundation_test.go",
+      "description": "TestDatabaseMigrationsReadinessAndRestart/empty_production_migrations"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/cmd/service::TestRunRejectsInvalidDatabaseWithoutExposingCredentials",
+      "file": "cmd/service/main_test.go",
+      "description": "TestRunRejectsInvalidDatabaseWithoutExposingCredentials"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/cmd/service::TestRunRejectsMissingConfiguration",
+      "file": "cmd/service/main_test.go",
+      "description": "TestRunRejectsMissingConfiguration"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/cmd/service::TestRunRejectsUnknownCommandBeforeConnecting",
+      "file": "cmd/service/main_test.go",
+      "description": "TestRunRejectsUnknownCommandBeforeConnecting"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/bad_log_level",
+      "file": "internal/config/config_test.go",
+      "description": "TestLoadRejectsInvalidConfigurationWithoutSecrets/bad_log_level"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/bad_port",
+      "file": "internal/config/config_test.go",
+      "description": "TestLoadRejectsInvalidConfigurationWithoutSecrets/bad_port"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/invalid_database",
+      "file": "internal/config/config_test.go",
+      "description": "TestLoadRejectsInvalidConfigurationWithoutSecrets/invalid_database"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/invalid_timeout",
+      "file": "internal/config/config_test.go",
+      "description": "TestLoadRejectsInvalidConfigurationWithoutSecrets/invalid_timeout"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/missing_database",
+      "file": "internal/config/config_test.go",
+      "description": "TestLoadRejectsInvalidConfigurationWithoutSecrets/missing_database"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/missing_database_name",
+      "file": "internal/config/config_test.go",
+      "description": "TestLoadRejectsInvalidConfigurationWithoutSecrets/missing_database_name"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/missing_host",
+      "file": "internal/config/config_test.go",
+      "description": "TestLoadRejectsInvalidConfigurationWithoutSecrets/missing_host"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/negative_readiness",
+      "file": "internal/config/config_test.go",
+      "description": "TestLoadRejectsInvalidConfigurationWithoutSecrets/negative_readiness"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/overflow_budget",
+      "file": "internal/config/config_test.go",
+      "description": "TestLoadRejectsInvalidConfigurationWithoutSecrets/overflow_budget"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/short_container_budget",
+      "file": "internal/config/config_test.go",
+      "description": "TestLoadRejectsInvalidConfigurationWithoutSecrets/short_container_budget"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/wrong_scheme",
+      "file": "internal/config/config_test.go",
+      "description": "TestLoadRejectsInvalidConfigurationWithoutSecrets/wrong_scheme"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_cleanup",
+      "file": "internal/config/config_test.go",
+      "description": "TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_cleanup"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_header",
+      "file": "internal/config/config_test.go",
+      "description": "TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_header"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_idle",
+      "file": "internal/config/config_test.go",
+      "description": "TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_idle"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_port",
+      "file": "internal/config/config_test.go",
+      "description": "TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_port"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_read",
+      "file": "internal/config/config_test.go",
+      "description": "TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_read"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_shutdown",
+      "file": "internal/config/config_test.go",
+      "description": "TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_shutdown"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_startup",
+      "file": "internal/config/config_test.go",
+      "description": "TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_startup"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_write",
+      "file": "internal/config/config_test.go",
+      "description": "TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_write"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/integration::TestDatabaseMigrationsReadinessAndRestart/apply_repeat_and_rollback",
+      "file": "internal/integration/foundation_test.go",
+      "description": "TestDatabaseMigrationsReadinessAndRestart/apply_repeat_and_rollback"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/integration::TestDatabaseMigrationsReadinessAndRestart/failing_transaction_leaves_no_partial_table",
+      "file": "internal/integration/foundation_test.go",
+      "description": "TestDatabaseMigrationsReadinessAndRestart/failing_transaction_leaves_no_partial_table"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/integration::TestDatabaseMigrationsReadinessAndRestart/generated_readiness_query",
+      "file": "internal/integration/foundation_test.go",
+      "description": "TestDatabaseMigrationsReadinessAndRestart/generated_readiness_query"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/integration::TestDatabaseMigrationsReadinessAndRestart/outage_recovery_and_retained_data",
+      "file": "internal/integration/foundation_test.go",
+      "description": "TestDatabaseMigrationsReadinessAndRestart/outage_recovery_and_retained_data"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/integration::TestOpenRejectsUnavailableDatabaseWithinDeadline",
+      "file": "internal/integration/foundation_test.go",
+      "description": "TestOpenRejectsUnavailableDatabaseWithinDeadline"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/integration::TestShutdownCancelsActivePostgresQuery",
+      "file": "internal/integration/foundation_test.go",
+      "description": "TestShutdownCancelsActivePostgresQuery"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationAuditASCIISchemeOnWire/ascii",
+      "file": "internal/web/authentication_audit_test.go",
+      "description": "TestAuthenticationAuditASCIISchemeOnWire/ascii"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationAuditASCIISchemeOnWire/ascii_mixed_case",
+      "file": "internal/web/authentication_audit_test.go",
+      "description": "TestAuthenticationAuditASCIISchemeOnWire/ascii_mixed_case"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationAuditASCIISchemeOnWire/unicode_long_s",
+      "file": "internal/web/authentication_audit_test.go",
+      "description": "TestAuthenticationAuditASCIISchemeOnWire/unicode_long_s"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationAuditLandingReadFailureContext/GET/clean_eof",
+      "file": "internal/web/authentication_audit_test.go",
+      "description": "TestAuthenticationAuditLandingReadFailureContext/GET/clean_eof"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationAuditLandingReadFailureContext/GET/nonempty_body",
+      "file": "internal/web/authentication_audit_test.go",
+      "description": "TestAuthenticationAuditLandingReadFailureContext/GET/nonempty_body"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationAuditLandingReadFailureContext/GET/zero_byte_read_failure",
+      "file": "internal/web/authentication_audit_test.go",
+      "description": "TestAuthenticationAuditLandingReadFailureContext/GET/zero_byte_read_failure"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationAuditLandingReadFailureContext/HEAD/clean_eof",
+      "file": "internal/web/authentication_audit_test.go",
+      "description": "TestAuthenticationAuditLandingReadFailureContext/HEAD/clean_eof"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationAuditLandingReadFailureContext/HEAD/nonempty_body",
+      "file": "internal/web/authentication_audit_test.go",
+      "description": "TestAuthenticationAuditLandingReadFailureContext/HEAD/nonempty_body"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationAuditLandingReadFailureContext/HEAD/zero_byte_read_failure",
+      "file": "internal/web/authentication_audit_test.go",
+      "description": "TestAuthenticationAuditLandingReadFailureContext/HEAD/zero_byte_read_failure"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationAuthorizationParsing",
+      "file": "internal/web/authentication_test.go",
+      "description": "TestAuthenticationAuthorizationParsing"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationBodyReadFailure",
+      "file": "internal/web/authentication_test.go",
+      "description": "TestAuthenticationBodyReadFailure"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationConcurrentIsolation",
+      "file": "internal/web/authentication_test.go",
+      "description": "TestAuthenticationConcurrentIsolation"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationCredentialSources",
+      "file": "internal/web/authentication_test.go",
+      "description": "TestAuthenticationCredentialSources"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationDelegation",
+      "file": "internal/web/authentication_test.go",
+      "description": "TestAuthenticationDelegation"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationExactCredentials",
+      "file": "internal/web/authentication_test.go",
+      "description": "TestAuthenticationExactCredentials"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationFoundationTransport",
+      "file": "internal/web/authentication_transport_test.go",
+      "description": "TestAuthenticationFoundationTransport"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationLanding",
+      "file": "internal/web/authentication_test.go",
+      "description": "TestAuthenticationLanding"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationLandingBodyBytes",
+      "file": "internal/web/authentication_test.go",
+      "description": "TestAuthenticationLandingBodyBytes"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationMissingCredentials",
+      "file": "internal/web/authentication_test.go",
+      "description": "TestAuthenticationMissingCredentials"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationPublicProbeBoundary",
+      "file": "internal/web/authentication_test.go",
+      "description": "TestAuthenticationPublicProbeBoundary"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationRealStreamingBodies",
+      "file": "internal/web/authentication_transport_test.go",
+      "description": "TestAuthenticationRealStreamingBodies"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationRouting",
+      "file": "internal/web/authentication_test.go",
+      "description": "TestAuthenticationRouting"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationSanitizedOutcomes",
+      "file": "internal/web/authentication_test.go",
+      "description": "TestAuthenticationSanitizedOutcomes"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationShutdownAdmission",
+      "file": "internal/web/authentication_test.go",
+      "description": "TestAuthenticationShutdownAdmission"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationStalledBodyDeadline",
+      "file": "internal/web/authentication_transport_test.go",
+      "description": "TestAuthenticationStalledBodyDeadline"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/web::TestCleanupFailureIsReported",
+      "file": "internal/web/server_test.go",
+      "description": "TestCleanupFailureIsReported"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/web::TestCleanupIsBounded",
+      "file": "internal/web/server_test.go",
+      "description": "TestCleanupIsBounded"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/web::TestGracefulShutdownAllowsActiveRequestToFinish",
+      "file": "internal/web/server_test.go",
+      "description": "TestGracefulShutdownAllowsActiveRequestToFinish"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/web::TestHealthReadinessAndSanitizedLogs",
+      "file": "internal/web/server_test.go",
+      "description": "TestHealthReadinessAndSanitizedLogs"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/web::TestPanicProducesSanitizedFailureLog",
+      "file": "internal/web/server_test.go",
+      "description": "TestPanicProducesSanitizedFailureLog"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/web::TestReadinessDeadline",
+      "file": "internal/web/server_test.go",
+      "description": "TestReadinessDeadline"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/web::TestServeFailureClosesResources",
+      "file": "internal/web/server_test.go",
+      "description": "TestServeFailureClosesResources"
+    },
+    {
+      "action": "TOUCH",
+      "expected_landing": "unchanged",
+      "id": "github.com/filser89/stripe-payments-go/internal/web::TestShutdownCancelsOverdueWorkAndWaitsForCleanup",
+      "file": "internal/web/server_test.go",
+      "description": "TestShutdownCancelsOverdueWorkAndWaitsForCleanup"
+    }
+  ]
+}

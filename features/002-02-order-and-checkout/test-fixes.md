@@ -1,0 +1,27 @@
+# Test Fixes: Create orders and hosted checkout
+
+**Feature**: `002-02-order-and-checkout` | **Scope**: R28 — ID-004, LIFE-006, LIFE-008, DATA-003, DATA-004 | **Independent correction review**: PENDING
+
+R28 covers a bound replay whose outstanding retrieval loses the current-operation guard after a legitimate fresh-key continuation saves expiration and creates a replacement. FR-006/014/015 and the bound-operation response contract require the replay to report its permanently bound operation with authoritative saved state. This is one mechanical test correction. R26 remains the accepted manual SEC-003/NE-6/D11 production-verification condition: every named outcome/error variant requires independent actual semantic-log and source review during code review and final audit. Metadata-only logs or a green helper cannot satisfy that condition.
+
+## Current test contract
+
+`internal/payment/checkout_test.go:782`, `TestBoundReplayReplacementDuringRetrieval`, contains two named leaves: `original_creation_key` and `bound_continuation_key`. Each enters its real public Service method using a previously accepted key bound to the old open operation. Its held gateway callback invokes a legitimate fresh-key `Continue`, which retrieves authoritative expiration and dispatches one replacement Checkout with distinct Stripe identifiers. The callback returns the old expiration only after the replacement commits.
+
+The replay must return the saved expired historical operation, including its original IDs, Stripe key, immutable snapshot, timestamps and available PaymentIntent, with suppressed checkout URL, established/nonpending result and all continuation flags false. Comparing the returned operation with the authoritative saved historical operation prevents stale open results or a replacement with a relabeled ID from passing. Order inspection must report the new current open operation with its resumable URL. Both accepted historical bindings and the new binding, purchase data, one order/two operations, prior history and the four legitimate transitions remain intact. Completing the held retrieval and reading the order cause no further durable mutation. Exactly three deadline-bearing physical calls occur in deterministic order: old retrieval, concurrent expiration retrieval, replacement creation. No sleeps or framework additions are required.
+
+## Retained corrections and handoff
+
+All 684 existing identity/status/digest tuples remain protected, including `TestSafeReplayAgeAfterDispatchPreparation`, `TestFreshContinuationSafeAgeAfterDispatchPreparation`, the real PostgreSQL same-state outcome/audit/rollback cases, direct semantic logging tests and H1–H5 recovery fixtures. R27's three dispatch-preparation continuation leaves remain independently reviewed. The 66-entry plan retains one MODIFY and 65 TOUCH entries, with zero appends/removals. This scope adds only the two regression leaves; the independent reviewer owns `test-review.md`.
+
+Correction entry is clean commit `530271aa8ad2a191d681c18fe0da4669384ed67a` on `002-checkout-frozen-hygiene`. Effective installed Kaba source is `638047e7d671b86a061516dad300200fa0ade032`. The runner remains `go test ./...`, Go 1.27.2 darwin/arm64, no tags, count 1 and unchanged effective compiler context. Original baseline SHA256 remains `5b38d89b84226f36445dbb9c79a4dfc27d3aeb804b49aa139d48605a5db6689c`. Baseline, plan/lock, specification/criteria, test review, five default scaffolds/manifest, application rules, execution configuration and dependency manifests remain protected. Live application production and architecture receive no edits.
+
+## Validation
+
+- Static preflight: PASS. Native discovery finds exactly 686 leaves; all 684 existing identities/digests and compiler context are exact. Pinned golangci-lint v2.14.0 reports zero issues for `./internal/payment` in a temporary copy with the native generator's five unchanged default scaffolds materialized. Formatting, test ownership and Git whitespace checks pass.
+- One final native post-test capture: PASS; 686 complete leaves, 65 passed, 621 expected failed, zero pending. Both new leaves are red against unchanged default scaffolds.
+- Native baseline → post-test comparison: PASS; 620 new failed leaves, one conforming MODIFY, 65 baseline greens, 65 allowlisted content edits, 66 plan entries, zero appends/removals. The 621 implementation-required identities exactly equal failed leaves and retain all 619 prior targets.
+- Required banned-pattern scan: PASS; 35 discovered test/support files inspected from the changed test path.
+- Protected handoff/source proof: PASS; all 684 prior identity/status/digest tuples, 108 other tracked source/artifact hashes, baseline, 66-entry plan/lock, five scaffolds/manifest, overlay packages and compiler context remain exact. Every recorded protected/scaffold hash agrees with source and paths remain repository-relative. Only the changed test, this report and mandatory post-test snapshot differ.
+- Independent scoped review: PENDING. `/kaba:review-tests ID-004 LIFE-006 LIFE-008 DATA-003 DATA-004` must inspect the two leaves and actual dependencies, retain unaffected evidence and R26, and recompute the merged verdict. This author does not self-approve, integrate or modify production.
+- Full `make verify`, overlay-free production execution and race verification remain outside this deliberately red test session. Author diagnostics stay under `/private/tmp/checkout-bound-r28-preflight`; no result archive, raw runner event collection or extra manifest is added to the application.

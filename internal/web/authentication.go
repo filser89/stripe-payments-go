@@ -16,7 +16,7 @@ import (
 // Account digests are immutable for the handler's lifetime. Invalid construction
 // fails closed, including callers that bypass the serving entry point.
 func authenticate(c config.Config, logger *slog.Logger, next http.Handler) http.Handler {
-	valid := c.ValidateServing() == nil
+	valid := c.ValidateBasic() == nil
 	username := sha256.Sum256([]byte(c.BasicAuthUsername))
 	password := sha256.Sum256([]byte(c.BasicAuthPassword))
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -32,6 +32,7 @@ func authenticate(c config.Config, logger *slog.Logger, next http.Handler) http.
 				return
 			}
 		}
+		logger.InfoContext(r.Context(), "authentication rejected", "action", "authenticate", "outcome", "rejected", "error_kind", "auth_rejected", "status", http.StatusUnauthorized, "request_id", w.Header().Get("X-Request-ID"))
 		w.Header().Set("WWW-Authenticate", `Basic realm="stripe-payments"`)
 		plainResponse(w, r, logger, http.StatusUnauthorized, "Unauthorized")
 	})

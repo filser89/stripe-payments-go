@@ -11,6 +11,8 @@ import (
 )
 
 type Config struct {
+	checkout                                                                                CheckoutConfig
+	checkoutErr                                                                             error
 	DatabaseURL, ListenAddr, LogLevel                                                       string
 	BasicAuthUsername, BasicAuthPassword                                                    string
 	StartupTimeout, ReadinessTimeout, HeaderTimeout, ReadTimeout, WriteTimeout, IdleTimeout time.Duration
@@ -25,6 +27,7 @@ func Load(getenv func(string) string) (Config, error) {
 		return fallback
 	}
 	c := Config{DatabaseURL: getenv("DATABASE_URL"), ListenAddr: value("LISTEN_ADDR", ":8080"), LogLevel: value("LOG_LEVEL", "info")}
+	c.checkout, c.checkoutErr = captureCheckout(getenv)
 	c.BasicAuthUsername = getenv("BASIC_AUTH_USERNAME")
 	c.BasicAuthPassword = getenv("BASIC_AUTH_PASSWORD")
 	u, err := url.Parse(c.DatabaseURL)
@@ -46,7 +49,7 @@ func Load(getenv func(string) string) (Config, error) {
 		dst           *time.Duration
 	}{
 		{"DB_STARTUP_TIMEOUT", "5s", &c.StartupTimeout}, {"READINESS_TIMEOUT", "1s", &c.ReadinessTimeout},
-		{"HTTP_HEADER_TIMEOUT", "5s", &c.HeaderTimeout}, {"HTTP_READ_TIMEOUT", "10s", &c.ReadTimeout},
+		{"HTTP_HEADER_TIMEOUT", "5s", &c.HeaderTimeout}, {"HTTP_READ_TIMEOUT", "11s", &c.ReadTimeout},
 		{"HTTP_WRITE_TIMEOUT", "15s", &c.WriteTimeout}, {"HTTP_IDLE_TIMEOUT", "60s", &c.IdleTimeout},
 		{"SHUTDOWN_GRACE", "10s", &c.ShutdownGrace}, {"CLEANUP_TIMEOUT", "5s", &c.CleanupTimeout},
 		{"COMPOSE_STOP_GRACE_PERIOD", "20s", &c.ContainerStopGrace},

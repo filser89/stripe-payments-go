@@ -139,7 +139,7 @@ func commandResponse(t *testing.T, address, username, password string) (int, str
 	return response.StatusCode, string(data), response.Header
 }
 
-func TestAuthenticationServingConfiguration(t *testing.T) { // CFG-001 V1–V9, SEC-001 V1
+func TestAuthenticationServingConfiguration(t *testing.T) { // CFG-002 FND-002; authentication configuration and SEC-001
 	url, _ := commandDatabase(t)
 	binary := filepath.Join(t.TempDir(), "service")
 	buildCtx, cancelBuild := context.WithTimeout(context.Background(), time.Minute)
@@ -173,6 +173,7 @@ func TestAuthenticationServingConfiguration(t *testing.T) { // CFG-001 V1–V9, 
 		{"password_spaces_colon", commandUser, commandPassword, "", false},                                          // V8
 	} {
 		values := commandEnvironment(t, url)
+		values["STRIPE_SECRET_KEY"], values["APP_BASE_URL"] = "sk_test_fixture", "http://localhost:8080"
 		values["BASIC_AUTH_USERNAME"], values["BASIC_AUTH_PASSWORD"] = tc.username, tc.password
 		if tc.missing {
 			delete(values, tc.invalidSetting)
@@ -269,7 +270,7 @@ func TestAuthenticationServingConfiguration(t *testing.T) { // CFG-001 V1–V9, 
 	}
 }
 
-func TestAuthenticationCommandIndependence(t *testing.T) { // CFG-002 V1–V6
+func TestAuthenticationCommandIndependence(t *testing.T) { // CFG-004; authentication command independence
 	url, pool := commandDatabase(t)
 	t.Chdir("../..")
 	var notReady atomic.Bool
@@ -290,7 +291,10 @@ func TestAuthenticationCommandIndependence(t *testing.T) { // CFG-002 V1–V6
 		if basic == "absent" {
 			delete(values, "BASIC_AUTH_USERNAME")
 			delete(values, "BASIC_AUTH_PASSWORD")
+			delete(values, "STRIPE_SECRET_KEY")
+			delete(values, "APP_BASE_URL")
 		} else {
+			values["STRIPE_SECRET_KEY"], values["APP_BASE_URL"] = "sk_live_invalid_sentinel", "https://example.com/invalid"
 			values["BASIC_AUTH_USERNAME"] = "invalid username sentinel"
 			values["BASIC_AUTH_PASSWORD"] = "invalid\tpassword-sentinel"
 		}
@@ -378,9 +382,11 @@ func TestAuthenticationCommandIndependence(t *testing.T) { // CFG-002 V1–V6
 	assert.EqualValues(t, 4, probeCalls.Load())
 }
 
-func TestAuthenticationCredentialLifetime(t *testing.T) { // CFG-003 V1–V2
+func TestAuthenticationCredentialLifetime(t *testing.T) { // CFG-002; authentication credential lifetime
 	url, _ := commandDatabase(t)
-	env := &commandEnv{values: commandEnvironment(t, url)}
+	values := commandEnvironment(t, url)
+	values["STRIPE_SECRET_KEY"], values["APP_BASE_URL"] = "sk_test_fixture", "http://localhost:8080"
+	env := &commandEnv{values: values}
 	address, stop := startCommand(t, env)
 	status, _, _ := commandResponse(t, address, commandUser, commandPassword)
 	assert.Equal(t, http.StatusOK, status)
