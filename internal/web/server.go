@@ -28,32 +28,46 @@ type Server struct {
 
 func New(c config.Config, logger *slog.Logger, probe func(context.Context) error, extra http.Handler) *Server {
 	s := &Server{config: c, logger: logger}
-	mux := http.NewServeMux()
-	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusOK) })
-	mux.HandleFunc("GET /readyz", func(w http.ResponseWriter, r *http.Request) {
+	if extra == nil {
+		extra = landing(logger)
+	}
+	protected := authenticate(c, logger, extra)
+	ready := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx, cancel := context.WithTimeout(r.Context(), c.ReadinessTimeout)
 		defer cancel()
 		if err := probe(ctx); err != nil {
 			logger.WarnContext(ctx, "readiness failed", "request_id", w.Header().Get("X-Request-ID"), "error_kind", errorKind(err))
-			http.Error(w, "not ready", http.StatusServiceUnavailable)
+			plainResponse(w, r, logger, http.StatusServiceUnavailable, "not ready")
 			return
 		}
 		w.WriteHeader(http.StatusOK)
 	})
-	if extra != nil {
-		mux.Handle("/", extra)
-	}
 	s.Handler = s.logRequests(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		s.admission.Lock()
 		if s.stopping.Load() {
 			s.admission.Unlock()
-			http.Error(w, "shutting down", http.StatusServiceUnavailable)
+			plainResponse(w, r, logger, http.StatusServiceUnavailable, "shutting down")
 			return
 		}
 		s.active.Add(1)
 		s.admission.Unlock()
 		defer s.active.Done()
-		mux.ServeHTTP(w, r)
+		// Exact dispatch keeps probe-like paths and routing redirects behind
+		// authentication while preserving public probes and their method errors.
+		if r.URL.Path == "/healthz" || r.URL.Path == "/readyz" {
+			if r.Method != http.MethodGet && r.Method != http.MethodHead {
+				w.Header().Set("Allow", "GET, HEAD")
+				plainResponse(w, r, logger, http.StatusMethodNotAllowed, "Method Not Allowed")
+				return
+			}
+			if r.URL.Path == "/healthz" {
+				w.WriteHeader(http.StatusOK)
+				return
+			}
+			ready.ServeHTTP(w, r)
+			return
+		}
+		protected.ServeHTTP(w, r)
 	}))
 	return s
 }
@@ -139,7 +153,7 @@ func (s *Server) logRequests(next http.Handler) http.Handler {
 			if recovered := recover(); recovered != nil {
 				s.logger.ErrorContext(r.Context(), "request failed", "request_id", id, "error_kind", "panic")
 				if rw.status == 0 {
-					http.Error(rw, "internal error", http.StatusInternalServerError)
+					plainResponse(rw, r, s.logger, http.StatusInternalServerError, "internal error")
 				}
 			}
 			status := rw.status

@@ -40,7 +40,10 @@ services:
   app:
     build: .
     image: stripe-payments-go:local
-    environment: *app-environment
+    environment:
+      <<: *app-environment
+      BASIC_AUTH_USERNAME: ${BASIC_AUTH_USERNAME:-}
+      BASIC_AUTH_PASSWORD: ${BASIC_AUTH_PASSWORD:-}
     ports:
       - "127.0.0.1:${APP_PORT:-8080}:8080"
     depends_on:

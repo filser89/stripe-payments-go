@@ -12,6 +12,7 @@ import (
 
 type Config struct {
 	DatabaseURL, ListenAddr, LogLevel                                                       string
+	BasicAuthUsername, BasicAuthPassword                                                    string
 	StartupTimeout, ReadinessTimeout, HeaderTimeout, ReadTimeout, WriteTimeout, IdleTimeout time.Duration
 	ShutdownGrace, CleanupTimeout, ContainerStopGrace                                       time.Duration
 }
@@ -24,6 +25,8 @@ func Load(getenv func(string) string) (Config, error) {
 		return fallback
 	}
 	c := Config{DatabaseURL: getenv("DATABASE_URL"), ListenAddr: value("LISTEN_ADDR", ":8080"), LogLevel: value("LOG_LEVEL", "info")}
+	c.BasicAuthUsername = getenv("BASIC_AUTH_USERNAME")
+	c.BasicAuthPassword = getenv("BASIC_AUTH_PASSWORD")
 	u, err := url.Parse(c.DatabaseURL)
 	if err != nil || (u.Scheme != "postgres" && u.Scheme != "postgresql") || u.Hostname() == "" || strings.Trim(u.Path, "/") == "" {
 		return Config{}, fmt.Errorf("DATABASE_URL must be a PostgreSQL URL with host and database")

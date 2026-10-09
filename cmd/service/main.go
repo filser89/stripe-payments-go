@@ -39,6 +39,11 @@ func run(ctx context.Context, args []string, getenv func(string) string, output 
 	if err != nil {
 		return err
 	}
+	if command == "serve" {
+		if err := c.ValidateServing(); err != nil {
+			return err
+		}
+	}
 	level := slog.LevelInfo
 	switch c.LogLevel {
 	case "debug":

@@ -1,6 +1,6 @@
 # Stripe Payments Go
 
-Go HTTP service foundation with PostgreSQL, typed SQL queries, transactional migrations, structured logs, and bounded shutdown.
+Local Go payment service sandbox with a protected static browser landing page, PostgreSQL, typed SQL queries, transactional migrations, structured logs, and bounded shutdown.
 
 ## Prerequisites
 
@@ -12,13 +12,15 @@ Go HTTP service foundation with PostgreSQL, typed SQL queries, transactional mig
 
 ```sh
 cp .env.example .env
-# Set your local database password in .env.
+# Set your local database password and BASIC_AUTH_USERNAME/PASSWORD in .env.
 make setup
 make generate
 make build
 make up
 curl --fail http://localhost:8080/healthz
 curl --fail http://localhost:8080/readyz
+# curl prompts for the configured password; replace local-user with your username.
+curl --fail --user local-user http://localhost:8080/
 make verify
 make down
 ```
@@ -26,6 +28,15 @@ make down
 `make up` builds the image, waits for PostgreSQL, stops any running application, runs migrations to completion, and gives application readiness up to 60 seconds. It prints diagnostic application/migration logs and exits nonzero on failure. `make down` preserves the named database volume. Change `APP_PORT` or `DB_PORT` in `.env` if a local port is occupied. Published ports bind only to loopback.
 
 The foundation requires no Stripe credentials. The optional `stripe` Compose profile contains a pinned CLI image; forwarding becomes useful when a webhook endpoint exists. `STRIPE_API_KEY` belongs only in the ignored `.env` file.
+
+Use a dedicated local Basic account. Both Basic placeholders in `.env.example` are empty; serving fails until valid values are supplied. In `.env`, single-quote values to preserve significant spaces and special characters such as `$` and `#`:
+
+```dotenv
+BASIC_AUTH_USERNAME='local-user'
+BASIC_AUTH_PASSWORD=' replace-with-a-dedicated-local-password: '
+```
+
+These values illustrate quoting; choose your own account. Compose supplies the Basic settings only to `app`; migrations and the Stripe CLI receive no Basic credentials. Never commit `.env` or use image build arguments for credentials. The image excludes local secret files and test fixtures.
 
 | Command | Behavior |
 | --- | --- |
@@ -46,6 +57,8 @@ Compose reads `.env` and supplies `DATABASE_URL`, `PGUSER`, and `PGPASSWORD` to 
 | --- | --- |
 | `DATABASE_URL` | Required PostgreSQL URL with host and database; Compose supplies it. |
 | `PGUSER`, `PGPASSWORD` | PostgreSQL connection credentials; Compose supplies them from `POSTGRES_USER` and `POSTGRES_PASSWORD`. |
+| `BASIC_AUTH_USERNAME` | Required for serving: 1–128 ASCII bytes from `!` through `~`, excluding `:`. Spaces, controls, and non-ASCII bytes are invalid. No default. |
+| `BASIC_AUTH_PASSWORD` | Required for serving: 1–256 printable ASCII bytes from space through `~`. Spaces and colons are accepted; leading/trailing spaces are significant. No default. |
 | `LISTEN_ADDR` | `:8080`; valid numeric TCP port required. |
 | `LOG_LEVEL` | `info`; accepts `debug`, `info`, `warn`, `error`. |
 | `DB_STARTUP_TIMEOUT` | `5s`; initial database connection and migration-command budget. |
@@ -60,7 +73,44 @@ Compose reads `.env` and supplies `DATABASE_URL`, `PGUSER`, and `PGPASSWORD` to 
 
 All durations must be positive. Invalid configuration, failed initial database connection, or failed listener startup exits nonzero. Probe bodies and application logs exclude raw database errors, credentials, request bodies, and URLs. Each response has `X-Request-ID`; JSON request logs contain the matching identifier, status, and elapsed milliseconds.
 
+Basic settings are captured exactly at process startup, without trimming or normalization. Serving validates them before opening the database or listener; diagnostics identify an invalid setting without showing its value. Local `bin/service probe` and `bin/service migrate up` do not validate Basic settings, but still require valid common runtime configuration and their database/runtime prerequisites. Direct execution requires exported environment variables; it does not read `.env`:
+
+```sh
+export DATABASE_URL='postgres://127.0.0.1:5432/payments?sslmode=disable'
+export PGUSER=app
+read -r -s -p 'Database password: ' PGPASSWORD; printf '\n'; export PGPASSWORD
+export LISTEN_ADDR=127.0.0.1:8080
+export BASIC_AUTH_USERNAME=local-user
+read -r -s -p 'Local Basic password: ' BASIC_AUTH_PASSWORD; printf '\n'; export BASIC_AUTH_PASSWORD
+bin/service serve
+```
+
+The password-entry example uses Bash. Restart after rotating either account setting. For Compose, edit ignored `.env` and run `make up` to recreate `app`; a container restart alone does not replace its environment. A running process continues to use its original pair, and a process started with the new pair rejects the old pair.
+
 `GET /healthz` checks only HTTP process availability. `GET /readyz` executes a generated `SELECT 1` with a deadline and returns 503 during a database outage. Readiness recovers when the same database endpoint returns. SIGINT/SIGTERM makes the service unready and closes the listener. Active requests retain their contexts during the grace period; overdue work is canceled, including pgx calls. Cleanup must complete within its separate budget or the process exits nonzero.
+
+## Service and browser access
+
+Exact `GET`/`HEAD /healthz` and `/readyz` are public. Other methods on those paths receive 405. All other application paths and methods authenticate before routing, including probe-like paths such as `/healthz/private`. Missing, incorrect, malformed, repeated, or oversized Authorization headers return a generic 401 with `WWW-Authenticate: Basic realm="stripe-payments"` and `Cache-Control: no-store`. Credentials supplied through queries, cookies, or bodies do not authenticate. Shutdown admission may return 503 first.
+
+```sh
+# Generic 401 challenge, including after an earlier successful request.
+curl -i http://localhost:8080/
+# Enter the dedicated local password when prompted.
+curl --fail --user local-user http://localhost:8080/
+curl --head --user local-user http://localhost:8080/
+# Public probes need no account.
+curl --fail http://localhost:8080/healthz
+curl --fail http://localhost:8080/readyz
+```
+
+Authenticated `GET /` returns static service identification HTML. `HEAD /` returns the same representation headers without a body. Queries are accepted; any actual body byte or body-read failure receives generic 400. Body inspection is bounded and stalled streams obey the HTTP read deadline. Unsupported landing methods return 405 after authentication; authenticated unknown paths return 404.
+
+Open `http://localhost:8080/` in a fresh browser profile or private context. The browser's native Basic prompt accepts the configured pair and displays the landing page. The browser controls prompting and credential reuse; reload may reuse credentials without prompting. Each request is independently checked by the service. There are no application sessions, login/session cookies, custom login page, or logout endpoint. The application cannot guarantee a prompt on every load or clear credentials cached by the browser. After rotation, use a fresh browser context or the browser's credential-clearing controls if cached old credentials interfere.
+
+Basic uses Base64 encoding and provides no encryption. This feature is for the local sandbox with loopback publishing. Remote access and TLS setup are outside its scope; transmitting Basic credentials over a network requires a separately designed TLS boundary. Keep database and Stripe credentials separate from the dedicated local account. The browser receives no privileged credentials or tokens, and authentication makes no Stripe calls.
+
+Future order, payment-status, history, and browser routes must verify protected wiring. Future Stripe webhook handlers require independent signature verification through the official Stripe SDK; no anonymous webhook exception or webhook handler exists in this feature.
 
 ## Manual outage check
 
@@ -84,4 +134,4 @@ GitHub Actions runs `make setup` and `make verify` for pull requests and pushes 
 
 ## Scope
 
-The service exposes health and readiness only. Authentication, payment operations, webhook processing, browser pages, and reconciliation are not implemented. Local execution and automated checks are supported; this is not a production deployment.
+The service exposes a Basic-protected static landing page and public health/readiness probes. Payment operations, order creation, webhook processing, and reconciliation are outside this feature. Local execution and automated checks are supported. Remote deployment, TLS setup, user registration, multiple accounts, application sessions, and logout are outside its scope.
