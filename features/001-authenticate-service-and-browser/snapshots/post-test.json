@@ -65,9 +65,9 @@
   "overlay_packages": [],
   "scaffolds": [],
   "metadata": {
-    "captured_at": "2026-10-09T09:41:18Z",
+    "captured_at": "2026-10-09T09:54:09Z",
     "branch": "001-authenticate-service-and-browser",
-    "commit": "2b81fb9",
+    "commit": "b36244c",
     "feature": "001-authenticate-service-and-browser",
     "name": "post-test"
   },
@@ -76,7 +76,7 @@
       "id": "github.com/filser89/stripe-payments-go/cmd/service::TestAuthenticationCommandIndependence",
       "full_description": "TestAuthenticationCommandIndependence",
       "file_path": "cmd/service/authentication_test.go",
-      "line_number": 271,
+      "line_number": 269,
       "digest": "4efde9297eca5347837a4dd112036de906a6065cc25a93c1832e9de6bb63ec9d",
       "package": "github.com/filser89/stripe-payments-go/cmd/service",
       "test_name": "TestAuthenticationCommandIndependence",
@@ -85,8 +85,8 @@
       "is_group": false,
       "source": {
         "kind": "function",
-        "start_offset": 11145,
-        "end_offset": 15692
+        "start_offset": 11069,
+        "end_offset": 15616
       },
       "status": "passed"
     },
@@ -94,7 +94,7 @@
       "id": "github.com/filser89/stripe-payments-go/cmd/service::TestAuthenticationCredentialLifetime",
       "full_description": "TestAuthenticationCredentialLifetime",
       "file_path": "cmd/service/authentication_test.go",
-      "line_number": 380,
+      "line_number": 378,
       "digest": "83292fcf85eb212082b37e73506c74570e79f2fd470cd60eb5db7fddad03755e",
       "package": "github.com/filser89/stripe-payments-go/cmd/service",
       "test_name": "TestAuthenticationCredentialLifetime",
@@ -103,8 +103,8 @@
       "is_group": false,
       "source": {
         "kind": "function",
-        "start_offset": 15694,
-        "end_offset": 16796
+        "start_offset": 15618,
+        "end_offset": 16720
       },
       "status": "failed"
     },
@@ -113,7 +113,7 @@
       "full_description": "TestAuthenticationServingConfiguration",
       "file_path": "cmd/service/authentication_test.go",
       "line_number": 142,
-      "digest": "751e039f55c691939b382c24a925fe19a7b8f8a8250a786e2819e63a69613bab",
+      "digest": "e344362e1e3ede99b1af87c451fa0011b2cde5670520a48552b123c128f7bc83",
       "package": "github.com/filser89/stripe-payments-go/cmd/service",
       "test_name": "TestAuthenticationServingConfiguration",
       "parent_id": "",
@@ -122,7 +122,7 @@
       "source": {
         "kind": "function",
         "start_offset": 4601,
-        "end_offset": 11143
+        "end_offset": 11067
       },
       "status": "failed"
     },
@@ -1127,7 +1127,7 @@
   "protected_files": [
     {
       "path": "cmd/service/authentication_test.go",
-      "sha256": "e01f7294b8c72999a5917a21d0405362c03157579d288e9eb44c90a62f2589ea",
+      "sha256": "70b1f597a0db5a8b0ac54457e27c2776e2a5071b76eed13839eb6c2f92f90cf9",
       "symlink": ""
     },
     {

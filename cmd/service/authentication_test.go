@@ -198,8 +198,8 @@ func TestAuthenticationServingConfiguration(t *testing.T) { // CFG-001 V1–V9, 
 		process.Stdout, process.Stderr = logs, logs
 		done := make(chan error, 1)
 		go func() { done <- process.Run() }()
-		// Watch real startup while run is active. A successful listener is a
-		// violation even if the process later returns an error on shutdown.
+		// Probe throughout startup independently of logs: silent serving is
+		// a violation even if the process later reports a credential error.
 		var accepted bool
 		var runErr error
 		observe := time.NewTicker(5 * time.Millisecond)
@@ -210,12 +210,10 @@ func TestAuthenticationServingConfiguration(t *testing.T) { // CFG-001 V1–V9, 
 			case runErr = <-done:
 				break observeStartup
 			case <-observe.C:
-				if strings.Contains(logs.contents(), "service listening") {
-					conn, err := net.DialTimeout("tcp", values["LISTEN_ADDR"], 20*time.Millisecond)
-					if err == nil {
-						accepted = true
-						assert.NoError(t, conn.Close())
-					}
+				conn, err := net.DialTimeout("tcp", values["LISTEN_ADDR"], 20*time.Millisecond)
+				if err == nil {
+					accepted = true
+					assert.NoError(t, conn.Close())
 				}
 			case <-startupBudget.C:
 				cancel()
