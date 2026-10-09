@@ -71,3 +71,36 @@ func (d *DB) Counts(t *testing.T) map[string]int {
 	}
 	return out
 }
+
+// DurableRows uses independent SQL reads, including every column and prior audit value.
+// Ordering by complete row text avoids depending on repository projection or sequence allocation.
+func DurableRows(ctx context.Context, control *pgxpool.Pool) (map[string][]string, error) {
+	out := map[string][]string{}
+	for _, table := range []string{"payment_orders", "payment_operations", "payment_request_bindings", "payment_history"} {
+		rows, err := control.Query(ctx, "SELECT row_to_json(t)::text FROM "+table+" t ORDER BY row_to_json(t)::text")
+		if err != nil {
+			return nil, err
+		}
+		out[table] = []string{}
+		for rows.Next() {
+			var row string
+			if err = rows.Scan(&row); err != nil {
+				rows.Close()
+				return nil, err
+			}
+			out[table] = append(out[table], row)
+		}
+		err = rows.Err()
+		rows.Close()
+		if err != nil {
+			return nil, err
+		}
+	}
+	return out, nil
+}
+func (d *DB) Durable(t *testing.T) map[string][]string {
+	t.Helper()
+	out, err := DurableRows(context.Background(), d.Independent(t))
+	require.NoError(t, err)
+	return out
+}

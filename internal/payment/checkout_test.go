@@ -79,7 +79,7 @@ func TestLIFE001CheckoutRules(t *testing.T) { // LIFE-001
 				require.Equal(t, "unresolved", op.State, "dispatch ambiguity must commit before external call")
 				require.NotNil(t, op.FirstDispatchAt)
 				require.NotEmpty(t, op.OwnerToken)
-				require.Equal(t, op.Snapshot, s)
+				require.Equal(t, policyImmutableSnapshot(op.Snapshot), policyImmutableSnapshot(s))
 				require.Equal(t, op.StripeKey, s.StripeKey)
 				require.Equal(t, op.FirstDispatchAt, s.FirstDispatchAt)
 				require.Equal(t, op.FirstDispatchAt.Add(23*time.Hour+59*time.Minute).Unix(), s.ExpiresAt)

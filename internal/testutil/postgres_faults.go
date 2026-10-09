@@ -53,7 +53,7 @@ func HoldOrder(t *testing.T, control *pgxpool.Pool, id string) func() {
 func NoIdleTransaction(t *testing.T, p *pgxpool.Pool) {
 	t.Helper()
 	var n int
-	require.NoError(t, p.QueryRow(context.Background(), `SELECT count(*) FROM pg_stat_activity WHERE datname=current_database() AND state='idle in transaction' AND pid<>pg_backend_pid()`).Scan(&n))
+	require.NoError(t, p.QueryRow(context.Background(), `SELECT count(*) FROM pg_stat_activity WHERE datname=current_database() AND xact_start IS NOT NULL AND backend_type='client backend' AND pid<>pg_backend_pid()`).Scan(&n))
 	require.Zero(t, n, "network waits must not hold a business transaction")
 }
 
@@ -92,4 +92,56 @@ func AwaitDatabaseOverlap(t *testing.T, control *pgxpool.Pool) {
 		e := control.QueryRow(context.Background(), `SELECT count(*) FROM pg_stat_activity WHERE datname=current_database() AND wait_event_type='Lock' AND pid<>pg_backend_pid()`).Scan(&n)
 		return e == nil && n >= 2
 	}, 3*time.Second, 10*time.Millisecond, "both independent transactions must overlap at real database locks")
+}
+
+// HoldOperationPreparation makes competing continuations overlap before allocation.
+func HoldOperationPreparation(t *testing.T, control *pgxpool.Pool) func() {
+	t.Helper()
+	ctx := context.Background()
+	conn, err := control.Acquire(ctx)
+	require.NoError(t, err)
+	_, err = conn.Exec(ctx, `SELECT pg_advisory_lock(22002003)`)
+	require.NoError(t, err)
+	_, err = control.Exec(ctx, `CREATE FUNCTION checkout_test_operation_barrier() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN PERFORM pg_advisory_xact_lock(22002003); RETURN NEW; END $$; CREATE TRIGGER checkout_test_operation_barrier BEFORE INSERT ON payment_operations FOR EACH ROW EXECUTE FUNCTION checkout_test_operation_barrier()`)
+	require.NoError(t, err)
+	released := false
+	release := func() {
+		if released {
+			return
+		}
+		released = true
+		_, e := conn.Exec(ctx, `SELECT pg_advisory_unlock(22002003)`)
+		require.NoError(t, e)
+		conn.Release()
+	}
+	t.Cleanup(func() {
+		release()
+		_, e := control.Exec(ctx, `DROP TRIGGER checkout_test_operation_barrier ON payment_operations; DROP FUNCTION checkout_test_operation_barrier()`)
+		require.NoError(t, e)
+	})
+	return release
+}
+
+func FailDispatchHistory(t *testing.T, control *pgxpool.Pool, atCommit bool) func() {
+	t.Helper()
+	ctx := context.Background()
+	_, err := control.Exec(ctx, `CREATE FUNCTION checkout_test_dispatch_fault() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.kind='dispatch_started' THEN RAISE EXCEPTION 'test-only dispatch fault'; END IF; RETURN NEW; END $$`)
+	require.NoError(t, err)
+	sql := `CREATE TRIGGER checkout_test_dispatch_fault BEFORE INSERT ON payment_history FOR EACH ROW EXECUTE FUNCTION checkout_test_dispatch_fault()`
+	if atCommit {
+		sql = `CREATE CONSTRAINT TRIGGER checkout_test_dispatch_fault AFTER INSERT ON payment_history DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION checkout_test_dispatch_fault()`
+	}
+	_, err = control.Exec(ctx, sql)
+	require.NoError(t, err)
+	removed := false
+	release := func() {
+		if removed {
+			return
+		}
+		removed = true
+		_, e := control.Exec(ctx, `DROP TRIGGER checkout_test_dispatch_fault ON payment_history; DROP FUNCTION checkout_test_dispatch_fault()`)
+		require.NoError(t, e)
+	}
+	t.Cleanup(release)
+	return release
 }

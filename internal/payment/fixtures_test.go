@@ -140,3 +140,5 @@ func policyInvalidEvidence(t *testing.T, mutate func(*SessionEvidence), source s
 	}
 	require.Equal(t, method, g.Calls()[0].Method)
 }
+
+func policyImmutableSnapshot(s Snapshot) Snapshot { s.LastDispatchAt = nil; return s }

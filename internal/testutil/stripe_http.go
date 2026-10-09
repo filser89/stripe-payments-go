@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"reflect"
+	"strconv"
 	"sync"
 	"testing"
 	"time"
@@ -21,11 +23,23 @@ type Wire struct {
 	Form   url.Values
 	At     time.Time
 }
+type StripeReply struct {
+	Status        int
+	Body          string
+	Header        http.Header
+	Mutation      func(map[string]any)
+	Drop          bool
+	OmitRequestID bool
+	StallBody     func(context.Context)
+}
+
 type StripeServer struct {
 	Server    *httptest.Server
 	mu        sync.Mutex
 	wires     []Wire
 	objects   map[string]map[string]any
+	forms     map[string]url.Values
+	script    func(Wire) StripeReply
 	Status    int
 	ErrorBody string
 	Mutation  func(map[string]any)
@@ -35,7 +49,7 @@ type StripeServer struct {
 
 func NewStripeServer(t *testing.T) *StripeServer {
 	t.Helper()
-	s := &StripeServer{objects: map[string]map[string]any{}}
+	s := &StripeServer{objects: map[string]map[string]any{}, forms: map[string]url.Values{}}
 	s.Server = httptest.NewServer(http.HandlerFunc(s.serve))
 	t.Cleanup(s.Server.Close)
 	return s
@@ -49,7 +63,20 @@ func (s *StripeServer) serve(w http.ResponseWriter, r *http.Request) {
 	status := s.Status
 	body := s.ErrorBody
 	drop := s.Drop
+	mutation := s.Mutation
+	script := s.script
 	s.mu.Unlock()
+	var reply StripeReply
+	if script != nil {
+		reply = script(wire)
+		status = reply.Status
+		body = reply.Body
+		drop = reply.Drop
+		mutation = reply.Mutation
+	}
+	for k, values := range reply.Header {
+		w.Header()[k] = append([]string(nil), values...)
+	}
 	if before != nil {
 		before(r.Context(), wire)
 	}
@@ -58,9 +85,17 @@ func (s *StripeServer) serve(w http.ResponseWriter, r *http.Request) {
 	}
 	if status != 0 {
 		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Request-Id", "req_test_fault")
+		if !reply.OmitRequestID && w.Header().Get("Request-Id") == "" {
+			w.Header().Set("Request-Id", "req_test_fault")
+		}
 		w.WriteHeader(status)
 		_, _ = w.Write([]byte(body))
+		if reply.StallBody != nil {
+			if f, ok := w.(http.Flusher); ok {
+				f.Flush()
+			}
+			reply.StallBody(r.Context())
+		}
 		return
 	}
 	s.mu.Lock()
@@ -75,6 +110,18 @@ func (s *StripeServer) serve(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
+	if r.Method == "POST" {
+		if err := StripeFormValid(r.Form); err != nil {
+			w.WriteHeader(400)
+			_, _ = w.Write([]byte(`{"error":{"type":"invalid_request_error","message":"incompatible fixture parameters"}}`))
+			return
+		}
+		if old, ok := s.forms[key]; ok && !reflect.DeepEqual(old, r.Form) {
+			w.WriteHeader(400)
+			_, _ = w.Write([]byte(`{"error":{"type":"idempotency_error","message":"parameter mismatch"}}`))
+			return
+		}
+	}
 	if obj == nil {
 		if r.Method == "GET" {
 			w.WriteHeader(404)
@@ -85,11 +132,12 @@ func (s *StripeServer) serve(w http.ResponseWriter, r *http.Request) {
 		amount := r.Form.Get("line_items[0][price_data][unit_amount]")
 		var cents int64
 		_, _ = fmt.Sscan(amount, &cents)
-		obj = map[string]any{"id": id, "object": "checkout.session", "client_reference_id": r.Form.Get("client_reference_id"), "metadata": map[string]string{"order_id": r.Form.Get("metadata[order_id]"), "operation_id": r.Form.Get("metadata[operation_id]")}, "amount_total": cents, "currency": r.Form.Get("line_items[0][price_data][currency]"), "mode": "payment", "livemode": false, "status": "open", "payment_status": "unpaid", "url": "https://checkout.stripe.com/c/pay/" + id, "expires_at": time.Now().Add(24 * time.Hour).Unix()}
+		obj = map[string]any{"id": id, "object": "checkout.session", "client_reference_id": r.Form.Get("client_reference_id"), "metadata": map[string]string{"order_id": r.Form.Get("metadata[order_id]"), "operation_id": r.Form.Get("metadata[operation_id]")}, "amount_total": cents, "currency": r.Form.Get("line_items[0][price_data][currency]"), "mode": "payment", "livemode": false, "status": "open", "payment_status": "unpaid", "url": "https://checkout.stripe.com/c/pay/" + id, "expires_at": expiryFromForm(r.Form)}
 		s.objects[key] = obj
+		s.forms[key] = r.Form
 	}
-	if s.Mutation != nil {
-		s.Mutation(obj)
+	if mutation != nil {
+		mutation(obj)
 	}
 	if drop {
 		conn, _, err := w.(http.Hijacker).Hijack()
@@ -99,7 +147,19 @@ func (s *StripeServer) serve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Request-Id", "req_test_checkout")
+	if !reply.OmitRequestID && w.Header().Get("Request-Id") == "" {
+		w.Header().Set("Request-Id", "req_test_checkout")
+	}
+	if reply.StallBody != nil {
+		w.WriteHeader(200)
+		if f, ok := w.(http.Flusher); ok {
+			f.Flush()
+		}
+		s.mu.Unlock()
+		reply.StallBody(r.Context())
+		s.mu.Lock()
+		return
+	}
 	_ = json.NewEncoder(w).Encode(obj)
 }
 func (s *StripeServer) Wires() []Wire {
@@ -113,6 +173,7 @@ func SessionJSON(e payment.SessionEvidence) map[string]any {
 }
 func CheckWire(t *testing.T, w Wire, s payment.Snapshot) {
 	t.Helper()
+	require.NoError(t, StripeFormValid(w.Form))
 	require.Equal(t, "POST", w.Method)
 	require.Equal(t, "/v1/checkout/sessions", w.Path)
 	require.Equal(t, s.StripeKey, w.Header.Get("Idempotency-Key"))
@@ -132,3 +193,42 @@ func CheckWire(t *testing.T, w Wire, s payment.Snapshot) {
 	require.Equal(t, fmt.Sprint(s.ExpiresAt), w.Form.Get("expires_at"))
 	require.Equal(t, "automatic", w.Form.Get("payment_intent_data[capture_method]"))
 }
+
+// Configure serializes fixture-control updates against request capture.
+func (s *StripeServer) Configure(change func(*StripeServer)) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	change(s)
+}
+func (s *StripeServer) SetScript(script func(Wire) StripeReply) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.script = script
+}
+func expiryFromForm(form url.Values) int64 {
+	n, _ := strconv.ParseInt(form.Get("expires_at"), 10, 64)
+	return n
+}
+
+// StripeFormValid rejects extra charge components rather than simulating only item zero.
+func StripeFormValid(form url.Values) error {
+	allowed := map[string]bool{}
+	for _, k := range []string{"mode", "ui_mode", "payment_method_types[0]", "client_reference_id", "metadata[order_id]", "metadata[operation_id]", "payment_intent_data[metadata][order_id]", "payment_intent_data[metadata][operation_id]", "line_items[0][price_data][currency]", "line_items[0][price_data][unit_amount]", "line_items[0][price_data][product_data][name]", "line_items[0][quantity]", "success_url", "cancel_url", "expires_at", "payment_intent_data[capture_method]", "automatic_tax[enabled]", "allow_promotion_codes", "adaptive_pricing[enabled]", "after_expiration[recovery][enabled]"} {
+		allowed[k] = true
+	}
+	for k, v := range form {
+		if !allowed[k] || len(v) != 1 {
+			return fmt.Errorf("unexpected form field %s", k)
+		}
+	}
+	if form.Get("payment_method_types[0]") != "card" || form.Get("line_items[0][quantity]") != "1" {
+		return fmt.Errorf("card-only single-item contract")
+	}
+	for _, k := range []string{"automatic_tax[enabled]", "allow_promotion_codes", "adaptive_pricing[enabled]", "after_expiration[recovery][enabled]"} {
+		if form.Get(k) != "false" {
+			return fmt.Errorf("enabled pricing override %s", k)
+		}
+	}
+	return nil
+}
+func ImmutableSnapshot(s payment.Snapshot) payment.Snapshot { s.LastDispatchAt = nil; return s }

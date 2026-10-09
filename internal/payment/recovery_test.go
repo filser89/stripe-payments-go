@@ -171,7 +171,7 @@ func TestSTR005RecoveryRules(t *testing.T) { // STR-005
 			require.Len(t, calls, tc.wantCalls)
 			for _, call := range calls {
 				require.Equal(t, "POST", call.Method)
-				require.Equal(t, calls[0].Snapshot, call.Snapshot)
+				require.Equal(t, policyImmutableSnapshot(calls[0].Snapshot), policyImmutableSnapshot(call.Snapshot))
 				require.Equal(t, out.Operation.ID, call.Snapshot.OperationID)
 			}
 			require.Len(t, r.State().Operations, 1)
@@ -309,7 +309,7 @@ func TestSTR007RecoveryRules(t *testing.T) { // STR-007
 			require.True(t, out.Established)
 			calls := g.Calls()
 			require.Len(t, calls, 2)
-			require.Equal(t, calls[0].Snapshot, calls[1].Snapshot)
+			require.Equal(t, policyImmutableSnapshot(calls[0].Snapshot), policyImmutableSnapshot(calls[1].Snapshot))
 			require.Equal(t, out.Operation.StripeKey, calls[1].Snapshot.StripeKey)
 			require.NotEqual(t, policyInput().RequestKey, out.Operation.StripeKey)
 			require.Len(t, r.State().Operations, 1)
@@ -329,7 +329,7 @@ func TestSTR007RecoveryRules(t *testing.T) { // STR-007
 		require.False(t, out.CanStartNewAttempt)
 		require.Len(t, g.Calls(), 3)
 		for _, call := range g.Calls() {
-			require.Equal(t, g.Calls()[0].Snapshot, call.Snapshot)
+			require.Equal(t, policyImmutableSnapshot(g.Calls()[0].Snapshot), policyImmutableSnapshot(call.Snapshot))
 		}
 	})
 	t.Run("safe_age_exhausted_during_backoff_prevents_second_creation", func(t *testing.T) { // STR-007 REC-003
@@ -556,4 +556,29 @@ func TestREC004RecoveryRules(t *testing.T) { // REC-004
 		require.Equal(t, "POST", g.Calls()[0].Method)
 		require.Len(t, r.State().Operations, 1)
 	})
+}
+
+// STR-002 STR-003 STR-007
+func TestEachReplayDispatchBookkeepingIsDurable(t *testing.T) {
+	c := newPolicyClock()
+	r := newPolicyRepository()
+	var snapshots []Snapshot
+	reply := policyReply{run: func(_ context.Context, s Snapshot, _ string) (SessionEvidence, error) {
+		op := r.State().Operations[s.OperationID]
+		require.NotNil(t, op.LastDispatchAt)
+		require.Equal(t, op.LastDispatchAt, s.LastDispatchAt)
+		require.Equal(t, c.Now(), *op.LastDispatchAt, "last possible send is committed before the gateway call")
+		if len(snapshots) > 0 {
+			require.Equal(t, policyImmutableSnapshot(snapshots[0]), policyImmutableSnapshot(s))
+			require.True(t, s.LastDispatchAt.After(*snapshots[len(snapshots)-1].LastDispatchAt))
+		}
+		snapshots = append(snapshots, clonePolicySnapshot(s))
+		return SessionEvidence{ErrorClass: "transport"}, errors.New("response lost")
+	}}
+	g := newPolicyGateway(reply, reply, reply)
+	s := policyService(t, r, g, policyOptions(c))
+	out, err := s.Create(policyCtx(), policyInput())
+	require.NoError(t, err)
+	require.True(t, out.Pending)
+	require.Len(t, snapshots, 3)
 }
