@@ -165,7 +165,11 @@ func (s *Service) execute(ctx context.Context, v View, b *externalBudget, accept
 		return out, "", nil
 	}
 	if op.State == "rejected" && !op.PriorAmbiguity {
-		return out, "rejected", failure("checkout_rejected", v, nil)
+		kind := "rejected"
+		if op.FailureCode != nil {
+			kind = *op.FailureCode
+		}
+		return out, kind, failure("checkout_rejected", v, nil)
 	}
 	if op.ID != v.Order.CurrentOperationID {
 		return out, "", nil
@@ -214,6 +218,11 @@ func (s *Service) execute(ctx context.Context, v View, b *externalBudget, accept
 			}
 			op = prepared
 			v.Operation = op
+		}
+		// Database work can consume the remaining idempotency safety window.
+		// Check the committed first dispatch again at the physical send boundary.
+		if !retrieve && !s.safe(op) {
+			return s.readback(ctx, v, "safe_age_exhausted", nil)
 		}
 		e, callErr := b.call(ctx, op, retrieve)
 		state := "unresolved"

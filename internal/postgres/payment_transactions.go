@@ -255,7 +255,7 @@ func (r *paymentRepository) ApplyObservation(ctx context.Context, in payment.Obs
 	if in.State == "rejected" {
 		updated.InvestigationRequired = true
 	}
-	// Re-reading unchanged evidence neither advances the version nor creates history.
+	// Compare business values only; observation timestamps and request IDs do not create history.
 	compare := updated
 	compare.OwnerToken = p.OwnerToken
 	unchanged := reflect.DeepEqual(compare, p)
@@ -268,7 +268,7 @@ func (r *paymentRepository) ApplyObservation(ctx context.Context, in payment.Obs
 			at = time.Now()
 		}
 		e = q.SavePaymentObservation(ctx, queries.SavePaymentObservationParams{ID: id(p.ID), State: updated.State, StripeSessionID: textValue(updated.SessionID), StripePaymentIntentID: textValue(updated.PaymentIntentID), CheckoutUrl: textValue(updated.CheckoutURL), ExpiresAt: optionalStamp(updated.ExpiresAt), PriorAmbiguity: updated.PriorAmbiguity, EvidenceSource: updated.EvidenceSource, FailureCode: textValue(updated.FailureCode), InvestigationRequired: updated.InvestigationRequired, LastObservedAt: stamp(at), StripeRequestID: textValue(stringPointer(ev.RequestID))})
-		if e == nil && p.State != in.State {
+		if e == nil && !unchanged {
 			h := in.History
 			h.OrderID = p.OrderID
 			h.OperationID = p.ID

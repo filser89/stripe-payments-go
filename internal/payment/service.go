@@ -305,7 +305,7 @@ func (s *Service) Continue(ctx context.Context, id, key string) (out Outcome, er
 	}
 	budget := &externalBudget{s: s}
 	out = s.outcome(v)
-	if v.Order.Status == "paid" || v.Operation.State == "paid" || !s.compatible(v.Operation) || v.Operation.State == "complete_unpaid" && v.Operation.SessionID == nil || v.Operation.State == "rejected" && v.Operation.PriorAmbiguity {
+	if v.Order.Status == "paid" || v.Operation.State == "paid" || !s.compatible(v.Operation) || v.Operation.State == "complete_unpaid" && v.Operation.SessionID == nil || v.Operation.State == "rejected" && v.Operation.PriorAmbiguity || (v.Operation.State == "prepared" || v.Operation.State == "unresolved") && v.Operation.SessionID == nil && v.Operation.FirstDispatchAt != nil && !s.safe(v.Operation) {
 		return out, failure("checkout_blocked", v, nil)
 	}
 	if v.Operation.SessionID != nil {
@@ -361,39 +361,42 @@ func (s *Service) Continue(ctx context.Context, id, key string) (out Outcome, er
 func (s *Service) Get(ctx context.Context, id string) (v View, err error) {
 	ctx, cancel := s.bounded(ctx)
 	defer cancel()
+	kind := ""
+	known := Outcome{}
+	defer func() { s.log(ctx, "read", known, err, kind) }()
 	if !CanonicalID(id) {
 		return v, &Error{Code: "invalid_request"}
 	}
 	v, err = s.repo.LoadOrder(ctx, id)
 	if err != nil {
 		if code(err) != "not_found" {
+			kind = "database_read"
+			known.Order.ID = id
 			err = &Error{Code: "temporarily_unavailable", OrderID: id, Cause: err}
 		}
-		kind := "database_read"
-		if code(err) == "not_found" {
-			kind = "not_found"
-		}
-		s.log(ctx, "read", s.outcome(v), err, kind)
 		return
 	}
 	v = s.view(v)
-	s.log(ctx, "read", s.outcome(v), nil, "")
+	known = s.outcome(v)
 	return
 }
 func (s *Service) History(ctx context.Context, id string, after int64, limit int) (p HistoryPage, err error) {
 	ctx, cancel := s.bounded(ctx)
 	defer cancel()
+	kind := ""
+	known := Outcome{}
+	defer func() { s.log(ctx, "history", known, err, kind) }()
 	if !CanonicalID(id) || after < 0 || limit < 1 || limit > 100 {
 		return p, &Error{Code: "invalid_request"}
 	}
 	p, err = s.repo.ReadHistory(ctx, id, after, limit)
-	if err != nil && code(err) != "not_found" {
+	if code(err) == "not_found" {
+		return
+	}
+	known.Order.ID = id
+	if err != nil {
+		kind = "database_read"
 		err = &Error{Code: "temporarily_unavailable", OrderID: id, Cause: err}
 	}
-	known := Outcome{Order: Order{ID: id}}
-	if code(err) == "not_found" {
-		known = Outcome{}
-	}
-	s.log(ctx, "history", known, err, "")
 	return
 }

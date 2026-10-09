@@ -12,7 +12,7 @@ Orders retain immutable purchases and a current durable operation. Permanent req
 | rejected | Confirmed first validation/credential/permission rejection without prior ambiguity permits a fresh attempt. |
 | paid | No Checkout action. Trusted confirmation belongs to a separate feature. |
 
-Initial retries preserve exact key/description/amount. Continuation retries preserve their key and order. A fresh key cannot bypass paid/current/all-prior guards. A blocked fresh request returns 409 without consuming its key. Once binding commits, transient failures retain accepted identity and return readable 202; confirmed rejection returns 502 and replays that result. Result/read failures return 503 with known identity where available.
+Initial retries preserve exact key/description/amount. Continuation retries preserve their key and order. A fresh key cannot bypass paid/current/all-prior guards. A blocked fresh request returns 409 without consuming its key. Once binding commits, transient failures retain accepted identity and return readable 202; confirmed rejection returns 502 and replays that result. A result-commit failure returns 202 when the accepted pending operation can be read back. Unavailable readback returns 503 with known identity where available.
 
 One combined attempt/elapsed budget covers GET+POST. SDK retries are disabled. Retryable transport/rate-limit/transient-conflict/server failures wait at least 250ms then 500ms, or longer valid Retry-After. Stripe-Should-Retry false suppresses retry. Calls/waits/DB/response I/O honor effective cancellation/deadlines. A successful eligibility GET may exhaust budget while a new prepared operation commits, returning 202 for later same-key dispatch.
 
