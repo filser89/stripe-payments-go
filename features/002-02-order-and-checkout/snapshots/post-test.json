@@ -494,6 +494,23 @@
       }
     },
     {
+      "id": "github.com/filser89/stripe-payments-go/internal/payment::TestDirectInspectionOutcomeLogs",
+      "full_description": "TestDirectInspectionOutcomeLogs",
+      "file_path": "internal/payment/outcome_logging_test.go",
+      "line_number": 16,
+      "digest": "dc77ac2efad09aa137a26c039a39bfc0fa8144477e987b81ce2a14b5a5d052be",
+      "package": "github.com/filser89/stripe-payments-go/internal/payment",
+      "test_name": "TestDirectInspectionOutcomeLogs",
+      "parent_id": "",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/payment::TestDirectInspectionOutcomeLogs",
+      "is_group": true,
+      "source": {
+        "kind": "function",
+        "start_offset": 164,
+        "end_offset": 2839
+      }
+    },
+    {
       "id": "github.com/filser89/stripe-payments-go/internal/payment::TestID003CheckoutRules",
       "full_description": "TestID003CheckoutRules",
       "file_path": "internal/payment/checkout_test.go",
@@ -986,6 +1003,23 @@
       }
     },
     {
+      "id": "github.com/filser89/stripe-payments-go/internal/payment::TestRejectedReplayLogsSavedFailure",
+      "full_description": "TestRejectedReplayLogsSavedFailure",
+      "file_path": "internal/payment/outcome_logging_test.go",
+      "line_number": 82,
+      "digest": "c3d24a6c6272ddd91684ed57d9fd3e560330592a7f5e80a489bd2a11563bc8bc",
+      "package": "github.com/filser89/stripe-payments-go/internal/payment",
+      "test_name": "TestRejectedReplayLogsSavedFailure",
+      "parent_id": "",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/payment::TestRejectedReplayLogsSavedFailure",
+      "is_group": true,
+      "source": {
+        "kind": "function",
+        "start_offset": 2868,
+        "end_offset": 4373
+      }
+    },
+    {
       "id": "github.com/filser89/stripe-payments-go/internal/payment::TestSTR004RecoveryRules",
       "full_description": "TestSTR004RecoveryRules",
       "file_path": "internal/payment/recovery_test.go",
@@ -1071,6 +1105,23 @@
       }
     },
     {
+      "id": "github.com/filser89/stripe-payments-go/internal/payment::TestSafeReplayAgeAfterDispatchPreparation",
+      "full_description": "TestSafeReplayAgeAfterDispatchPreparation",
+      "file_path": "internal/payment/recovery_test.go",
+      "line_number": 587,
+      "digest": "5f3d7d5937d3cccb095b1b58d254c5f4735d43fd68193a2c6315a07219bb522c",
+      "package": "github.com/filser89/stripe-payments-go/internal/payment",
+      "test_name": "TestSafeReplayAgeAfterDispatchPreparation",
+      "parent_id": "",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/payment::TestSafeReplayAgeAfterDispatchPreparation",
+      "is_group": true,
+      "source": {
+        "kind": "function",
+        "start_offset": 24426,
+        "end_offset": 27934
+      }
+    },
+    {
       "id": "github.com/filser89/stripe-payments-go/internal/postgres::TestDATA001PaymentPersistence",
       "full_description": "TestDATA001PaymentPersistence",
       "file_path": "internal/postgres/payment_test.go",
@@ -1119,6 +1170,23 @@
         "kind": "function",
         "start_offset": 8240,
         "end_offset": 14185
+      }
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/postgres::TestSameUnresolvedOutcomeAuditAtomicity",
+      "full_description": "TestSameUnresolvedOutcomeAuditAtomicity",
+      "file_path": "internal/postgres/payment_test.go",
+      "line_number": 371,
+      "digest": "66031a2cd9cb4c44208ed24321c4b49ce6326fa19919e7d1ef99151490a9d379",
+      "package": "github.com/filser89/stripe-payments-go/internal/postgres",
+      "test_name": "TestSameUnresolvedOutcomeAuditAtomicity",
+      "parent_id": "",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/postgres::TestSameUnresolvedOutcomeAuditAtomicity",
+      "is_group": true,
+      "source": {
+        "kind": "function",
+        "start_offset": 18204,
+        "end_offset": 22769
       }
     },
     {
@@ -1809,9 +1877,9 @@
     }
   ],
   "metadata": {
-    "captured_at": "2026-10-09T16:41:27Z",
+    "captured_at": "2026-10-09T18:26:59Z",
     "branch": "002-checkout-frozen-hygiene",
-    "commit": "52a1e9b",
+    "commit": "90d9949",
     "feature": "002-02-order-and-checkout",
     "name": "post-test"
   },
@@ -4381,6 +4449,177 @@
         "end_offset": 7985
       },
       "status": "passed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/payment::TestDirectInspectionOutcomeLogs/get_database_failure",
+      "full_description": "TestDirectInspectionOutcomeLogs/get_database_failure",
+      "file_path": "internal/payment/outcome_logging_test.go",
+      "line_number": 30,
+      "digest": "4c9510ddcd998e6a6c9a6dad8413665a72b84d2954b180657ed7ef241cc5cf76",
+      "package": "github.com/filser89/stripe-payments-go/internal/payment",
+      "test_name": "TestDirectInspectionOutcomeLogs/get_database_failure",
+      "parent_id": "github.com/filser89/stripe-payments-go/internal/payment::TestDirectInspectionOutcomeLogs",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/payment::TestDirectInspectionOutcomeLogs",
+      "is_group": false,
+      "source": {
+        "kind": "table-row",
+        "start_offset": 1107,
+        "end_offset": 1183,
+        "row_index": 7
+      },
+      "status": "failed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/payment::TestDirectInspectionOutcomeLogs/get_invalid_id",
+      "full_description": "TestDirectInspectionOutcomeLogs/get_invalid_id",
+      "file_path": "internal/payment/outcome_logging_test.go",
+      "line_number": 23,
+      "digest": "b930e1576c35986e777fe81e46761140d925ebfa8e83f4977d5f335827660996",
+      "package": "github.com/filser89/stripe-payments-go/internal/payment",
+      "test_name": "TestDirectInspectionOutcomeLogs/get_invalid_id",
+      "parent_id": "github.com/filser89/stripe-payments-go/internal/payment::TestDirectInspectionOutcomeLogs",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/payment::TestDirectInspectionOutcomeLogs",
+      "is_group": false,
+      "source": {
+        "kind": "table-row",
+        "start_offset": 400,
+        "end_offset": 472,
+        "row_index": 0
+      },
+      "status": "failed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/payment::TestDirectInspectionOutcomeLogs/get_not_found",
+      "full_description": "TestDirectInspectionOutcomeLogs/get_not_found",
+      "file_path": "internal/payment/outcome_logging_test.go",
+      "line_number": 28,
+      "digest": "e6e10136d853ab9f80faf60f832dd8e33a98d7fd74392e375c5870e62d75d628",
+      "package": "github.com/filser89/stripe-payments-go/internal/payment",
+      "test_name": "TestDirectInspectionOutcomeLogs/get_not_found",
+      "parent_id": "github.com/filser89/stripe-payments-go/internal/payment::TestDirectInspectionOutcomeLogs",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/payment::TestDirectInspectionOutcomeLogs",
+      "is_group": false,
+      "source": {
+        "kind": "table-row",
+        "start_offset": 905,
+        "end_offset": 970,
+        "row_index": 5
+      },
+      "status": "failed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/payment::TestDirectInspectionOutcomeLogs/history_database_failure",
+      "full_description": "TestDirectInspectionOutcomeLogs/history_database_failure",
+      "file_path": "internal/payment/outcome_logging_test.go",
+      "line_number": 31,
+      "digest": "cb9a36a82f758606e84cee52fcf06cb0ff96bd2cb2896263c54dde67eabb0188",
+      "package": "github.com/filser89/stripe-payments-go/internal/payment",
+      "test_name": "TestDirectInspectionOutcomeLogs/history_database_failure",
+      "parent_id": "github.com/filser89/stripe-payments-go/internal/payment::TestDirectInspectionOutcomeLogs",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/payment::TestDirectInspectionOutcomeLogs",
+      "is_group": false,
+      "source": {
+        "kind": "table-row",
+        "start_offset": 1216,
+        "end_offset": 1299,
+        "row_index": 8
+      },
+      "status": "failed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/payment::TestDirectInspectionOutcomeLogs/history_excessive_limit",
+      "full_description": "TestDirectInspectionOutcomeLogs/history_excessive_limit",
+      "file_path": "internal/payment/outcome_logging_test.go",
+      "line_number": 27,
+      "digest": "9d4062e6970d45fbddd2982d8c41f2c45adefe867ac72046293333c4ae5cdaeb",
+      "package": "github.com/filser89/stripe-payments-go/internal/payment",
+      "test_name": "TestDirectInspectionOutcomeLogs/history_excessive_limit",
+      "parent_id": "github.com/filser89/stripe-payments-go/internal/payment::TestDirectInspectionOutcomeLogs",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/payment::TestDirectInspectionOutcomeLogs",
+      "is_group": false,
+      "source": {
+        "kind": "table-row",
+        "start_offset": 804,
+        "end_offset": 890,
+        "row_index": 4
+      },
+      "status": "failed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/payment::TestDirectInspectionOutcomeLogs/history_invalid_id",
+      "full_description": "TestDirectInspectionOutcomeLogs/history_invalid_id",
+      "file_path": "internal/payment/outcome_logging_test.go",
+      "line_number": 24,
+      "digest": "2cdff25eae3c3c791062620ba2e98372064f65041d741f20d1a38257fa542d41",
+      "package": "github.com/filser89/stripe-payments-go/internal/payment",
+      "test_name": "TestDirectInspectionOutcomeLogs/history_invalid_id",
+      "parent_id": "github.com/filser89/stripe-payments-go/internal/payment::TestDirectInspectionOutcomeLogs",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/payment::TestDirectInspectionOutcomeLogs",
+      "is_group": false,
+      "source": {
+        "kind": "table-row",
+        "start_offset": 501,
+        "end_offset": 580,
+        "row_index": 1
+      },
+      "status": "failed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/payment::TestDirectInspectionOutcomeLogs/history_negative_cursor",
+      "full_description": "TestDirectInspectionOutcomeLogs/history_negative_cursor",
+      "file_path": "internal/payment/outcome_logging_test.go",
+      "line_number": 25,
+      "digest": "f40bd71bfb036ff171b075d2996f488b57c2549b229b9e6d64c18c75b4fc39c2",
+      "package": "github.com/filser89/stripe-payments-go/internal/payment",
+      "test_name": "TestDirectInspectionOutcomeLogs/history_negative_cursor",
+      "parent_id": "github.com/filser89/stripe-payments-go/internal/payment::TestDirectInspectionOutcomeLogs",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/payment::TestDirectInspectionOutcomeLogs",
+      "is_group": false,
+      "source": {
+        "kind": "table-row",
+        "start_offset": 602,
+        "end_offset": 688,
+        "row_index": 2
+      },
+      "status": "failed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/payment::TestDirectInspectionOutcomeLogs/history_not_found",
+      "full_description": "TestDirectInspectionOutcomeLogs/history_not_found",
+      "file_path": "internal/payment/outcome_logging_test.go",
+      "line_number": 29,
+      "digest": "51a50f55853b2a7690c11eba860af5617df7ca41817e8c6c6bb2005d13cdc572",
+      "package": "github.com/filser89/stripe-payments-go/internal/payment",
+      "test_name": "TestDirectInspectionOutcomeLogs/history_not_found",
+      "parent_id": "github.com/filser89/stripe-payments-go/internal/payment::TestDirectInspectionOutcomeLogs",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/payment::TestDirectInspectionOutcomeLogs",
+      "is_group": false,
+      "source": {
+        "kind": "table-row",
+        "start_offset": 1006,
+        "end_offset": 1078,
+        "row_index": 6
+      },
+      "status": "failed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/payment::TestDirectInspectionOutcomeLogs/history_zero_limit",
+      "full_description": "TestDirectInspectionOutcomeLogs/history_zero_limit",
+      "file_path": "internal/payment/outcome_logging_test.go",
+      "line_number": 26,
+      "digest": "ff3bd9332fa4dfcd7387bca9a2b1db33de4579a43807dfcd45f969efae7141b5",
+      "package": "github.com/filser89/stripe-payments-go/internal/payment",
+      "test_name": "TestDirectInspectionOutcomeLogs/history_zero_limit",
+      "parent_id": "github.com/filser89/stripe-payments-go/internal/payment::TestDirectInspectionOutcomeLogs",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/payment::TestDirectInspectionOutcomeLogs",
+      "is_group": false,
+      "source": {
+        "kind": "table-row",
+        "start_offset": 703,
+        "end_offset": 782,
+        "row_index": 3
+      },
+      "status": "failed"
     },
     {
       "id": "github.com/filser89/stripe-payments-go/internal/payment::TestEachReplayDispatchBookkeepingIsDurable",
@@ -7002,6 +7241,63 @@
       "status": "failed"
     },
     {
+      "id": "github.com/filser89/stripe-payments-go/internal/payment::TestRejectedReplayLogsSavedFailure/saved_credential",
+      "full_description": "TestRejectedReplayLogsSavedFailure/saved_credential",
+      "file_path": "internal/payment/outcome_logging_test.go",
+      "line_number": 87,
+      "digest": "80270b621c28d9c61b8584b087e31d0611d99f3ec6cfff26d9a705724578cd10",
+      "package": "github.com/filser89/stripe-payments-go/internal/payment",
+      "test_name": "TestRejectedReplayLogsSavedFailure/saved_credential",
+      "parent_id": "github.com/filser89/stripe-payments-go/internal/payment::TestRejectedReplayLogsSavedFailure",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/payment::TestRejectedReplayLogsSavedFailure",
+      "is_group": false,
+      "source": {
+        "kind": "table-row",
+        "start_offset": 3041,
+        "end_offset": 3075,
+        "row_index": 1
+      },
+      "status": "failed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/payment::TestRejectedReplayLogsSavedFailure/saved_permission",
+      "full_description": "TestRejectedReplayLogsSavedFailure/saved_permission",
+      "file_path": "internal/payment/outcome_logging_test.go",
+      "line_number": 88,
+      "digest": "13142cc967c166f5c2e1e57ed4cc86704276c0c9316b4dfd781ceedff658f880",
+      "package": "github.com/filser89/stripe-payments-go/internal/payment",
+      "test_name": "TestRejectedReplayLogsSavedFailure/saved_permission",
+      "parent_id": "github.com/filser89/stripe-payments-go/internal/payment::TestRejectedReplayLogsSavedFailure",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/payment::TestRejectedReplayLogsSavedFailure",
+      "is_group": false,
+      "source": {
+        "kind": "table-row",
+        "start_offset": 3098,
+        "end_offset": 3132,
+        "row_index": 2
+      },
+      "status": "failed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/payment::TestRejectedReplayLogsSavedFailure/saved_validation",
+      "full_description": "TestRejectedReplayLogsSavedFailure/saved_validation",
+      "file_path": "internal/payment/outcome_logging_test.go",
+      "line_number": 86,
+      "digest": "727ca221c122f5235c4ea9fca847c82498fbeeb09457c733e86a647f6b8a5afa",
+      "package": "github.com/filser89/stripe-payments-go/internal/payment",
+      "test_name": "TestRejectedReplayLogsSavedFailure/saved_validation",
+      "parent_id": "github.com/filser89/stripe-payments-go/internal/payment::TestRejectedReplayLogsSavedFailure",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/payment::TestRejectedReplayLogsSavedFailure",
+      "is_group": false,
+      "source": {
+        "kind": "table-row",
+        "start_offset": 2984,
+        "end_offset": 3018,
+        "row_index": 0
+      },
+      "status": "failed"
+    },
+    {
       "id": "github.com/filser89/stripe-payments-go/internal/payment::TestSTR004RecoveryRules/earlier_parent_deadline_caps_call_and_owned_work_exits",
       "full_description": "TestSTR004RecoveryRules/earlier_parent_deadline_caps_call_and_owned_work_exits",
       "file_path": "internal/payment/recovery_test.go",
@@ -7640,6 +7936,63 @@
       "status": "failed"
     },
     {
+      "id": "github.com/filser89/stripe-payments-go/internal/payment::TestSafeReplayAgeAfterDispatchPreparation/after_cutoff",
+      "full_description": "TestSafeReplayAgeAfterDispatchPreparation/after_cutoff",
+      "file_path": "internal/payment/recovery_test.go",
+      "line_number": 595,
+      "digest": "9ff2f862bcc9ea9c1fb72cf905ae7d292264737414c90e765632a763a81a066a",
+      "package": "github.com/filser89/stripe-payments-go/internal/payment",
+      "test_name": "TestSafeReplayAgeAfterDispatchPreparation/after_cutoff",
+      "parent_id": "github.com/filser89/stripe-payments-go/internal/payment::TestSafeReplayAgeAfterDispatchPreparation",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/payment::TestSafeReplayAgeAfterDispatchPreparation",
+      "is_group": false,
+      "source": {
+        "kind": "table-row",
+        "start_offset": 24716,
+        "end_offset": 24763,
+        "row_index": 2
+      },
+      "status": "failed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/payment::TestSafeReplayAgeAfterDispatchPreparation/exact_cutoff",
+      "full_description": "TestSafeReplayAgeAfterDispatchPreparation/exact_cutoff",
+      "file_path": "internal/payment/recovery_test.go",
+      "line_number": 594,
+      "digest": "bed6b00521fce026ff2524b9b726f8c1f81d6b72f8fb42e3d6d043efa7b03c86",
+      "package": "github.com/filser89/stripe-payments-go/internal/payment",
+      "test_name": "TestSafeReplayAgeAfterDispatchPreparation/exact_cutoff",
+      "parent_id": "github.com/filser89/stripe-payments-go/internal/payment::TestSafeReplayAgeAfterDispatchPreparation",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/payment::TestSafeReplayAgeAfterDispatchPreparation",
+      "is_group": false,
+      "source": {
+        "kind": "table-row",
+        "start_offset": 24649,
+        "end_offset": 24696,
+        "row_index": 1
+      },
+      "status": "failed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/payment::TestSafeReplayAgeAfterDispatchPreparation/still_before_cutoff",
+      "full_description": "TestSafeReplayAgeAfterDispatchPreparation/still_before_cutoff",
+      "file_path": "internal/payment/recovery_test.go",
+      "line_number": 593,
+      "digest": "a6e5de4b8bae6e4be2ce540fd5d513035b2e748623f91a253eae95a079340e60",
+      "package": "github.com/filser89/stripe-payments-go/internal/payment",
+      "test_name": "TestSafeReplayAgeAfterDispatchPreparation/still_before_cutoff",
+      "parent_id": "github.com/filser89/stripe-payments-go/internal/payment::TestSafeReplayAgeAfterDispatchPreparation",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/payment::TestSafeReplayAgeAfterDispatchPreparation",
+      "is_group": false,
+      "source": {
+        "kind": "table-row",
+        "start_offset": 24582,
+        "end_offset": 24634,
+        "row_index": 0
+      },
+      "status": "failed"
+    },
+    {
       "id": "github.com/filser89/stripe-payments-go/internal/postgres::TestAssociatedStripeIDConstraintsAndSnapshotImmutability",
       "full_description": "TestAssociatedStripeIDConstraintsAndSnapshotImmutability",
       "file_path": "internal/postgres/payment_test.go",
@@ -8103,6 +8456,82 @@
         "kind": "function",
         "start_offset": 13028,
         "end_offset": 16062
+      },
+      "status": "failed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/postgres::TestSameUnresolvedOutcomeAuditAtomicity/saved_identifiers_commit_failure",
+      "full_description": "TestSameUnresolvedOutcomeAuditAtomicity/saved_identifiers_commit_failure",
+      "file_path": "internal/postgres/payment_test.go",
+      "line_number": 380,
+      "digest": "23e038b2007b6f140137200d075f08a030697fee2993b15e8fe50ad4bc2a350d",
+      "package": "github.com/filser89/stripe-payments-go/internal/postgres",
+      "test_name": "TestSameUnresolvedOutcomeAuditAtomicity/saved_identifiers_commit_failure",
+      "parent_id": "github.com/filser89/stripe-payments-go/internal/postgres::TestSameUnresolvedOutcomeAuditAtomicity",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/postgres::TestSameUnresolvedOutcomeAuditAtomicity",
+      "is_group": false,
+      "source": {
+        "kind": "table-row",
+        "start_offset": 18580,
+        "end_offset": 18628,
+        "row_index": 3
+      },
+      "status": "failed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/postgres::TestSameUnresolvedOutcomeAuditAtomicity/saved_identifiers_write_failure",
+      "full_description": "TestSameUnresolvedOutcomeAuditAtomicity/saved_identifiers_write_failure",
+      "file_path": "internal/postgres/payment_test.go",
+      "line_number": 379,
+      "digest": "70d30a73faa2c84476d190ab5edbac2ea16f25348cfacc7e4043539d6bca49a0",
+      "package": "github.com/filser89/stripe-payments-go/internal/postgres",
+      "test_name": "TestSameUnresolvedOutcomeAuditAtomicity/saved_identifiers_write_failure",
+      "parent_id": "github.com/filser89/stripe-payments-go/internal/postgres::TestSameUnresolvedOutcomeAuditAtomicity",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/postgres::TestSameUnresolvedOutcomeAuditAtomicity",
+      "is_group": false,
+      "source": {
+        "kind": "table-row",
+        "start_offset": 18507,
+        "end_offset": 18555,
+        "row_index": 2
+      },
+      "status": "failed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/postgres::TestSameUnresolvedOutcomeAuditAtomicity/server_outcome_commit_failure",
+      "full_description": "TestSameUnresolvedOutcomeAuditAtomicity/server_outcome_commit_failure",
+      "file_path": "internal/postgres/payment_test.go",
+      "line_number": 378,
+      "digest": "1ae7fe7d354ea782d821ab63f337aeada90c2eaa373f8a4ebd650c3780749bc4",
+      "package": "github.com/filser89/stripe-payments-go/internal/postgres",
+      "test_name": "TestSameUnresolvedOutcomeAuditAtomicity/server_outcome_commit_failure",
+      "parent_id": "github.com/filser89/stripe-payments-go/internal/postgres::TestSameUnresolvedOutcomeAuditAtomicity",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/postgres::TestSameUnresolvedOutcomeAuditAtomicity",
+      "is_group": false,
+      "source": {
+        "kind": "table-row",
+        "start_offset": 18434,
+        "end_offset": 18480,
+        "row_index": 1
+      },
+      "status": "failed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/postgres::TestSameUnresolvedOutcomeAuditAtomicity/server_outcome_write_failure",
+      "full_description": "TestSameUnresolvedOutcomeAuditAtomicity/server_outcome_write_failure",
+      "file_path": "internal/postgres/payment_test.go",
+      "line_number": 377,
+      "digest": "22102eca16691d07927295a346e3dd367054d4254c131820f839bbbeb5b8ea67",
+      "package": "github.com/filser89/stripe-payments-go/internal/postgres",
+      "test_name": "TestSameUnresolvedOutcomeAuditAtomicity/server_outcome_write_failure",
+      "parent_id": "github.com/filser89/stripe-payments-go/internal/postgres::TestSameUnresolvedOutcomeAuditAtomicity",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/postgres::TestSameUnresolvedOutcomeAuditAtomicity",
+      "is_group": false,
+      "source": {
+        "kind": "table-row",
+        "start_offset": 18361,
+        "end_offset": 18407,
+        "row_index": 0
       },
       "status": "failed"
     },
@@ -14231,9 +14660,9 @@
     }
   ],
   "summary": {
-    "total": 662,
+    "total": 681,
     "passed": 65,
-    "failed": 597,
+    "failed": 616,
     "pending": 0
   },
   "protected_files": [
@@ -14328,8 +14757,13 @@
       "symlink": ""
     },
     {
+      "path": "internal/payment/outcome_logging_test.go",
+      "sha256": "e3748a2a8771c188be8de879bb7b251d455b504dd37ebbc6c4a90eb984cd38ee",
+      "symlink": ""
+    },
+    {
       "path": "internal/payment/recovery_test.go",
-      "sha256": "032863f547a7405caf052150746d3504d5f69795f223d01703148f0b8bacf976",
+      "sha256": "aad98aa361b4434a6808cfbdb3fda86b16495e2502285cfa6873153906d8e021",
       "symlink": ""
     },
     {
@@ -14349,7 +14783,7 @@
     },
     {
       "path": "internal/postgres/payment_test.go",
-      "sha256": "1ea3c224796b80adc5b88fd6878a117364ccefea673d23cc5705828baad2843c",
+      "sha256": "20d4fb1eefaf1eabf6d3454b39f834d05c74ff15afcdd19c870bdc08757b552a",
       "symlink": ""
     },
     {
@@ -14600,6 +15034,15 @@
     "github.com/filser89/stripe-payments-go/internal/integration::TestRecoveryWithOptionalSupplementalStripeRequestIDs/request_id_absent",
     "github.com/filser89/stripe-payments-go/internal/integration::TestRecoveryWithOptionalSupplementalStripeRequestIDs/request_id_present",
     "github.com/filser89/stripe-payments-go/internal/integration::TestResultAndReadUnavailableReturnKnownIdentity",
+    "github.com/filser89/stripe-payments-go/internal/payment::TestDirectInspectionOutcomeLogs/get_database_failure",
+    "github.com/filser89/stripe-payments-go/internal/payment::TestDirectInspectionOutcomeLogs/get_invalid_id",
+    "github.com/filser89/stripe-payments-go/internal/payment::TestDirectInspectionOutcomeLogs/get_not_found",
+    "github.com/filser89/stripe-payments-go/internal/payment::TestDirectInspectionOutcomeLogs/history_database_failure",
+    "github.com/filser89/stripe-payments-go/internal/payment::TestDirectInspectionOutcomeLogs/history_excessive_limit",
+    "github.com/filser89/stripe-payments-go/internal/payment::TestDirectInspectionOutcomeLogs/history_invalid_id",
+    "github.com/filser89/stripe-payments-go/internal/payment::TestDirectInspectionOutcomeLogs/history_negative_cursor",
+    "github.com/filser89/stripe-payments-go/internal/payment::TestDirectInspectionOutcomeLogs/history_not_found",
+    "github.com/filser89/stripe-payments-go/internal/payment::TestDirectInspectionOutcomeLogs/history_zero_limit",
     "github.com/filser89/stripe-payments-go/internal/payment::TestEachReplayDispatchBookkeepingIsDurable",
     "github.com/filser89/stripe-payments-go/internal/payment::TestID003CheckoutRules/distinct_initial_keys_preserve_distinct_intent",
     "github.com/filser89/stripe-payments-go/internal/payment::TestID003CheckoutRules/same_initial_key_targets_same_operation",
@@ -14741,6 +15184,9 @@
     "github.com/filser89/stripe-payments-go/internal/payment::TestREC004RecoveryRules/young_indeterminate_5xx",
     "github.com/filser89/stripe-payments-go/internal/payment::TestREC004RecoveryRules/young_mismatched_evidence",
     "github.com/filser89/stripe-payments-go/internal/payment::TestREC004RecoveryRules/young_network_ambiguity",
+    "github.com/filser89/stripe-payments-go/internal/payment::TestRejectedReplayLogsSavedFailure/saved_credential",
+    "github.com/filser89/stripe-payments-go/internal/payment::TestRejectedReplayLogsSavedFailure/saved_permission",
+    "github.com/filser89/stripe-payments-go/internal/payment::TestRejectedReplayLogsSavedFailure/saved_validation",
     "github.com/filser89/stripe-payments-go/internal/payment::TestSTR004RecoveryRules/earlier_parent_deadline_caps_call_and_owned_work_exits",
     "github.com/filser89/stripe-payments-go/internal/payment::TestSTR004RecoveryRules/parent_cancel_during_database_acceptance",
     "github.com/filser89/stripe-payments-go/internal/payment::TestSTR004RecoveryRules/parent_cancel_during_external_call",
@@ -14775,6 +15221,9 @@
     "github.com/filser89/stripe-payments-go/internal/payment::TestSTR008RecoveryRules/permission_after_uncertain_dispatch",
     "github.com/filser89/stripe-payments-go/internal/payment::TestSTR008RecoveryRules/uncertain_dependency_error",
     "github.com/filser89/stripe-payments-go/internal/payment::TestSTR008RecoveryRules/validation_after_response_loss",
+    "github.com/filser89/stripe-payments-go/internal/payment::TestSafeReplayAgeAfterDispatchPreparation/after_cutoff",
+    "github.com/filser89/stripe-payments-go/internal/payment::TestSafeReplayAgeAfterDispatchPreparation/exact_cutoff",
+    "github.com/filser89/stripe-payments-go/internal/payment::TestSafeReplayAgeAfterDispatchPreparation/still_before_cutoff",
     "github.com/filser89/stripe-payments-go/internal/postgres::TestAssociatedStripeIDConstraintsAndSnapshotImmutability",
     "github.com/filser89/stripe-payments-go/internal/postgres::TestConcurrentReplacementGuards",
     "github.com/filser89/stripe-payments-go/internal/postgres::TestDATA001PaymentPersistence/atomic_acceptance",
@@ -14800,6 +15249,10 @@
     "github.com/filser89/stripe-payments-go/internal/postgres::TestPaymentTransactionPhaseMatrix/unresolved_commit",
     "github.com/filser89/stripe-payments-go/internal/postgres::TestPaymentTransactionPhaseMatrix/unresolved_write",
     "github.com/filser89/stripe-payments-go/internal/postgres::TestReplacementEligibilityRechecksPaidAtCommit",
+    "github.com/filser89/stripe-payments-go/internal/postgres::TestSameUnresolvedOutcomeAuditAtomicity/saved_identifiers_commit_failure",
+    "github.com/filser89/stripe-payments-go/internal/postgres::TestSameUnresolvedOutcomeAuditAtomicity/saved_identifiers_write_failure",
+    "github.com/filser89/stripe-payments-go/internal/postgres::TestSameUnresolvedOutcomeAuditAtomicity/server_outcome_commit_failure",
+    "github.com/filser89/stripe-payments-go/internal/postgres::TestSameUnresolvedOutcomeAuditAtomicity/server_outcome_write_failure",
     "github.com/filser89/stripe-payments-go/internal/postgres::TestStaleCurrentOperationResultIsAtomic/late_rejection",
     "github.com/filser89/stripe-payments-go/internal/postgres::TestStaleCurrentOperationResultIsAtomic/late_success",
     "github.com/filser89/stripe-payments-go/internal/stripeapi::TestSDKCheckoutEvidenceTranslation/complete_unpaid",

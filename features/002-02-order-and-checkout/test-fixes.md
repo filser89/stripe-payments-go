@@ -1,155 +1,54 @@
 # Test Fixes: Create orders and hosted checkout
 
-**Feature**: `002-02-order-and-checkout` | **Correction review**: PENDING
+**Feature**: `002-02-order-and-checkout` | **Independent correction review**: PENDING
 
-The pending correction scope is H5 in `TestResultAndReadUnavailableReturnKnownIdentity`, covering HTTP-007, REC-002, source A-08/FR-010, and approved code-plan D4/D6. Independent review must cover this case and its source/digest dependencies. H1–H4 retain their independently reviewed corrections at `52a1e9bab3ccffc9e8fb3213bedee804abe2fdac`. R26 remains a separate known manual verification obligation; this correction does not resolve or re-review it.
+The pending scope is REC-003, STR-007, DATA-001, DATA-004, SEC-002, SEC-003 and STR-008, with source FR-010/011/017/020/021 and shared Q2/Q3/Q5/Q6. Corrections are limited to durable regressions for independently confirmed code-review defects. R26 remains the accepted manual SEC-003/NE-6/D11 production-verification condition; the shared logging helper and existing review are preserved.
 
-## Current correction evidence
+## Current test contracts
 
-| Finding | Source obligations | Current test contract |
+| Finding | Source/evidence | Durable regression contract |
 | --- | --- | --- |
-| H1 | FND-003, FND-004, STR-004; Q6/Q7 | The stalled-body shutdown connection remains open until its test callback exits. Its deferred closure checks the returned error through `require.NoError` in that same test goroutine. Shutdown, cancellation, admission, completion and durable-state assertions remain required. |
-| H2 | HTTP-001/002/005, SEC-001, FND-002, CFG-001/002/003; Q7 | `commandCheckoutRequest` uses a credential switch. `valid` sets the configured username/password, `wrong` sets the configured username with the wrong password, and every other credential value leaves Basic Auth absent. Content-Type, client request deadline, response-body closure and return values retain their existing contracts. |
-| H3 | FND-003, FND-004, STR-004 | The actual shutdown witness loads a valid `LISTEN_ADDR` of `127.0.0.1:8080`. Its separate `net.Listen("tcp", "127.0.0.1:0")` obtains the real ephemeral listener supplied to `Server.Serve`; the test sends requests to that bound address. Production configuration retains the 1–65535 port requirement and the foundation's zero-port rejection assertion. |
-| H4 | HTTP-007, REC-002 | After a real PostgreSQL container stop and restart, the outage witness discovers the container host and current mapped 5432 port, preserves the database URL credentials/path/query, creates and cleans up a new pool, and requires that pool to become reachable within 15 seconds. A separate 20-second restart context bounds endpoint discovery/readiness. Fresh repository, service and HTTP dependencies use the restored DB fixture and an independent pool at the discovered URL. |
-| H5 | HTTP-007, REC-002; A-08/FR-010; D4/D6 | The fresh same-key recovery witness accepts 202 while the retained dispatch lease is active and requires eventual 200 within a 17-second local observation budget. Each request inherits that absolute deadline and is additionally capped by the configured request timeout. Every response retains exact known IDs, immutable accepted binding, one order/operation/binding and one logical Checkout. Pending responses retain exact business rows/history and admit no additional Stripe call. |
+| C1 — Safe replay age at gateway entry | REC-003, STR-007; FR-010/011; conservative strict 23-hour cutoff | `TestSafeReplayAgeAfterDispatchPreparation` starts 100ms before cutoff, advances controlled server time during repository dispatch preparation, and verifies allowed creation 50ms before cutoff plus zero creation exactly at/100ms after cutoff. Gateway entry itself asserts safe age and the original immutable Stripe snapshot. All rows retain order, operation, complete request binding, amount, key and parameters. Exhausted rows remain unresolved/pending/investigation; a fresh service can inspect/replay the same operation, while a fresh continuation key cannot allocate a replacement. |
+| C2 — Same-state saved external outcome and audit | DATA-001, DATA-004; FR-017; Q2 | `TestSameUnresolvedOutcomeAuditAtomicity` covers a saved server failure and saved session/PaymentIntent evidence awaiting confirmation, all with state `unresolved`. Each business outcome requires one audit entry retaining failure/request/available external identifiers and per-order sequence. Real PostgreSQL write and deferred-commit failures leave every durable row/history unchanged; retry commits one matching entry. A genuinely identical repeat uses current version/ownership guards and adds no duplicate history. Timestamp/request-ID-only refreshes are outside this assertion scope. |
+| C3 — Direct service logging semantics | SEC-002/003, STR-008; FR-020/021; Q5/Q6; approved D11 | `TestDirectInspectionOutcomeLogs` covers invalid read/history IDs, invalid history cursor/limits, missing records, and database read failures. Each direct operation must log actual `failed` outcome, precise category, and only known correlation; a database failure's returned known order ID must agree with the log. Unaccepted invalid/missing input cannot fabricate IDs. `TestRejectedReplayLogsSavedFailure` requires validation/credential/permission classification and known rejected identity on saved-rejection replay without DB/Stripe side effects. The local JSON oracle checks decoded semantic fields directly and rejects static metadata-only logs; sensitive input/cause/key sentinels remain absent. |
 
-## Exact source blocks
+The logging oracle uses the field vocabulary already accepted in code-plan D11. It introduces no public contract, logging framework, helper redesign or additional gate. Direct-service request-context propagation remains within the independent D11 verification condition; the five frozen default scaffolds contain no request-context helper declaration.
 
-`cmd/service/checkout_test.go:206`:
+## Scoped source evidence
 
-```go
-switch credential {
-case "valid":
-    r.SetBasicAuth(commandUser, commandPassword)
-case "wrong":
-    r.SetBasicAuth(commandUser, "wrong")
-}
-```
+- `internal/payment/recovery_test.go`: three controlled-delay leaves in `TestSafeReplayAgeAfterDispatchPreparation`.
+- `internal/postgres/payment_test.go`: four real PostgreSQL outcome/rollback leaves in `TestSameUnresolvedOutcomeAuditAtomicity`.
+- `internal/payment/outcome_logging_test.go`: nine direct-inspection leaves and three stored-rejection leaves, with one local decoded JSON assertion helper.
 
-`internal/integration/checkout_deadlines_test.go:381`:
+The existing transaction phase matrix exercises actual enum transitions: its unresolved rows explicitly install a prior open fixture. Its same-state zero-history branch is not exercised by any current row and presents no conflicting outcome assertion. Existing read/replay/history checks cover genuinely unchanged established observations or active-lease pending reads. No existing assertions or test helpers require correction for this scope.
 
-```go
-env := testutil.Environment(j.DB.URL, "127.0.0.1:8080")
-```
+## Counterexample evidence boundary
 
-`internal/integration/checkout_deadlines_test.go:443`:
+Independent reviewers supplied production counterexamples at application commit `1ec4bfb3907ade948042557b8c3dcb4e580128de`:
 
-```go
-defer func() { require.NoError(t, conn.Close()) }()
-```
+- `/private/tmp/feature2-spec-review/recovery_test.go`, `TestReviewSafeAgeCrossedDuringDispatchCommit`: one production creation POST at first-dispatch age 23h+100ms after a 200ms transaction delay.
+- `/private/tmp/feature2-spec-review/payment_test.go`, `TestReviewUnresolvedObservationAudit`: real PostgreSQL retains server failure/investigation/request evidence while history stays at three entries without a corresponding outcome entry.
+- `/private/tmp/feature2-standards-logging-repro/main.go`: production direct invalid reads emit no outcome; Get database failure omits the returned order reference; History database failure uses generic unavailable context; stored credential rejection uses generic rejection context.
 
-`internal/integration/checkout_recovery_test.go:326`:
+These are reviewer-supplied red counterexamples, distinct from this author's native preimplementation red capture. The author does not claim an independent production reproduction, implementation correction, code-review approval or final runtime/race verification.
 
-```go
-restartCtx, restartCancel := context.WithTimeout(context.Background(), 20*time.Second)
-defer restartCancel()
-require.NoError(t, j.DB.Container.Start(restartCtx))
-host, err := j.DB.Container.Host(restartCtx)
-require.NoError(t, err)
-port, err := j.DB.Container.MappedPort(restartCtx, "5432/tcp")
-require.NoError(t, err)
-databaseURL, err := url.Parse(j.DB.URL)
-require.NoError(t, err)
-databaseURL.Host = net.JoinHostPort(host, port.Port())
-pool, err := pgxpool.New(restartCtx, databaseURL.String())
-require.NoError(t, err)
-t.Cleanup(pool.Close)
-require.Eventually(t, func() bool { return pool.Ping(restartCtx) == nil }, 15*time.Second, 100*time.Millisecond)
-restoredDB := &testutil.DB{URL: databaseURL.String(), Pool: pool, Container: j.DB.Container}
-fresh := journeyWith(t, restoredDB, restoredDB.Independent(t), j.Stripe, j.Options)
-```
+## Protected handoff
 
-H4 retains the real container stop after committed binding observation and the external-success barrier; bounded completion; exact HTTP 503/`temporarily_unavailable`; exact accepted order/operation IDs; meaningful sanitized correlated log assertion; one logical Stripe object; and bounded eventual post-restart HTTP 200 with those same IDs and one logical object. While the dispatch lease remains active, HTTP 202 preserves those IDs, binding, business rows/history and external-call count. The recovery uses the same restarted container and persisted database; no fixed host port, new database, production fallback, exclusion or weakened outage assertion is required.
+Baseline SHA256: `5b38d89b84226f36445dbb9c79a4dfc27d3aeb804b49aa139d48605a5db6689c`; 66 baseline leaves. The locked plan retains one MODIFY and 65 TOUCH entries, with no appends/removals. The original baseline, plan/lock, specification, criteria, test review, five scaffold sources/manifest, execution configuration, application rules, and shared dependency manifests are protected. Current H1–H5 fixture contracts remain intact, including bounded active-lease recovery and same-container PostgreSQL restart.
 
-## H5 recovery witness
-
-`internal/integration/checkout_recovery_test.go:344`:
-
-```go
-	// An unavailable database cannot release the dispatch claim. Observe public
-	// pending responses until its legitimate 12-second lease becomes reclaimable;
-	// the five-second margin belongs only to this local recovery witness.
-	recoveryCtx, recoveryCancel := context.WithTimeout(context.Background(), 17*time.Second)
-	defer recoveryCancel()
-	observed, err := testutil.DurableRows(recoveryCtx, restoredDB.Pool)
-	require.NoError(t, err)
-	require.Equal(t, businessRows(t, durable), businessRows(t, observed), "outage commits no partial result or business history")
-	wireCount := len(j.Stripe.Wires())
-	ticker := time.NewTicker(100 * time.Millisecond)
-	defer ticker.Stop()
-	for {
-		// The parent deadline caps every request by the remaining witness budget.
-		requestCtx, requestCancel := context.WithTimeout(recoveryCtx, fresh.Options.RequestTimeout)
-		r := testutil.Request("POST", "/api/orders", purchaseBody(key, "Single café product", 2500), true).WithContext(requestCtx)
-		response := make(chan *httptest.ResponseRecorder, 1)
-		go func() {
-			w := httptest.NewRecorder()
-			fresh.Handler.ServeHTTP(w, r)
-			response <- w
-		}()
-		select {
-		case w = <-response:
-			requestCancel()
-		case <-recoveryCtx.Done():
-			requestCancel()
-			t.Fatal("same-key recovery did not establish checkout within the lease recovery witness budget")
-		}
-		require.Contains(t, []int{200, 202}, w.Code)
-		id, op := envelopeIDs(t, testutil.JSON(t, w))
-		require.Equal(t, binding.OrderID, id)
-		require.Equal(t, binding.OperationID, op)
-		require.Equal(t, 1, j.Stripe.LogicalObjects())
-		recoveredBinding, err := fresh.Repo.LoadBinding(recoveryCtx, key)
-		require.NoError(t, err)
-		require.Equal(t, binding.OrderID, recoveredBinding.OrderID)
-		require.Equal(t, binding.OperationID, recoveredBinding.OperationID)
-		observed, err = testutil.DurableRows(recoveryCtx, restoredDB.Pool)
-		require.NoError(t, err)
-		require.Equal(t, durable["payment_request_bindings"], observed["payment_request_bindings"], "same key retains its complete accepted binding")
-		for _, table := range []string{"payment_orders", "payment_operations", "payment_request_bindings"} {
-			require.Len(t, observed[table], 1, "recovery cannot allocate another order, operation or binding")
-		}
-		if w.Code == 200 {
-			break
-		}
-		require.Equal(t, "/api/orders/"+binding.OrderID, w.Header().Get("Location"))
-		require.Equal(t, "1", w.Header().Get("Retry-After"))
-		require.Equal(t, wireCount, len(j.Stripe.Wires()), "active ownership admits no additional Stripe call")
-		require.Equal(t, businessRows(t, durable), businessRows(t, observed), "pending recovery preserves business state and exact history")
-		select {
-		case <-ticker.C:
-		case <-recoveryCtx.Done():
-			t.Fatal("same-key recovery remained pending beyond the lease recovery witness budget")
-		}
-	}
-```
-
-The test records durable rows before the real outage and verifies that the restored database contains no partial result/history before recovery. The 17-second deadline allows the approved 12-second database lease plus five seconds of local margin; it is fixture evidence, not a production recovery-time requirement. A deadline-bounded ticker observes outcomes rather than changing the clock, lease, schema, or serving budgets. HTTP execution runs in a goroutine with a buffered completion channel and no test assertions; assertions and durable inspection remain in the test goroutine.
-
-## Changed artifacts
-
-```text
-internal/integration/checkout_recovery_test.go
-features/002-02-order-and-checkout/snapshots/post-test.json
-features/002-02-order-and-checkout/test-fixes.md
-```
-
-The configured native engine owns snapshot generation, completion targets and scaffold manifest validation. All five scaffold source paths and hashes remain portable repository-relative records. The original baseline, 66-entry plan/lock, execution configuration, specification, criteria, production sources and test review remain bound. No testutil helper or allowlist append is required.
+Production code and live application files receive no edits. The three authorized dependency security upgrades belong to the production handoff; this isolated correction neither reverts nor replays a shared manifest.
 
 ## Validation
 
-- Findings processed in this scope: H5, 1 / 1; same-file corrections: 1; escalated: 0; skipped: 0.
-- Pinned golangci-lint v2.14.0 preflight for `./internal/integration`: PASS, zero issues. The preflight uses a temporary source copy with the installed native generator's default compilation scaffolds materialized because golangci-lint cannot read virtual added files through the overlay. The isolated application checkout retains test-source corrections and native evidence.
-- Final native post-test capture: PASS, 662 complete leaves, 65 passed, 597 expected red, 0 pending.
-- Native baseline → post-test compare: PASS, 596 new failed leaves, one conforming MODIFY, 65 retained baseline greens, 65 allowlisted digest changes, 66 plan entries and zero appends/removals.
-- Identity/status/target comparison: PASS, all 662 identities and statuses match the frozen suite; all 597 implementation-required identities remain exact.
-- Snapshot build context: PASS, unchanged Go 1.27.2 darwin/arm64, `go test ./...`, package/tag selection and effective compiler settings.
-- Scaffold portability: PASS, all five repository-relative source paths/hashes, overlay packages and native manifest match. Manifest validation requires no content change.
-- Native banned-pattern scan: PASS, 34 discovered test/support files inspected.
-- Test-session ownership, `gofmt` and Git whitespace checks: PASS.
-- Protected-artifact proof: PASS, original baseline, plan/lock, scaffold manifest, specification, criteria and test review remain byte-identical. Exactly the three listed paths are changed relative to `52a1e9bab3ccffc9e8fb3213bedee804abe2fdac`; H1–H4 test corrections are preserved.
+- Findings processed: 3 / 3; same-file regression groups: 3; unresolved author-side escalations: 0; skipped: 0.
+- Pinned golangci-lint v2.14.0 static preflight: PASS, zero issues for `./internal/payment ./internal/postgres` in a temporary source copy with the installed native generator's five default scaffolds materialized. No production behavior is substituted.
+- One final native post-test capture: PASS; 681 complete leaves, 65 passed, 616 expected failed, zero pending. All 19 added regression leaves are red against default preimplementation declarations. This red capture establishes the native handoff contract rather than production counterexample execution.
+- Native baseline → post-test compare: PASS; 615 new failed leaves, one conforming MODIFY, 65 retained baseline greens, 65 allowlisted content changes, 66 plan entries, zero appends/removals.
+- Native banned-pattern scan: PASS; 35 test/support files inspected. The native scanner discovers source dependencies in addition to its three supplied test paths.
+- Protected-artifact proof: PASS; 18 recorded baseline/plan/rules/configuration/specification/criteria/review/scaffold/dependency artifacts remain byte-identical. All five scaffold manifest entries, overlay packages and hashes retain their exact contracts.
+- Existing-suite proof: PASS; all 662 prior identity/status pairs and leaf digests remain exact. The native 616 implementation-required identities equal the failed leaves, comprising the retained 597 targets plus 19 added regressions.
+- Execution context and portability: PASS; unchanged Go 1.27.2 darwin/arm64, `go test ./...`, no tags, count 1, identical effective compiler context, repository-relative protected/scaffold paths.
+- Test ownership, `gofmt` and Git whitespace checks: PASS. Exactly three test sources, native post-test snapshot and this report form the correction; no implementation, shared helper, scaffold, plan, baseline or manifest edits.
+- Aggregate `make verify`, overlay-free production execution and race verification are outside this deliberately red test session. Their final evidence belongs to the implementation/review contexts. No new result archive or diagnostic-log collection is added to the application; author diagnostics stay under `/private/tmp/checkout-reviewed-defects-preflight`.
 
-The original baseline SHA256 is `5b38d89b84226f36445dbb9c79a4dfc27d3aeb804b49aa139d48605a5db6689c`. It contains 66 passed leaves. The locked plan has one MODIFY and 65 TOUCH entries.
-
-Independent scoped correction review is PENDING. Feature behavior remains deliberately red against missing production declarations supplied by five default compilation scaffolds. Static preflight and native red-session gates cannot establish implementation correctness, race safety or the restored connected outage/recovery runtime path. Those checks require the authorized implementation context. R26's manual verification remains separate.
+Independent scoped `/kaba:review-tests REC-003 STR-007 DATA-001 DATA-004 SEC-002 SEC-003 STR-008` must inspect all three changed test paths and their source/digest dependencies, retain unaffected findings, and preserve R26's separate manual condition. This author does not self-approve or integrate the correction.

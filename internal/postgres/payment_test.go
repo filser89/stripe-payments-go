@@ -366,3 +366,90 @@ func TestAssociatedStripeIDConstraintsAndSnapshotImmutability(t *testing.T) {
 	require.Equal(t, testutil.ImmutableSnapshot(saved.Operation.Snapshot), testutil.ImmutableSnapshot(after.Operation.Snapshot))
 	require.Equal(t, saved.Order, after.Order)
 }
+
+// DATA-001 DATA-004
+func TestSameUnresolvedOutcomeAuditAtomicity(t *testing.T) {
+	for _, tc := range []struct {
+		name        string
+		identifiers bool
+		commit      bool
+	}{
+		{"server_outcome_write_failure", false, false},   // DATA-001 DATA-004
+		{"server_outcome_commit_failure", false, true},   // DATA-001 DATA-004
+		{"saved_identifiers_write_failure", true, false}, // DATA-001 DATA-004
+		{"saved_identifiers_commit_failure", true, true}, // DATA-001 DATA-004
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			db := testutil.Database(t)
+			repo := postgres.NewPaymentRepository(db.Pool)
+			require.NotNil(t, repo)
+			db.Relations(t)
+			i := testutil.Intent()
+			_, err := repo.AcceptInitial(context.Background(), i)
+			require.NoError(t, err)
+			claimed := claim(t, repo, i, "same-state-owner")
+			require.Equal(t, "unresolved", claimed.State)
+			at := i.Order.CreatedAt.Add(time.Second)
+			failure := "server"
+			e := payment.SessionEvidence{ErrorClass: failure, RequestID: "req_same_state_outcome", ObservedAt: at}
+			if tc.identifiers {
+				e = testutil.Evidence(claimed)
+				e.Status, e.PaymentStatus, e.URL = "complete", "paid", ""
+				e.PaymentIntentID = testutil.Pointer("pi_test_same_state_outcome")
+				e.RequestID, e.ObservedAt = "req_same_state_identifiers", at
+				failure = "confirmation_required"
+				e.ErrorClass = failure
+			}
+			h := payment.HistoryEntry{OrderID: i.Order.ID, OperationID: claimed.ID, Kind: "operation_state_changed", ObservedAt: at, FromState: testutil.Pointer("unresolved"), ToState: testutil.Pointer("unresolved"), RequestID: testutil.Pointer(e.RequestID), FailureCode: &failure}
+			if tc.identifiers {
+				h.SessionID, h.PaymentIntentID = testutil.Pointer(e.SessionID), e.PaymentIntentID
+			}
+			observation := payment.Observation{OrderID: i.Order.ID, OperationID: claimed.ID, ExpectedCurrentOperationID: claimed.ID, ExpectedVersion: claimed.Version, OwnerToken: claimed.OwnerToken, State: "unresolved", Evidence: e, PriorAmbiguity: true, History: h}
+			before := db.Durable(t)
+			pageBefore, err := repo.ReadHistory(context.Background(), i.Order.ID, 0, 100)
+			require.NoError(t, err)
+			release := testutil.FailHistory(t, db.Independent(t), tc.commit)
+			_, err = repo.ApplyObservation(context.Background(), observation)
+			require.Error(t, err, "a changed external outcome requires an audit insert even when state stays unresolved")
+			require.Equal(t, before, db.Durable(t), "failed audit write/commit cannot persist external outcome or identifiers")
+			release()
+			saved, err := repo.ApplyObservation(context.Background(), observation)
+			require.NoError(t, err)
+			require.Equal(t, "unpaid", saved.Order.Status)
+			require.Equal(t, "unresolved", saved.Operation.State)
+			require.Equal(t, &failure, saved.Operation.FailureCode)
+			require.True(t, saved.Operation.InvestigationRequired)
+			if tc.identifiers {
+				require.Equal(t, testutil.Pointer(e.SessionID), saved.Operation.SessionID)
+				require.Equal(t, e.PaymentIntentID, saved.Operation.PaymentIntentID)
+			} else {
+				require.Nil(t, saved.Operation.SessionID)
+				require.Nil(t, saved.Operation.PaymentIntentID)
+			}
+			page, err := repo.ReadHistory(context.Background(), i.Order.ID, 0, 100)
+			require.NoError(t, err)
+			require.Len(t, page.Entries, len(pageBefore.Entries)+1)
+			require.Equal(t, pageBefore.Entries, page.Entries[:len(pageBefore.Entries)], "prior audit entries remain append-only")
+			entry := page.Entries[len(page.Entries)-1]
+			require.Greater(t, entry.Sequence, pageBefore.Entries[len(pageBefore.Entries)-1].Sequence)
+			require.Equal(t, h.Kind, entry.Kind)
+			require.Equal(t, h.OrderID, entry.OrderID)
+			require.Equal(t, h.OperationID, entry.OperationID)
+			require.Equal(t, h.FromState, entry.FromState)
+			require.Equal(t, h.ToState, entry.ToState)
+			require.Equal(t, h.ObservedAt, entry.ObservedAt)
+			require.Equal(t, h.RequestID, entry.RequestID)
+			require.Equal(t, h.FailureCode, entry.FailureCode)
+			require.Equal(t, h.SessionID, entry.SessionID)
+			require.Equal(t, h.PaymentIntentID, entry.PaymentIntentID)
+			// Repeat through a valid current guard, rather than merely testing stale-owner rejection.
+			observation.ExpectedVersion = saved.Operation.Version
+			observation.OwnerToken = saved.Operation.OwnerToken
+			_, err = repo.ApplyObservation(context.Background(), observation)
+			require.NoError(t, err)
+			unchanged, err := repo.ReadHistory(context.Background(), i.Order.ID, 0, 100)
+			require.NoError(t, err)
+			require.Equal(t, page.Entries, unchanged.Entries, "identical business outcome has no duplicate audit transition")
+		})
+	}
+}

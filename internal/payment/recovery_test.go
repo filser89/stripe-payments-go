@@ -582,3 +582,80 @@ func TestEachReplayDispatchBookkeepingIsDurable(t *testing.T) {
 	require.True(t, out.Pending)
 	require.Len(t, snapshots, 3)
 }
+
+// REC-003 STR-007
+func TestSafeReplayAgeAfterDispatchPreparation(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		delay   time.Duration
+		allowed bool
+	}{
+		{"still_before_cutoff", 50 * time.Millisecond, true}, // REC-003
+		{"exact_cutoff", 100 * time.Millisecond, false},      // REC-003
+		{"after_cutoff", 200 * time.Millisecond, false},      // REC-003
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			c := newPolicyClock()
+			v := policyFixture(c, "unresolved")
+			first := c.Now().Add(-23*time.Hour + 100*time.Millisecond)
+			v.Operation.FirstDispatchAt = &first
+			v.Operation.Snapshot.FirstDispatchAt = &first
+			v.Operation.Snapshot.ExpiresAt = first.Add(23*time.Hour + 59*time.Minute).Unix()
+			r := newPolicyRepository(v)
+			in := policyInput()
+			r.state.Bindings[in.RequestKey] = RequestBinding{Key: in.RequestKey, Method: "POST", Target: "/api/orders", OrderID: v.Order.ID, OperationID: v.Operation.ID, Description: in.Description, Amount: in.Amount, Currency: "usd"}
+			binding := r.State().Bindings[in.RequestKey]
+			prepared := false
+			r.hook = func(_ context.Context, method string) error {
+				if method == "PrepareDispatch" {
+					prepared = true
+					// The durable dispatch transaction may finish after eligibility was checked.
+					c.Advance(tc.delay)
+				}
+				return nil
+			}
+			g := newPolicyGateway(policyReply{run: func(_ context.Context, snapshot Snapshot, _ string) (SessionEvidence, error) {
+				require.True(t, c.Now().Before(first.Add(23*time.Hour)), "creation must still be safe at gateway entry")
+				require.Equal(t, policyImmutableSnapshot(v.Operation.Snapshot), policyImmutableSnapshot(snapshot))
+				return policyEvidence(snapshot), nil
+			}})
+			s := policyService(t, r, g, policyOptions(c))
+			out, err := s.Create(policyCtx(), in)
+			require.NoError(t, err)
+			require.True(t, prepared, "control must reach dispatch preparation inside the safe window")
+			require.Equal(t, v.Order.ID, out.Order.ID)
+			require.Equal(t, v.Operation.ID, out.Operation.ID)
+			st := r.State()
+			require.Equal(t, binding, st.Bindings[in.RequestKey])
+			require.Len(t, st.Orders, 1)
+			require.Len(t, st.Operations, 1)
+			require.Equal(t, policyImmutableSnapshot(v.Operation.Snapshot), policyImmutableSnapshot(st.Operations[v.Operation.ID].Snapshot))
+			if tc.allowed {
+				require.Len(t, g.Calls(), 1)
+				require.Equal(t, "POST", g.Calls()[0].Method)
+				require.Equal(t, "open", out.Operation.State)
+			} else {
+				require.Empty(t, g.Calls(), "transaction delay cannot extend creation replay eligibility")
+				require.True(t, out.Pending)
+				require.True(t, out.NeedsInvestigation)
+				require.Equal(t, "unresolved", out.Operation.State)
+				require.False(t, out.CanStartNewAttempt)
+				// A fresh service can inspect and replay the retained binding without creating.
+				fresh := policyService(t, r, g, policyOptions(c))
+				view, readErr := fresh.Get(policyCtx(), v.Order.ID)
+				require.NoError(t, readErr)
+				require.Equal(t, v.Operation.ID, view.Operation.ID)
+				require.True(t, view.NeedsInvestigation)
+				replayed, replayErr := fresh.Create(policyCtx(), in)
+				require.NoError(t, replayErr)
+				require.Equal(t, v.Operation.ID, replayed.Operation.ID)
+				require.True(t, replayed.Pending)
+				_, replacementErr := fresh.Continue(policyCtx(), v.Order.ID, policyKey())
+				policyErrorCode(t, replacementErr, "checkout_blocked")
+				require.NotContains(t, r.State().Bindings, policyKey())
+				require.Len(t, r.State().Operations, 1)
+				require.Empty(t, g.Calls())
+			}
+		})
+	}
+}
