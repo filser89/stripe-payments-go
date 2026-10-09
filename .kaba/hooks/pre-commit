@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# kaba pre-commit shim — installed into the consumer repo by /kaba:init.
+# Resolves the real session-lock check via `git config kaba.scriptdir` and fails
+# LOUDLY when that dangles: a relocated plugin or an uninitialized clone must
+# surface as a blocked commit with instructions, never as a silently skipped hook.
+# --no-verify can bypass this (git limitation) — drift prevention, not security.
+set -euo pipefail
+
+scriptdir="$(git config kaba.scriptdir 2>/dev/null || true)"
+if [ -z "$scriptdir" ] || [ ! -x "$scriptdir/session-lock.sh" ]; then
+  echo "kaba: cannot find the session-lock check (kaba.scriptdir = '${scriptdir:-unset}')." >&2
+  echo "The kaba plugin moved, or this clone was never initialized. Run /kaba:init to re-wire it." >&2
+  exit 1
+fi
+
+if ! "$scriptdir/session-lock.sh" check-staged; then
+  echo "" >&2
+  echo "Commit rejected by the kaba session-lock pre-commit hook." >&2
+  exit 1
+fi

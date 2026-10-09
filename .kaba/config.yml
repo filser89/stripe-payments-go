@@ -1,0 +1,20 @@
+# .kaba/config.yml
+test_runner: "go"
+test_write_allow:
+  - "**/*_test.go"
+  - "**/testdata/**"
+  - "internal/testutil/**"
+  - "features/**"
+  - "go.mod"
+  - "go.sum"
+test_write_exclude: []
+implement_write_allow:
+  - "**"
+implement_write_exclude:
+  - "**/*_test.go"
+  - "**/testdata/**"
+  - "internal/testutil/**"
+test_command:   "go test ./..."
+feature_dir:    "features/"
+linter_command: "make verify"
+rules_files:    [AGENTS.md, FEATURE-QUALITY-STANDARDS.md]
