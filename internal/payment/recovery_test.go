@@ -659,3 +659,117 @@ func TestSafeReplayAgeAfterDispatchPreparation(t *testing.T) {
 		})
 	}
 }
+
+// REC-003 STR-007
+func TestFreshContinuationSafeAgeAfterDispatchPreparation(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		delay   time.Duration
+		allowed bool
+	}{
+		{"still_before_cutoff", 50 * time.Millisecond, true}, // REC-003 STR-007
+		{"exact_cutoff", 100 * time.Millisecond, false},      // REC-003 STR-007
+		{"after_cutoff", 200 * time.Millisecond, false},      // REC-003 STR-007
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			c := newPolicyClock()
+			v := policyFixture(c, "unresolved")
+			first := c.Now().Add(-23*time.Hour + 100*time.Millisecond)
+			cutoff := first.Add(23 * time.Hour)
+			v.Operation.FirstDispatchAt = &first
+			v.Operation.Snapshot.FirstDispatchAt = &first
+			v.Operation.Snapshot.ExpiresAt = first.Add(23*time.Hour + 59*time.Minute).Unix()
+			r := newPolicyRepository(v)
+			in := policyInput()
+			r.state.Bindings[in.RequestKey] = RequestBinding{Key: in.RequestKey, Method: "POST", Target: "/api/orders", OrderID: v.Order.ID, OperationID: v.Operation.ID, Description: in.Description, Amount: in.Amount, Currency: "usd"}
+			originalBinding := r.State().Bindings[in.RequestKey]
+			key := policyKey()
+			require.NotContains(t, r.State().Bindings, key, "continuation must enter with a fresh key")
+			var acceptedBinding RequestBinding
+			prepared := false
+			r.hook = func(_ context.Context, method string) error {
+				if method == "PrepareDispatch" {
+					require.False(t, prepared, "one continuation must not prepare another dispatch after cutoff")
+					require.True(t, c.Now().Before(cutoff), "continuation must reach preparation while initially eligible")
+					st := r.State()
+					require.Contains(t, st.Bindings, key, "continuation acceptance must be durable before dispatch preparation")
+					acceptedBinding = st.Bindings[key]
+					require.Equal(t, key, acceptedBinding.Key)
+					require.Equal(t, "POST", acceptedBinding.Method)
+					require.Equal(t, "/api/orders/"+v.Order.ID+"/checkout", acceptedBinding.Target)
+					require.Equal(t, v.Order.ID, acceptedBinding.OrderID)
+					require.Equal(t, v.Operation.ID, acceptedBinding.OperationID)
+					prepared = true
+					// The accepted same-operation continuation crosses the boundary inside persistence.
+					c.Advance(tc.delay)
+				}
+				return nil
+			}
+			g := newPolicyGateway(policyReply{run: func(_ context.Context, snapshot Snapshot, _ string) (SessionEvidence, error) {
+				require.Equal(t, cutoff.Add(-100*time.Millisecond).Add(tc.delay), c.Now(), "observe controlled time at the physical gateway send")
+				require.True(t, c.Now().Before(cutoff), "continuation creation must still be safe at gateway entry")
+				require.Equal(t, policyImmutableSnapshot(v.Operation.Snapshot), policyImmutableSnapshot(snapshot))
+				return policyEvidence(snapshot), nil
+			}})
+			s := policyService(t, r, g, policyOptions(c))
+			out, err := s.Continue(policyCtx(), v.Order.ID, key)
+			require.NoError(t, err)
+			require.True(t, prepared, "each control must exercise the dispatch transaction delay")
+			policyAssertUnpaid(t, out)
+			require.Equal(t, v.Order.ID, out.Order.ID)
+			require.Equal(t, v.Operation.ID, out.Operation.ID)
+			require.Equal(t, v.Operation.StripeKey, out.Operation.StripeKey)
+			st := r.State()
+			require.Equal(t, originalBinding, st.Bindings[in.RequestKey])
+			require.Equal(t, acceptedBinding, st.Bindings[key], "crossing cutoff cannot discard an accepted continuation binding")
+			require.Len(t, st.Bindings, 2)
+			require.Len(t, st.Orders, 1)
+			require.Len(t, st.Operations, 1)
+			require.Equal(t, v.Order.ID, st.Orders[v.Order.ID].ID)
+			require.Equal(t, v.Operation.ID, st.Orders[v.Order.ID].CurrentOperationID)
+			require.Equal(t, v.Order.Description, st.Orders[v.Order.ID].Description)
+			require.Equal(t, v.Order.Amount, st.Orders[v.Order.ID].Amount)
+			require.Equal(t, v.Order.Currency, st.Orders[v.Order.ID].Currency)
+			require.Equal(t, v.Operation.StripeKey, st.Operations[v.Operation.ID].StripeKey)
+			require.Equal(t, &first, st.Operations[v.Operation.ID].FirstDispatchAt)
+			require.Equal(t, policyImmutableSnapshot(v.Operation.Snapshot), policyImmutableSnapshot(st.Operations[v.Operation.ID].Snapshot))
+			if tc.allowed {
+				require.Len(t, g.Calls(), 1)
+				require.Equal(t, "POST", g.Calls()[0].Method)
+				require.Equal(t, "open", out.Operation.State)
+			} else {
+				require.Empty(t, g.Calls(), "dispatch preparation cannot extend fresh-key continuation replay eligibility")
+				require.True(t, out.Pending)
+				require.True(t, out.NeedsInvestigation)
+				require.Equal(t, "unresolved", out.Operation.State)
+				require.Equal(t, "unresolved", st.Operations[v.Operation.ID].State)
+				require.False(t, out.CanRetrySameOperation)
+				require.False(t, out.CanStartNewAttempt)
+				fresh := policyService(t, r, g, policyOptions(c))
+				view, readErr := fresh.Get(policyCtx(), v.Order.ID)
+				require.NoError(t, readErr)
+				require.Equal(t, v.Operation.ID, view.Operation.ID)
+				require.Equal(t, "unresolved", view.Operation.State)
+				require.True(t, view.NeedsInvestigation)
+				replayed, replayErr := fresh.Continue(policyCtx(), v.Order.ID, key)
+				require.NoError(t, replayErr)
+				require.Equal(t, v.Order.ID, replayed.Order.ID)
+				require.Equal(t, v.Operation.ID, replayed.Operation.ID)
+				require.True(t, replayed.Pending)
+				require.True(t, replayed.NeedsInvestigation)
+				replacementKey := "c768bba8-0e07-45dc-9c17-876f178aa03b"
+				_, replacementErr := fresh.Continue(policyCtx(), v.Order.ID, replacementKey)
+				policyErrorCode(t, replacementErr, "checkout_blocked")
+				recovered := r.State()
+				require.Equal(t, acceptedBinding, recovered.Bindings[key])
+				require.Equal(t, originalBinding, recovered.Bindings[in.RequestKey])
+				require.NotContains(t, recovered.Bindings, replacementKey)
+				require.Len(t, recovered.Orders, 1)
+				require.Len(t, recovered.Operations, 1)
+				require.Equal(t, "unresolved", recovered.Operations[v.Operation.ID].State)
+				require.Equal(t, policyImmutableSnapshot(v.Operation.Snapshot), policyImmutableSnapshot(recovered.Operations[v.Operation.ID].Snapshot))
+				require.Empty(t, g.Calls())
+			}
+		})
+	}
+}

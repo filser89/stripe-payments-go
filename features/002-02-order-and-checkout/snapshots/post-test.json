@@ -511,6 +511,23 @@
       }
     },
     {
+      "id": "github.com/filser89/stripe-payments-go/internal/payment::TestFreshContinuationSafeAgeAfterDispatchPreparation",
+      "full_description": "TestFreshContinuationSafeAgeAfterDispatchPreparation",
+      "file_path": "internal/payment/recovery_test.go",
+      "line_number": 664,
+      "digest": "5f3d7d5937d3cccb095b1b58d254c5f4735d43fd68193a2c6315a07219bb522c",
+      "package": "github.com/filser89/stripe-payments-go/internal/payment",
+      "test_name": "TestFreshContinuationSafeAgeAfterDispatchPreparation",
+      "parent_id": "",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/payment::TestFreshContinuationSafeAgeAfterDispatchPreparation",
+      "is_group": true,
+      "source": {
+        "kind": "function",
+        "start_offset": 27955,
+        "end_offset": 34027
+      }
+    },
+    {
       "id": "github.com/filser89/stripe-payments-go/internal/payment::TestID003CheckoutRules",
       "full_description": "TestID003CheckoutRules",
       "file_path": "internal/payment/checkout_test.go",
@@ -1877,9 +1894,9 @@
     }
   ],
   "metadata": {
-    "captured_at": "2026-10-09T18:26:59Z",
+    "captured_at": "2026-10-09T18:43:55Z",
     "branch": "002-checkout-frozen-hygiene",
-    "commit": "90d9949",
+    "commit": "737682e",
     "feature": "002-02-order-and-checkout",
     "name": "post-test"
   },
@@ -4636,6 +4653,63 @@
         "kind": "function",
         "start_offset": 23347,
         "end_offset": 24405
+      },
+      "status": "failed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/payment::TestFreshContinuationSafeAgeAfterDispatchPreparation/after_cutoff",
+      "full_description": "TestFreshContinuationSafeAgeAfterDispatchPreparation/after_cutoff",
+      "file_path": "internal/payment/recovery_test.go",
+      "line_number": 672,
+      "digest": "a2febb843bdd32e0f80b449b569d4bc5270f5727a4fc2174ceb578b6768f5dd3",
+      "package": "github.com/filser89/stripe-payments-go/internal/payment",
+      "test_name": "TestFreshContinuationSafeAgeAfterDispatchPreparation/after_cutoff",
+      "parent_id": "github.com/filser89/stripe-payments-go/internal/payment::TestFreshContinuationSafeAgeAfterDispatchPreparation",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/payment::TestFreshContinuationSafeAgeAfterDispatchPreparation",
+      "is_group": false,
+      "source": {
+        "kind": "table-row",
+        "start_offset": 28272,
+        "end_offset": 28319,
+        "row_index": 2
+      },
+      "status": "failed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/payment::TestFreshContinuationSafeAgeAfterDispatchPreparation/exact_cutoff",
+      "full_description": "TestFreshContinuationSafeAgeAfterDispatchPreparation/exact_cutoff",
+      "file_path": "internal/payment/recovery_test.go",
+      "line_number": 671,
+      "digest": "74042c7e0c3782d1123db35ee31593a7fe5efd530e169d89b841d1aa089f25e9",
+      "package": "github.com/filser89/stripe-payments-go/internal/payment",
+      "test_name": "TestFreshContinuationSafeAgeAfterDispatchPreparation/exact_cutoff",
+      "parent_id": "github.com/filser89/stripe-payments-go/internal/payment::TestFreshContinuationSafeAgeAfterDispatchPreparation",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/payment::TestFreshContinuationSafeAgeAfterDispatchPreparation",
+      "is_group": false,
+      "source": {
+        "kind": "table-row",
+        "start_offset": 28197,
+        "end_offset": 28244,
+        "row_index": 1
+      },
+      "status": "failed"
+    },
+    {
+      "id": "github.com/filser89/stripe-payments-go/internal/payment::TestFreshContinuationSafeAgeAfterDispatchPreparation/still_before_cutoff",
+      "full_description": "TestFreshContinuationSafeAgeAfterDispatchPreparation/still_before_cutoff",
+      "file_path": "internal/payment/recovery_test.go",
+      "line_number": 670,
+      "digest": "dec114982a65bd1185cfe54ed3dfe7e8e6ca47bd97cabf264ce4c5ea6492f9e8",
+      "package": "github.com/filser89/stripe-payments-go/internal/payment",
+      "test_name": "TestFreshContinuationSafeAgeAfterDispatchPreparation/still_before_cutoff",
+      "parent_id": "github.com/filser89/stripe-payments-go/internal/payment::TestFreshContinuationSafeAgeAfterDispatchPreparation",
+      "group_id": "github.com/filser89/stripe-payments-go/internal/payment::TestFreshContinuationSafeAgeAfterDispatchPreparation",
+      "is_group": false,
+      "source": {
+        "kind": "table-row",
+        "start_offset": 28122,
+        "end_offset": 28174,
+        "row_index": 0
       },
       "status": "failed"
     },
@@ -14660,9 +14734,9 @@
     }
   ],
   "summary": {
-    "total": 681,
+    "total": 684,
     "passed": 65,
-    "failed": 616,
+    "failed": 619,
     "pending": 0
   },
   "protected_files": [
@@ -14763,7 +14837,7 @@
     },
     {
       "path": "internal/payment/recovery_test.go",
-      "sha256": "aad98aa361b4434a6808cfbdb3fda86b16495e2502285cfa6873153906d8e021",
+      "sha256": "e28ad6daaba101b4fdbaaa2fd0f3705f2902435f940793e4afbd48e826be7910",
       "symlink": ""
     },
     {
@@ -15044,6 +15118,9 @@
     "github.com/filser89/stripe-payments-go/internal/payment::TestDirectInspectionOutcomeLogs/history_not_found",
     "github.com/filser89/stripe-payments-go/internal/payment::TestDirectInspectionOutcomeLogs/history_zero_limit",
     "github.com/filser89/stripe-payments-go/internal/payment::TestEachReplayDispatchBookkeepingIsDurable",
+    "github.com/filser89/stripe-payments-go/internal/payment::TestFreshContinuationSafeAgeAfterDispatchPreparation/after_cutoff",
+    "github.com/filser89/stripe-payments-go/internal/payment::TestFreshContinuationSafeAgeAfterDispatchPreparation/exact_cutoff",
+    "github.com/filser89/stripe-payments-go/internal/payment::TestFreshContinuationSafeAgeAfterDispatchPreparation/still_before_cutoff",
     "github.com/filser89/stripe-payments-go/internal/payment::TestID003CheckoutRules/distinct_initial_keys_preserve_distinct_intent",
     "github.com/filser89/stripe-payments-go/internal/payment::TestID003CheckoutRules/same_initial_key_targets_same_operation",
     "github.com/filser89/stripe-payments-go/internal/payment::TestLIFE001CheckoutRules/definitive_first_validation_rejection",
