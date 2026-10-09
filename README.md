@@ -2,6 +2,20 @@
 
 Local Go payment service sandbox with authenticated order creation, Stripe-hosted Checkout, durable replay/recovery, status/history, PostgreSQL, structured logs, and bounded shutdown. See [API usage](docs/api.md), [recovery](docs/recovery.md), and [architecture](docs/architecture.md).
 
+## Current capabilities
+
+- **Order creation:** create and persist a one-product order through the authenticated API, with a description and an amount in USD minor units.
+- **Idempotency:** repeated requests with the same request key and purchase data resolve the same order and payment operation. Reusing the key with different data returns `409 Conflict`; a new key represents a separate purchase.
+- **Concurrent duplicate handling:** PostgreSQL constraints and transactions coordinate overlapping requests, including requests using independent database connections, so the same request key cannot create multiple accepted orders or payment operations.
+
+The API also exposes saved order/payment-operation status and per-order history. Order creation and browser returns do not confirm payment.
+
+## Planned features
+
+1. **Webhook payment confirmation:** verify signed Stripe notifications, correlate them with the order, and update payment state and history atomically, with safe handling of duplicate and out-of-order events.
+2. **Browser payment journey:** add an authenticated local interface to create orders, start or continue Checkout, and view payment status and history.
+3. **Manual reconciliation and recovery:** inspect unresolved payments with bounded concurrent workers, recover interrupted operations, and report repaired results or cases requiring investigation.
+
 ## Prerequisites
 
 - Go 1.27.2 (automatic Go toolchain download must be enabled).
@@ -42,6 +56,109 @@ Use a dedicated local Basic account. Compose supplies Basic settings only to `ap
 | `make verify` | Check formatting, generation, setup workflows, lint, vulnerabilities, build, tests, and race detection. |
 
 For development checks, run `make setup` before generation or verification. Automated tests use synthetic credentials and do not require a Stripe account or key.
+
+## Try the API from the terminal
+
+Orders are submitted through the authenticated JSON API. The application has a static browser landing page, but no order form or browser payment controls. These examples use `curl` and `uuidgen` after the local stack is running. Enter the local application password when curl prompts; the Stripe key stays on the server.
+
+### Create an order
+
+Generate one request key for this purchase. Amount `250` means $2.50 USD.
+
+```sh
+ACCOUNT=$(docker compose exec -T app printenv BASIC_AUTH_USERNAME)
+KEY=$(uuidgen | tr '[:upper:]' '[:lower:]')
+
+curl --user "$ACCOUNT" \
+  --write-out '\nHTTP %{http_code}\n' \
+  -H 'Content-Type: application/json' \
+  http://localhost:8080/api/orders \
+  --data "{\"description\":\"Test purchase\",\"amount\":250,\"request_key\":\"$KEY\"}"
+```
+
+An established new Checkout operation returns `201`, with `order.id`, `operation.id`, and `operation.checkout_url`. Opening the URL takes you to Stripe's hosted sandbox Checkout. Creation and a successful browser return do not mark the local order paid.
+
+### Repeat the same request
+
+Run this command in the same terminal, keeping `KEY` and the purchase data unchanged. Do not regenerate the key.
+
+```sh
+curl --user "$ACCOUNT" \
+  --write-out '\nHTTP %{http_code}\n' \
+  -H 'Content-Type: application/json' \
+  http://localhost:8080/api/orders \
+  --data "{\"description\":\"Test purchase\",\"amount\":250,\"request_key\":\"$KEY\"}"
+```
+
+An established replay returns `200` with the same order and operation IDs. A pending operation can return `202`; a confirmed rejection returns its saved `502` and IDs. Generating a new key represents a new purchase, even when its description and amount are identical.
+
+### Reuse the key with different data
+
+Changing the amount while keeping the accepted key demonstrates `409 idempotency_conflict`:
+
+```sh
+curl --user "$ACCOUNT" \
+  --write-out '\nHTTP %{http_code}\n' \
+  -H 'Content-Type: application/json' \
+  http://localhost:8080/api/orders \
+  --data "{\"description\":\"Test purchase\",\"amount\":300,\"request_key\":\"$KEY\"}"
+```
+
+The conflict creates no additional order or payment operation.
+
+### Read status and history
+
+Copy `order.id` from a successful response, or `error.order_id` from a response containing a saved failure:
+
+```sh
+ORDER_ID='paste-the-order-id-here'
+
+curl --user "$ACCOUNT" --write-out '\nHTTP %{http_code}\n' \
+  "http://localhost:8080/api/orders/$ORDER_ID"
+
+curl --user "$ACCOUNT" --write-out '\nHTTP %{http_code}\n' \
+  "http://localhost:8080/api/orders/$ORDER_ID/history?after=0&limit=50"
+```
+
+These reads return local saved state without calling Stripe. `operation.state` describes Checkout progress; `order.payment_status` describes local payment confirmation. `can_resume`, `can_retry_same_operation`, and `can_start_new_attempt` indicate currently permitted actions. The service rechecks eligibility when an action is requested.
+
+### Continue Checkout on the existing order
+
+Use a new continuation key once; preserve it if this continuation request needs to be repeated:
+
+```sh
+CONTINUE_KEY=$(uuidgen | tr '[:upper:]' '[:lower:]')
+
+curl --user "$ACCOUNT" \
+  --write-out '\nHTTP %{http_code}\n' \
+  -H 'Content-Type: application/json' \
+  "http://localhost:8080/api/orders/$ORDER_ID/checkout" \
+  --data "{\"request_key\":\"$CONTINUE_KEY\"}"
+```
+
+This refreshes or continues the existing order's operation. A replacement operation is allowed only when evidence establishes that another attempt is safe. A new key cannot bypass that check.
+
+### Response statuses
+
+| HTTP status | Meaning |
+| --- | --- |
+| `201` | A new operation has an established Checkout result. |
+| `200` | Existing operation replay/refresh, or a successful status/history read. |
+| `202` | Accepted work is pending or unresolved. Preserve the key and inspect the order before retrying. |
+| `400` | Invalid request input. |
+| `401` | Missing or incorrect local application credentials. |
+| `409` | The key conflicts with another request, or another Checkout attempt is blocked. |
+| `502` | Confirmed Stripe Checkout rejection; known order/operation IDs remain available. |
+| `503` | Work cannot currently be accepted or read, for example during database unavailability. |
+
+Checkout creation currently has a sandbox integration limitation: the request contains `payment_method_types`, which the pinned Stripe API rejects. The order remains inspectable and the API returns `502 checkout_rejected`. The `201`/`200` creation examples require an accepted Checkout result.
+
+Overlapping duplicate requests are covered by a controlled test that holds the first Stripe call while a second request uses the same key:
+
+```sh
+go test -race -count=1 ./internal/integration \
+  -run '^TestConnectedCheckoutConcurrency/independent_servers_identical_key_while_wire_outstanding$'
+```
 
 ## Runtime and configuration
 
