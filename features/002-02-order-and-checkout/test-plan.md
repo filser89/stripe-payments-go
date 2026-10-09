@@ -1,0 +1,919 @@
+# Test Plan: Create orders and hosted checkout
+
+**Feature**: `002-02-order-and-checkout` | **Spec**: [spec.md](spec.md)
+**Acceptance Criteria**: [acceptance-criteria.md](acceptance-criteria.md)
+
+## Summary
+
+- Test files: 26 (21 new, 3 modify, 2 existing)
+- Factories: 7 (7 new, 0 existing)
+- Shared helpers: 14 (12 new, 2 existing)
+- Behavioral criteria mapped (unique IDs): 54 / 54
+- Required outcomes/variants mapped: 311 / 311 semicolon-delimited required-variant groups, each reproduced in Criteria Mapping; groups contain explicitly named subvariants
+- Non-automated runtime evidence: 6 planned procedures
+- Delivery Obligations: 6 separate completion tasks
+- Contract deltas: 3
+- Invalidation sweep: 66 distinct examples dispositioned — 65 keep / 1 modify / 0 remove
+- Planned state changes: 1 MODIFY, 4 TOUCH, 0 REMOVE, 0 PIN
+
+## Runner, ownership, and evidence baseline
+
+Planning input: clean application branch `002-02-order-and-checkout` at `e961cbc9ea987a09d68a644ab28c0c5a2b1a5770`; accepted criteria at `ef3f07872d9e44d28a752d7365d26015c97e86ef` and clarified spec at `3bcb9e2a3784aa2b431941b16c3e82e5f3cb9448`. Effective Kaba source `fix/behavior-evidence-contracts@638047e7d671b86a061516dad300200fa0ade032`; active script directory resolves to `/Users/serg/.codex/plugins/cache/kaba-marketplace/kaba/0.3.0/scripts`. `snapshot-tests.sh` SHA256 `180b0d66d72d3f0cb956298ecfb5655ad1b7e7e0470041a375c11ffcacc33663` matches that source. The cache label does not establish version identity. `.kaba/config.yml` selects Go, `go test ./...`, `make verify`, and rules AGENTS.md/FEATURE-QUALITY-STANDARDS.md. Actual `snapshot-tests.sh identities` succeeds with 66 identities; complete lookup is reproduced below. No baseline execution snapshot, validate-plan, or plan lock is produced in this phase. Those run at implement-tests entry.
+
+Test-writable patterns: `**/*_test.go`, `**/testdata/**`, `internal/testutil/**`, `features/**`, `go.mod`, `go.sum`; no test excludes. Effective ownership is `test` for test/support/scaffold source and `shared` for feature artifacts/go.mod/go.sum, because implementation allows those shared paths too. Shared ownership does not waive feature-plan/dependency freeze restrictions. No test_dir exists. Test-only support and scaffold paths below must classify `test`. No runner/gate configuration edits are planned. `make verify` retains all foundation/workflow tests, uncached unit/integration runs, sqlc consistency, static analysis, vulnerability checks, build and race detection. Compilation scaffolds are excluded from ordinary production builds and kept for Kaba cleanup.
+
+Use named Test functions and literal t.Run registrations or supported literal anonymous-struct tables. No dynamic names, named table types, helper registrations, conditional registrations, Example/Fuzz/Testify suites, skip-on-infrastructure-error or custom overlay. Put every covered criterion marker beside its function/registration/row. Planned families below allow incidental literal-case organization within coverage and paths; existing identities and machine state-change rows remain exact. Independent leaf assertions must not be merged or split merely to alter the red/green gate.
+
+### Stripe dependency pin
+
+Implement-tests adds exact `github.com/stripe/stripe-go/v87 v87.0.0` to go.mod/go.sum before SDK test authoring. Compatible API is `2026-09-30.endive`; source tag resolves to `ba0512a50aa6db9145305bfc46b5a9e60ee14378`. Verified download sums: module `h1:dDztIAKst1hNfNpv4zo3zhVnoLiXJx0fH3Kl+KlGP6Y=`, go.mod `h1:UQKKBVL4DY/evB1M1KczpoCaJi1oFnZ/gRPKukRXYYA=`. Its Go requirement is 1.24, within project Go1.27.2. The [official stable release](https://github.com/stripe/stripe-go/releases/tag/v87.0.0) and [tagged API constant](https://github.com/stripe/stripe-go/blob/v87.0.0/api_version.go) establish the pin. Tagged checkout source specifies `ui_mode=hosted_page`; test the pinned wire representation rather than an older enum. A per-client backend accepts local URL/HTTP client and explicit `MaxNetworkRetries=0`, with context-first `V1CheckoutSessions.Create`/`Retrieve`; payment owns the combined retry policy. No live SDK endpoint is contacted. Pin hashes/API constants and request version appear in freeze evidence and persisted snapshots. Only planned dependency/checksum updates are authorized; no floating version or API override silently migrates accepted snapshots.
+
+## Test-visible public contracts and compilation scaffolds
+
+Package placement follows AGENTS.md: payment owns business operations/policy; postgres owns SQL and transactions; stripeapi owns SDK translation; web owns parsing/routing/response/authenticated admission; cmd/service builds real dependencies. These boundary declarations permit assertions without prescribing private algorithms, SQL query organization, or concurrency implementation. Context is first on operations; constructors do not start owned background work. Public contract types are ordinary structs/interfaces with plain state/code strings, nullable pointers and time.Time values, so scaffolds require no constant/variable initializer declarations.
+
+| Package | Test-visible contract | Required observable semantics |
+|---|---|---|
+| `internal/payment` | `New(repository, gateway, options)` returns Service; Service implements Operations: Create(ctx, CreateInput)→Outcome/error; Continue(ctx, orderID, requestKey)→Outcome/error; Get(ctx, orderID)→View/error; History(ctx, orderID, after int64, limit int)→HistoryPage/error | Same business operations for HTTP and future recovery; no SDK/SQL imports needed in payment fakes. Errors carry stable code and known optional IDs; Outcome expresses newly accepted / established / pending / confirmed-rejected so web owns status encoding. |
+| `internal/payment` | CreateInput description/string, amount/int64, request key/string; View/Outcome contain Order, referenced Operation and three flags; HistoryPage order ID/entries/next_after | Fields reproduce HTTP-002/DATA-004 exactly; bound replay versus current read is explicit. Nullable absent values remain distinguishable. |
+| `internal/payment` | Order, Operation, RequestBinding, HistoryEntry, Snapshot and SessionEvidence ordinary public values; Options captures currency/min/max/origin/API version, call/retry/attempt limits, logger, Now and cancellable Wait | Snapshot holds complete accepted purchase, IDs/key/URLs/version/first-last dispatch/Unix expiry. Evidence carries all session/client-reference/metadata/amount/currency/mode/livemode/status/payment-status/PaymentIntent/URL/expiry/request ID facts and sanitized classified failure/retry-header facts. Operations track prior ambiguity, current/ownership version and evidence provenance needed by guards. No raw customer/card body in domain/history. |
+| `internal/payment` | Gateway Create(ctx, Snapshot)→SessionEvidence/error; Retrieve(ctx, sessionID)→SessionEvidence/error | Each invocation makes at most one SDK wire attempt; prepared-object fake supports exactly same evidence contract. Error classification distinguishes transport/429/transient-conflict/5xx/structured pre-execution or credential-permission rejection/generic malformed outcomes; domain decides rejection only with no earlier ambiguity. |
+| `internal/payment` | Repository LoadBinding(ctx,key), AcceptInitial(ctx,accepted intent), LoadOrder(ctx,id), BindContinuation(ctx,binding and expected current/paid guard), PrepareDispatch(ctx,claim/snapshot/timestamps), ApplyObservation(ctx,expected ownership/current and result), ReadHistory(ctx,id,after,limit) | Each returns explicit value/error; accept/bind/claim/apply atomically save state/bindings/history and enforce durable guards; conflicts distinguish existing equal binding from changed intent. Return ownership token/version rather than relying on process memory. Network occurs between committed operations, never inside an open repository transaction. Fixtures supply explicit IDs/keys at repository boundary for collision tests. Method argument/result structs expose only the facts in this table; private schema/query/locking technique is implementation scope. |
+| `internal/postgres` | NewPaymentRepository(pool) satisfies payment.Repository | Real pgx independent connections and normal migrations establish constraints/atomicity. Tests use repository calls and catalog/persisted witnesses; DB fixture relation bindings follow the four schema roles order/operation/request-binding/history, with ordinary concrete relation names selected consistently during test authoring. No production fault-injection API. |
+| `internal/stripeapi` | New(secret, Options) returns a Gateway; Options accepts per-client backend URL and HTTP client for local tests | Real official client creation/retrieval translates data/errors without business policy, shared retry loops or global stripe.Key/backend mutation. Production defaults use official sandbox API; local options are construction injection, not new user-facing serving environment. |
+| `internal/config` | Captured Config.CheckoutSettings accessor supplies serving settings to composition; existing Load and ValidateServing entry points retained | Capture once; checkout key/origin/limits/budget semantic validation is serving-only; common foundation validation applies to migrate/probe. Tests assert public behavior and actual timeout defaults, not private parsing helpers. No scaffold replacement of Load/ValidateServing. |
+| `internal/web` | NewCheckoutHandler(payment.Operations, request timeout, logger) returns http.Handler; existing web.New(c,logger,ready,extra) remains composition boundary | Mounted as protected extra; handler dispatches four feature routes and preserves existing root landing behavior. Overall deadline starts at authenticated protected admission before body reads. Exact probes stay in outer web.New. Generic nil/test extra fixtures retain existing Basic/transport semantics. |
+
+Scaffold support paths: `internal/payment/testdata/kaba/002-02-order-and-checkout/contracts.go`, `internal/stripeapi/testdata/kaba/002-02-order-and-checkout/contracts.go`, `internal/postgres/testdata/kaba/002-02-order-and-checkout/contracts.go`, `internal/web/testdata/kaba/002-02-order-and-checkout/contracts.go`, and `internal/config/testdata/kaba/002-02-order-and-checkout/contracts.go` only if their declarations are absent. New package tests use package payment/stripeapi so the inventory can infer package names from TestGoFiles without a production placeholder file; payment-local fakes/fixtures do not import shared testutil that imports payment. Existing packages may use their established external package style.
+
+Scaffolds contain only missing type/field/function/method declarations with zero/default-return bodies, no replacement of existing behavior, variables/init, business logic, blanket panic or fake success. Nil/default constructor results are asserted safely before dereference; missing boundary behavior produces meaningful assertions, not build failure or process crash. Use only runner-validated post-test overlays; retain scaffold sources through implementation/freeze. Config accessor declarations can be scaffolded, existing validator behavior cannot. No production source, migrations, generated SQL or next-phase code is written by implement-tests.
+
+Expected honest landings: the updated read-default test fails on current 10s behavior; existing command/empty-source TOUCHs remain green; new feature behavior absent from current production produces missing-behavior failures. There are no planned PINs. Already-conforming independent behavior extends existing coherent families where explicitly listed; do not manufacture red, duplicate/reshape tests to satisfy a gate, or absorb failures into a new baseline. An unexpected legitimate green leaf or scaffold/inventory limitation is reported with exact evidence for parent resolution before a mechanical exception; the author cannot weaken its assertions.
+
+## Test Files
+
+The 311 groups provide traceability, not 311 required tests. Coherent cases may prove several outcomes. These 26 files follow meaningful configured package/endpoint/concern boundaries; named families describe locations, not a mandatory one-criterion test split. Incidental family/case consolidation is allowed within coverage, paths and exact existing identities for a substantive organization reason, never solely to alter gate outcomes.
+
+### internal/config/checkout_test.go (NEW)
+
+- **Criteria**: CFG-001, CFG-002, CFG-003
+- **Describe blocks**:
+  - `TestCheckoutAmountConfiguration`
+    - covers: CFG-001 — configuration defaults, accepted endpoints and rejected currency/limit syntax.
+  - `TestCheckoutSandboxOriginConfiguration`
+    - covers: CFG-002 — key classes, exact local origins, rejected origins and captured values.
+  - `TestCheckoutBudgetConfiguration`
+    - covers: CFG-003 — all request/call/retry/attempt endpoints, malformed/range/cross-setting constraints.
+- **Dependencies**: serving_environment
+
+### internal/config/config_test.go (MODIFY)
+
+- **Criteria**: CFG-003
+- **Describe blocks**:
+  - `TestLoadValidConfiguration`
+    - covers: CFG-003 — read 11s/write 15s with retained shutdown/cleanup defaults.
+- **Dependencies**: existing package-local fixtures/helpers; no changes to their declarations
+
+### cmd/service/authentication_test.go (MODIFY)
+
+- **Criteria**: CFG-002, CFG-004, FND-002
+- **Describe blocks**:
+  - `TestAuthenticationCommandIndependence`
+    - covers: CFG-004 — absent/invalid Stripe key and origin for both real migrate/probe; real effects and bounded unavailable failures.
+  - `TestAuthenticationServingConfiguration`
+    - covers: CFG-002, FND-002 — preserve Basic tests with valid fixed sandbox settings.
+  - `TestAuthenticationCredentialLifetime`
+    - covers: CFG-002 — retain captured Basic account while valid checkout settings permit serving.
+- **Dependencies**: command_database, command_environment
+
+### cmd/service/checkout_test.go (NEW)
+
+- **Criteria**: CFG-001, CFG-002, CFG-003, FND-002, HTTP-001, HTTP-005
+- **Describe blocks**:
+  - `TestCheckoutServingValidation`
+    - covers: CFG-001, CFG-002, CFG-003, FND-002 — real executable never listens for invalid settings; valid migrated startup/readiness and process captured settings.
+  - `TestCheckoutCommandWiring`
+    - covers: HTTP-001, HTTP-005, FND-002 — real run/serve with application-created dependencies exposes API; public probes and landing preserved.
+- **Dependencies**: local_stripe, purchase, real_postgres, serving_environment, structured_logs
+
+### internal/payment/checkout_test.go (NEW)
+
+- **Criteria**: ID-003, LIFE-001, LIFE-002, LIFE-003, LIFE-004, LIFE-005, LIFE-006, LIFE-007, LIFE-008, LIFE-009
+- **Describe blocks**:
+  - `TestID003CheckoutRules`
+    - covers: ID-003 — all policy variants; persistence-specific overlap is independently mapped below.
+  - `TestLIFE001CheckoutRules`
+    - covers: LIFE-001 — all policy variants; persistence-specific overlap is independently mapped below.
+  - `TestLIFE002CheckoutRules`
+    - covers: LIFE-002 — all policy variants; persistence-specific overlap is independently mapped below.
+  - `TestLIFE003CheckoutRules`
+    - covers: LIFE-003 — all policy variants; persistence-specific overlap is independently mapped below.
+  - `TestLIFE004CheckoutRules`
+    - covers: LIFE-004 — all policy variants; persistence-specific overlap is independently mapped below.
+  - `TestLIFE005CheckoutRules`
+    - covers: LIFE-005 — all policy variants; persistence-specific overlap is independently mapped below.
+  - `TestLIFE006CheckoutRules`
+    - covers: LIFE-006 — all policy variants; persistence-specific overlap is independently mapped below.
+  - `TestLIFE007CheckoutRules`
+    - covers: LIFE-007 — all policy variants; persistence-specific overlap is independently mapped below.
+  - `TestLIFE008CheckoutRules`
+    - covers: LIFE-008 — all policy variants; persistence-specific overlap is independently mapped below.
+  - `TestLIFE009CheckoutRules`
+    - covers: LIFE-009 — all policy variants; persistence-specific overlap is independently mapped below.
+- **Dependencies**: controlled_clock, fake_gateway, fake_repository, payment_fixtures
+
+### internal/payment/recovery_test.go (NEW)
+
+- **Criteria**: REC-003, REC-004, STR-004, STR-005, STR-006, STR-007, STR-008
+- **Describe blocks**:
+  - `TestSTR004RecoveryRules`
+    - covers: STR-004 — outcome/retry/age/investigation policy variants with deterministic clock/wait and completion.
+  - `TestSTR005RecoveryRules`
+    - covers: STR-005 — outcome/retry/age/investigation policy variants with deterministic clock/wait and completion.
+  - `TestSTR006RecoveryRules`
+    - covers: STR-006 — outcome/retry/age/investigation policy variants with deterministic clock/wait and completion.
+  - `TestSTR007RecoveryRules`
+    - covers: STR-007 — outcome/retry/age/investigation policy variants with deterministic clock/wait and completion.
+  - `TestSTR008RecoveryRules`
+    - covers: STR-008 — outcome/retry/age/investigation policy variants with deterministic clock/wait and completion.
+  - `TestREC003RecoveryRules`
+    - covers: REC-003 — outcome/retry/age/investigation policy variants with deterministic clock/wait and completion.
+  - `TestREC004RecoveryRules`
+    - covers: REC-004 — outcome/retry/age/investigation policy variants with deterministic clock/wait and completion.
+- **Dependencies**: controlled_clock, fake_gateway, fake_repository, payment_fixtures
+
+### internal/web/checkout_validation_test.go (NEW)
+
+- **Criteria**: INP-001, INP-002, INP-003, INP-004, INP-005, INP-006
+- **Describe blocks**:
+  - `TestINP001CheckoutValidation`
+    - covers: INP-001 — all named input boundaries across declared methods, exact status and no parser/payment effect on rejection.
+  - `TestINP002CheckoutValidation`
+    - covers: INP-002 — all named input boundaries across declared methods, exact status and no parser/payment effect on rejection.
+  - `TestINP003CheckoutValidation`
+    - covers: INP-003 — all named input boundaries across declared methods, exact status and no parser/payment effect on rejection.
+  - `TestINP004CheckoutValidation`
+    - covers: INP-004 — all named input boundaries across declared methods, exact status and no parser/payment effect on rejection.
+  - `TestINP005CheckoutValidation`
+    - covers: INP-005 — all named input boundaries across declared methods, exact status and no parser/payment effect on rejection.
+  - `TestINP006CheckoutValidation`
+    - covers: INP-006 — all named input boundaries across declared methods, exact status and no parser/payment effect on rejection.
+- **Dependencies**: authenticated_request, body_streams, fake_operations, purchase
+
+### internal/web/orders_create_test.go (NEW)
+
+- **Criteria**: HTTP-001, HTTP-002, HTTP-003, HTTP-004
+- **Describe blocks**:
+  - `TestHTTP001CreateResponse`
+    - covers: HTTP-001 — initial POST status/envelope/error/header outcomes; durable connected portions mapped separately.
+  - `TestHTTP002CreateResponse`
+    - covers: HTTP-002 — initial POST status/envelope/error/header outcomes; durable connected portions mapped separately.
+  - `TestHTTP003CreateResponse`
+    - covers: HTTP-003 — initial POST status/envelope/error/header outcomes; durable connected portions mapped separately.
+  - `TestHTTP004CreateResponse`
+    - covers: HTTP-004 — initial POST status/envelope/error/header outcomes; durable connected portions mapped separately.
+- **Dependencies**: authenticated_request, fake_operations, purchase, structured_logs
+
+### internal/web/orders_checkout_test.go (NEW)
+
+- **Criteria**: HTTP-002, HTTP-003, HTTP-004, ID-004, LIFE-005
+- **Describe blocks**:
+  - `TestCheckoutContinuationResponses`
+    - covers: HTTP-002, HTTP-003, HTTP-004, ID-004, LIFE-005 — bound continuation envelopes; pre-acceptance 409 without binding versus accepted unresolved 202 retaining IDs; rejection replay.
+- **Dependencies**: authenticated_request, binding, fake_operations, operation
+
+### internal/web/orders_read_test.go (NEW)
+
+- **Criteria**: HTTP-002, HTTP-006, LIFE-008
+- **Describe blocks**:
+  - `TestOrderReadResponses`
+    - covers: HTTP-002, HTTP-006, LIFE-008 — all seven local states, explicit nulls and last-observed current-operation flags; zero mutations/Stripe calls.
+- **Dependencies**: authenticated_request, fake_operations, operation, purchase
+
+### internal/web/orders_history_test.go (NEW)
+
+- **Criteria**: DATA-004, HTTP-006
+- **Describe blocks**:
+  - `TestOrderHistoryResponses`
+    - covers: HTTP-006, DATA-004 — history schema, null/available identifiers, all paging/cursor/ordering/isolation outcomes.
+- **Dependencies**: authenticated_request, fake_operations, history, purchase
+
+### internal/web/checkout_routing_test.go (NEW)
+
+- **Criteria**: HTTP-005, SEC-001
+- **Describe blocks**:
+  - `TestCheckoutEndpointRouting`
+    - covers: HTTP-005, SEC-001 — four paths and methods, Allow/400/404, GET/HEAD success/error parity, valid delegation.
+- **Dependencies**: authenticated_request, fake_operations, purchase
+
+### internal/web/checkout_security_test.go (NEW)
+
+- **Criteria**: SEC-001, SEC-002, SEC-003
+- **Describe blocks**:
+  - `TestCheckoutEndpointAuthentication`
+    - covers: SEC-001 — actual endpoints all methods; missing/wrong/cookie/query/body credentials; sequential and overlapping isolation; no parsing/payment effects.
+  - `TestCheckoutSanitizedLogsAndResponses`
+    - covers: SEC-002, SEC-003 — every success/rejection/dependency/cancellation category, correlated known IDs, allowlists and sensitive sentinels.
+- **Dependencies**: authenticated_request, body_streams, fake_operations, operation, purchase, structured_logs
+
+### internal/web/checkout_transport_test.go (NEW)
+
+- **Criteria**: FND-003, INP-005, INP-006, STR-004
+- **Describe blocks**:
+  - `TestCheckoutRealBodyAndResponseDeadlines`
+    - covers: INP-005, INP-006, STR-004, FND-003 — known-length/chunked streams at 4096/4097, stalled streams, earlier context, blocked response completion; join actual owned work.
+- **Dependencies**: authenticated_request, body_streams, controlled_barriers, fake_operations, purchase
+
+### internal/stripeapi/checkout_test.go (NEW)
+
+- **Criteria**: LIFE-002, LIFE-007, STR-001, STR-003, STR-008
+- **Describe blocks**:
+  - `TestSTR001SDKRequest`
+    - covers: STR-001 — all creation wire parameters, immutable form/key/version/URLs, v87 hosted_page representation, no secret purchase metadata.
+  - `TestSTR003SDKRequest`
+    - covers: STR-003 — all creation wire parameters, immutable form/key/version/URLs, v87 hosted_page representation, no secret purchase metadata.
+  - `TestSDKCheckoutEvidenceTranslation`
+    - covers: LIFE-002, LIFE-007, STR-008 — real SDK creation/retrieval decode every evidence correlation/status/ID/error variant; domain owns policy.
+- **Dependencies**: local_stripe, session_evidence, snapshot
+
+### internal/stripeapi/transport_test.go (NEW)
+
+- **Criteria**: STR-004, STR-005, STR-006, STR-007, STR-008
+- **Describe blocks**:
+  - `TestSTR004SDKTransport`
+    - covers: STR-004 — adapter once-per-call wire behavior, genuine structured/unstructured errors, real header/body/connection cancellation; connected retry owner proves combined limits.
+  - `TestSTR005SDKTransport`
+    - covers: STR-005 — adapter once-per-call wire behavior, genuine structured/unstructured errors, real header/body/connection cancellation; connected retry owner proves combined limits.
+  - `TestSTR006SDKTransport`
+    - covers: STR-006 — adapter once-per-call wire behavior, genuine structured/unstructured errors, real header/body/connection cancellation; connected retry owner proves combined limits.
+  - `TestSTR007SDKTransport`
+    - covers: STR-007 — adapter once-per-call wire behavior, genuine structured/unstructured errors, real header/body/connection cancellation; connected retry owner proves combined limits.
+  - `TestSTR008SDKTransport`
+    - covers: STR-008 — adapter once-per-call wire behavior, genuine structured/unstructured errors, real header/body/connection cancellation; connected retry owner proves combined limits.
+- **Dependencies**: controlled_barriers, local_stripe, session_evidence, snapshot
+
+### internal/postgres/payment_test.go (NEW)
+
+- **Criteria**: DATA-001, DATA-002, DATA-004
+- **Describe blocks**:
+  - `TestDATA001PaymentPersistence`
+    - covers: DATA-001 — real application migrations; successful writes, constraints, append-only retention and injected rollback/commit failures.
+  - `TestDATA002PaymentPersistence`
+    - covers: DATA-002 — real application migrations; successful writes, constraints, append-only retention and injected rollback/commit failures.
+  - `TestDATA004PaymentPersistence`
+    - covers: DATA-004 — real application migrations; successful writes, constraints, append-only retention and injected rollback/commit failures.
+- **Dependencies**: binding, database_faults, history, operation, purchase, real_postgres, snapshot
+
+### internal/postgres/payment_concurrency_test.go (NEW)
+
+- **Criteria**: DATA-002, DATA-003, DATA-005
+- **Describe blocks**:
+  - `TestDATA002IndependentConnections`
+    - covers: DATA-002 — independent pools/connections, durable winner/loser ownership and paid/current guards, no transaction held during calls.
+  - `TestDATA003IndependentConnections`
+    - covers: DATA-003 — independent pools/connections, durable winner/loser ownership and paid/current guards, no transaction held during calls.
+  - `TestDATA005IndependentConnections`
+    - covers: DATA-005 — independent pools/connections, durable winner/loser ownership and paid/current guards, no transaction held during calls.
+- **Dependencies**: binding, controlled_barriers, database_faults, history, operation, purchase, real_postgres, snapshot
+
+### internal/integration/foundation_test.go (MODIFY)
+
+- **Criteria**: FND-001, FND-002
+- **Describe blocks**:
+  - `TestDatabaseMigrationsReadinessAndRestart/outage_recovery_and_retained_data`
+    - covers: FND-001 — real PostgreSQL outage/recovery foundation predicate remains unchanged.
+  - `TestDatabaseMigrationsReadinessAndRestart/empty_production_migrations`
+    - covers: FND-002 — retains empty supplied-source support on a genuinely empty fs; production schema tested in new file.
+- **Dependencies**: existing package-local fixtures/helpers; no changes to their declarations
+
+### internal/integration/orders_test.go (NEW)
+
+- **Criteria**: CFG-001, DATA-004, HTTP-001, HTTP-002, HTTP-003, HTTP-004, HTTP-005, HTTP-006, ID-001, ID-002, ID-003, ID-004, INP-001, INP-002, INP-003, INP-004, INP-005, INP-006, SEC-001, SEC-002, SEC-003
+- **Describe blocks**:
+  - `TestConnectedOrderCheckoutAndInspection`
+    - covers: HTTP-001, HTTP-002, HTTP-003, HTTP-004, HTTP-005, HTTP-006, CFG-001, INP-001, INP-002, INP-003, INP-004, INP-005, INP-006, ID-001, ID-002, ID-003, ID-004, DATA-004, SEC-001, SEC-002, SEC-003 — all mapped HTTP/input/identity variants with real DB state/effect witnesses; connected 201→GET/history and replay200; accepted202 and stable errors.
+- **Dependencies**: authenticated_request, binding, controlled_barriers, history, local_stripe, operation, purchase, real_postgres, session_evidence, snapshot, structured_logs
+
+### internal/integration/checkout_lifecycle_test.go (NEW)
+
+- **Criteria**: DATA-001, DATA-003, ID-004, LIFE-001, LIFE-002, LIFE-003, LIFE-004, LIFE-005, LIFE-006, LIFE-007, LIFE-008, LIFE-009, STR-002
+- **Describe blocks**:
+  - `TestConnectedCheckoutLifecycle`
+    - covers: LIFE-001, LIFE-002, LIFE-003, LIFE-004, LIFE-005, LIFE-006, LIFE-007, LIFE-008, LIFE-009, ID-004, STR-002, DATA-001, DATA-003 — all lifecycle variants persisted and observed over HTTP including paid fixture, rejected/expired eligibility and accepted ambiguity; exact clocks/guards.
+- **Dependencies**: authenticated_request, binding, controlled_barriers, controlled_clock, database_faults, history, local_stripe, operation, purchase, real_postgres, session_evidence, snapshot
+
+### internal/integration/checkout_recovery_test.go (NEW)
+
+- **Criteria**: DATA-001, DATA-004, HTTP-007, ID-001, REC-001, REC-002, REC-003, REC-004, SEC-002, SEC-003, STR-001, STR-002, STR-003, STR-007, STR-008
+- **Describe blocks**:
+  - `TestConnectedCheckoutRecovery`
+    - covers: HTTP-007, ID-001, STR-001, STR-002, STR-003, STR-007, STR-008, REC-001, REC-002, REC-003, REC-004, DATA-001, DATA-004, SEC-002, SEC-003 — both interruption boundaries, caller response loss, restart fresh dependencies, pre-call/result/read failures, retained snapshots and safe-age/investigation variants.
+- **Dependencies**: authenticated_request, binding, controlled_barriers, controlled_clock, database_faults, history, local_stripe, operation, purchase, real_postgres, session_evidence, snapshot, structured_logs
+
+### internal/integration/checkout_concurrency_test.go (NEW)
+
+- **Criteria**: DATA-002, DATA-003, DATA-005, FND-004, HTTP-003, ID-001, ID-002, LIFE-004, LIFE-006
+- **Describe blocks**:
+  - `TestConnectedCheckoutConcurrency`
+    - covers: HTTP-003, ID-001, ID-002, LIFE-004, LIFE-006, DATA-002, DATA-003, DATA-005, FND-004 — deliberately overlapping independent app instances/pools; identical/conflicting keys, ownership loss, replacement/paid/stale-result and independent progress variants.
+- **Dependencies**: authenticated_request, binding, controlled_barriers, database_faults, history, local_stripe, operation, purchase, real_postgres, session_evidence, snapshot
+
+### internal/integration/checkout_deadlines_test.go (NEW)
+
+- **Criteria**: FND-002, FND-003, FND-004, LIFE-009, STR-004, STR-005, STR-006, STR-007
+- **Describe blocks**:
+  - `TestConnectedCheckoutBudgetsAndShutdown`
+    - covers: STR-004, STR-005, STR-006, STR-007, LIFE-009, FND-002, FND-003, FND-004 — actual combined GET/POST wire attempts1/2/3/backoffs, elapsed/body/DB/SDK/cancellation budgets, graceful/overdue checkout durable outcomes and independent successful work.
+- **Dependencies**: authenticated_request, binding, controlled_barriers, database_faults, history, local_stripe, operation, purchase, real_postgres, session_evidence, snapshot, structured_logs
+
+### internal/web/authentication_test.go (EXISTS)
+
+- **Criteria**: FND-001
+- **Describe blocks**:
+  - `TestAuthenticationPublicProbeBoundary`
+    - covers: FND-001 — all exact probes, methods, HEAD and protected prefix variants.
+- **Dependencies**: existing package-local fixtures/helpers; no changes to their declarations
+
+### internal/web/server_test.go (EXISTS)
+
+- **Criteria**: FND-001
+- **Describe blocks**:
+  - `TestHealthReadinessAndSanitizedLogs`
+    - covers: FND-001 — liveness independent of DB, readiness unavailable/recovered, request correlation.
+  - `TestReadinessDeadline`
+    - covers: FND-001 — bounded readiness error path.
+- **Dependencies**: existing package-local fixtures/helpers; no changes to their declarations
+
+## Invalidation Sweep
+
+Suite-wide content probes run against every configured existing test-owned source/support path: all `_test.go` files and all `testdata/**`/`internal/testutil/**` files, including shell/SQL fixtures. Existing features prose and dependency manifests are metadata, not example source. Hit-file identities below are deliberately over-dispositioned: every inventoried example in a file with a hit is examined, including shared setup dependencies. Exact helper call sites are inspected; no file-name association selects search scope. Duplicate hits across deltas are counted once in Summary. TOUCH is a content-only plan action; sweep dispositions remain KEEP where observable status/contract persists, with exact TOUCH rows separately authorizing the edit.
+
+### CD-1 — HTTP read default and serving budget validation
+
+- **Contract surface**: foundation HTTP read default 10s and positive-only transport durations; required feature contract 11s read, 15s write; serving timeout margin and checkout bounds (CFG-003).
+- **Kind**: unconditional
+- **Probes**: `HTTP_READ_TIMEOUT|HTTP_WRITE_TIMEOUT|ReadTimeout|WriteTimeout|ShutdownGrace|CleanupTimeout|config\.Load`
+- **Request/command boundary**: run/serve and web.New/authSettings; canonical API and negative guards; actual stream requests.
+- **Storage/behavior boundary**: config.Load duration fields and serving helpers; postgres.Migrate/Goose versions and fixture data.
+- **Files hit**: `cmd/service/authentication_test.go`, `internal/config/config_test.go`, `internal/integration/foundation_test.go`, `internal/web/authentication_test.go`, `internal/web/authentication_transport_test.go`, `internal/web/server_test.go`
+
+Reason key: K-WEB = explicit transport overrides and generic web.New nil/test extra fixtures retain Basic/transport semantics; serving checkout validation is in run/serve, and negative guards do not name API routes. K-CONFIG = common invalid database/address/log/duration syntax remains rejected and no old read-default expectation. K-COMMAND = unknown command/database rejection precedes serving validation. K-BASIC = preserved Basic semantics with separately authorized inline TOUCHs, no helper edits. K-DB = generic/isolated fixture migrations, readiness and cancellation remain valid; empty-source TOUCH avoids version collision.
+
+| Example (address) | Description | Disposition | Reason |
+|---|---|---|---|
+| `github.com/filser89/stripe-payments-go/cmd/service::TestAuthenticationCommandIndependence` | `TestAuthenticationCommandIndependence` | KEEP | This delta preserves Basic account/command semantics; targeted inline checkout environment additions are separately authorized TOUCHs, no shared helper body changes. |
+| `github.com/filser89/stripe-payments-go/cmd/service::TestAuthenticationCredentialLifetime` | `TestAuthenticationCredentialLifetime` | KEEP | This delta preserves Basic account/command semantics; targeted inline checkout environment additions are separately authorized TOUCHs, no shared helper body changes. |
+| `github.com/filser89/stripe-payments-go/cmd/service::TestAuthenticationServingConfiguration` | `TestAuthenticationServingConfiguration` | KEEP | This delta preserves Basic account/command semantics; targeted inline checkout environment additions are separately authorized TOUCHs, no shared helper body changes. |
+| `github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/bad_log_level` | `TestLoadRejectsInvalidConfigurationWithoutSecrets/bad_log_level` | KEEP | K-CONFIG |
+| `github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/bad_port` | `TestLoadRejectsInvalidConfigurationWithoutSecrets/bad_port` | KEEP | K-CONFIG |
+| `github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/invalid_database` | `TestLoadRejectsInvalidConfigurationWithoutSecrets/invalid_database` | KEEP | K-CONFIG |
+| `github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/invalid_timeout` | `TestLoadRejectsInvalidConfigurationWithoutSecrets/invalid_timeout` | KEEP | K-CONFIG |
+| `github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/missing_database` | `TestLoadRejectsInvalidConfigurationWithoutSecrets/missing_database` | KEEP | K-CONFIG |
+| `github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/missing_database_name` | `TestLoadRejectsInvalidConfigurationWithoutSecrets/missing_database_name` | KEEP | K-CONFIG |
+| `github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/missing_host` | `TestLoadRejectsInvalidConfigurationWithoutSecrets/missing_host` | KEEP | K-CONFIG |
+| `github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/negative_readiness` | `TestLoadRejectsInvalidConfigurationWithoutSecrets/negative_readiness` | KEEP | K-CONFIG |
+| `github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/overflow_budget` | `TestLoadRejectsInvalidConfigurationWithoutSecrets/overflow_budget` | KEEP | K-CONFIG |
+| `github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/short_container_budget` | `TestLoadRejectsInvalidConfigurationWithoutSecrets/short_container_budget` | KEEP | K-CONFIG |
+| `github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/wrong_scheme` | `TestLoadRejectsInvalidConfigurationWithoutSecrets/wrong_scheme` | KEEP | K-CONFIG |
+| `github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_cleanup` | `TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_cleanup` | KEEP | K-CONFIG |
+| `github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_header` | `TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_header` | KEEP | K-CONFIG |
+| `github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_idle` | `TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_idle` | KEEP | K-CONFIG |
+| `github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_port` | `TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_port` | KEEP | K-CONFIG |
+| `github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_read` | `TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_read` | KEEP | K-CONFIG |
+| `github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_shutdown` | `TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_shutdown` | KEEP | K-CONFIG |
+| `github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_startup` | `TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_startup` | KEEP | K-CONFIG |
+| `github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_write` | `TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_write` | KEEP | K-CONFIG |
+| `github.com/filser89/stripe-payments-go/internal/config::TestLoadValidConfiguration` | `TestLoadValidConfiguration` | MODIFY | CFG-003 requires 11s read default; 15s write and existing shutdown/cleanup assertions remain |
+| `github.com/filser89/stripe-payments-go/internal/integration::TestDatabaseMigrationsReadinessAndRestart/apply_repeat_and_rollback` | `TestDatabaseMigrationsReadinessAndRestart/apply_repeat_and_rollback` | KEEP | K-DB |
+| `github.com/filser89/stripe-payments-go/internal/integration::TestDatabaseMigrationsReadinessAndRestart/empty_production_migrations` | `TestDatabaseMigrationsReadinessAndRestart/empty_production_migrations` | KEEP | Generic query/readiness/cancellation and isolated fixture migration sources retain their contract; empty-source TOUCH prevents production/fixture version collision; explicit transport/shutdown overrides remain valid. |
+| `github.com/filser89/stripe-payments-go/internal/integration::TestDatabaseMigrationsReadinessAndRestart/failing_transaction_leaves_no_partial_table` | `TestDatabaseMigrationsReadinessAndRestart/failing_transaction_leaves_no_partial_table` | KEEP | K-DB |
+| `github.com/filser89/stripe-payments-go/internal/integration::TestDatabaseMigrationsReadinessAndRestart/generated_readiness_query` | `TestDatabaseMigrationsReadinessAndRestart/generated_readiness_query` | KEEP | K-DB |
+| `github.com/filser89/stripe-payments-go/internal/integration::TestDatabaseMigrationsReadinessAndRestart/outage_recovery_and_retained_data` | `TestDatabaseMigrationsReadinessAndRestart/outage_recovery_and_retained_data` | KEEP | K-DB |
+| `github.com/filser89/stripe-payments-go/internal/integration::TestOpenRejectsUnavailableDatabaseWithinDeadline` | `TestOpenRejectsUnavailableDatabaseWithinDeadline` | KEEP | K-DB |
+| `github.com/filser89/stripe-payments-go/internal/integration::TestShutdownCancelsActivePostgresQuery` | `TestShutdownCancelsActivePostgresQuery` | KEEP | K-DB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationAuthorizationParsing` | `TestAuthenticationAuthorizationParsing` | KEEP | K-WEB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationBodyReadFailure` | `TestAuthenticationBodyReadFailure` | KEEP | K-WEB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationConcurrentIsolation` | `TestAuthenticationConcurrentIsolation` | KEEP | K-WEB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationCredentialSources` | `TestAuthenticationCredentialSources` | KEEP | K-WEB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationDelegation` | `TestAuthenticationDelegation` | KEEP | K-WEB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationExactCredentials` | `TestAuthenticationExactCredentials` | KEEP | K-WEB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationFoundationTransport` | `TestAuthenticationFoundationTransport` | KEEP | K-WEB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationLanding` | `TestAuthenticationLanding` | KEEP | K-WEB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationLandingBodyBytes` | `TestAuthenticationLandingBodyBytes` | KEEP | K-WEB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationMissingCredentials` | `TestAuthenticationMissingCredentials` | KEEP | K-WEB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationPublicProbeBoundary` | `TestAuthenticationPublicProbeBoundary` | KEEP | K-WEB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationRealStreamingBodies` | `TestAuthenticationRealStreamingBodies` | KEEP | K-WEB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationRouting` | `TestAuthenticationRouting` | KEEP | K-WEB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationSanitizedOutcomes` | `TestAuthenticationSanitizedOutcomes` | KEEP | K-WEB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationShutdownAdmission` | `TestAuthenticationShutdownAdmission` | KEEP | K-WEB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationStalledBodyDeadline` | `TestAuthenticationStalledBodyDeadline` | KEEP | K-WEB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestCleanupFailureIsReported` | `TestCleanupFailureIsReported` | KEEP | K-WEB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestCleanupIsBounded` | `TestCleanupIsBounded` | KEEP | K-WEB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestGracefulShutdownAllowsActiveRequestToFinish` | `TestGracefulShutdownAllowsActiveRequestToFinish` | KEEP | K-WEB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestHealthReadinessAndSanitizedLogs` | `TestHealthReadinessAndSanitizedLogs` | KEEP | K-WEB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestPanicProducesSanitizedFailureLog` | `TestPanicProducesSanitizedFailureLog` | KEEP | K-WEB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestReadinessDeadline` | `TestReadinessDeadline` | KEEP | K-WEB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestServeFailureClosesResources` | `TestServeFailureClosesResources` | KEEP | K-WEB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestShutdownCancelsOverdueWorkAndWaitsForCleanup` | `TestShutdownCancelsOverdueWorkAndWaitsForCleanup` | KEEP | K-WEB |
+
+### CD-2 — Serving checkout settings
+
+- **Contract surface**: foundation serve validates Basic credentials only; required feature contract serve validates fixed sandbox key/local origin/USD/budgets before resource acquisition; migrate/probe independent (CFG-001/002/003/004, FND-002).
+- **Kind**: conditional: serve command enters checkout configuration validation
+- **Probes**: `STRIPE|CHECKOUT|BASE_URL|CURRENCY|ValidateServing|commandEnvironment|run\(|startCommand|config\.Load|web\.New|authSettings`
+- **Request/command boundary**: run/serve and web.New/authSettings; canonical API and negative guards; actual stream requests.
+- **Storage/behavior boundary**: config.Load duration fields and serving helpers; postgres.Migrate/Goose versions and fixture data.
+- **Files hit**: `cmd/service/authentication_test.go`, `cmd/service/main_test.go`, `internal/config/config_test.go`, `internal/integration/foundation_test.go`, `internal/web/authentication_audit_test.go`, `internal/web/authentication_test.go`, `internal/web/authentication_transport_test.go`, `internal/web/server_test.go`
+
+Reason key: K-WEB = explicit transport overrides and generic web.New nil/test extra fixtures retain Basic/transport semantics; serving checkout validation is in run/serve, and negative guards do not name API routes. K-CONFIG = common invalid database/address/log/duration syntax remains rejected and no old read-default expectation. K-COMMAND = unknown command/database rejection precedes serving validation. K-BASIC = preserved Basic semantics with separately authorized inline TOUCHs, no helper edits. K-DB = generic/isolated fixture migrations, readiness and cancellation remain valid; empty-source TOUCH avoids version collision.
+
+| Example (address) | Description | Disposition | Reason |
+|---|---|---|---|
+| `github.com/filser89/stripe-payments-go/cmd/service::TestAuthenticationCommandIndependence` | `TestAuthenticationCommandIndependence` | KEEP | Status-preserving content alignment is authorized by the corresponding TOUCH row. CFG-004 extends same command concern with absent/invalid checkout serving settings; preserve all real dependency witnesses |
+| `github.com/filser89/stripe-payments-go/cmd/service::TestAuthenticationCredentialLifetime` | `TestAuthenticationCredentialLifetime` | KEEP | Status-preserving content alignment is authorized by the corresponding TOUCH row. CFG-002: scoped inline valid sandbox key/origin for serve; retain captured Basic lifetime behavior |
+| `github.com/filser89/stripe-payments-go/cmd/service::TestAuthenticationServingConfiguration` | `TestAuthenticationServingConfiguration` | KEEP | Status-preserving content alignment is authorized by the corresponding TOUCH row. CFG-002/FND-002: scoped inline valid sandbox key/origin in serving cases; preserve all Basic assertions |
+| `github.com/filser89/stripe-payments-go/cmd/service::TestRunRejectsInvalidDatabaseWithoutExposingCredentials` | `TestRunRejectsInvalidDatabaseWithoutExposingCredentials` | KEEP | K-COMMAND |
+| `github.com/filser89/stripe-payments-go/cmd/service::TestRunRejectsMissingConfiguration` | `TestRunRejectsMissingConfiguration` | KEEP | K-COMMAND |
+| `github.com/filser89/stripe-payments-go/cmd/service::TestRunRejectsUnknownCommandBeforeConnecting` | `TestRunRejectsUnknownCommandBeforeConnecting` | KEEP | K-COMMAND |
+| `github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/bad_log_level` | `TestLoadRejectsInvalidConfigurationWithoutSecrets/bad_log_level` | KEEP | K-CONFIG |
+| `github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/bad_port` | `TestLoadRejectsInvalidConfigurationWithoutSecrets/bad_port` | KEEP | K-CONFIG |
+| `github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/invalid_database` | `TestLoadRejectsInvalidConfigurationWithoutSecrets/invalid_database` | KEEP | K-CONFIG |
+| `github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/invalid_timeout` | `TestLoadRejectsInvalidConfigurationWithoutSecrets/invalid_timeout` | KEEP | K-CONFIG |
+| `github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/missing_database` | `TestLoadRejectsInvalidConfigurationWithoutSecrets/missing_database` | KEEP | K-CONFIG |
+| `github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/missing_database_name` | `TestLoadRejectsInvalidConfigurationWithoutSecrets/missing_database_name` | KEEP | K-CONFIG |
+| `github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/missing_host` | `TestLoadRejectsInvalidConfigurationWithoutSecrets/missing_host` | KEEP | K-CONFIG |
+| `github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/negative_readiness` | `TestLoadRejectsInvalidConfigurationWithoutSecrets/negative_readiness` | KEEP | K-CONFIG |
+| `github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/overflow_budget` | `TestLoadRejectsInvalidConfigurationWithoutSecrets/overflow_budget` | KEEP | K-CONFIG |
+| `github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/short_container_budget` | `TestLoadRejectsInvalidConfigurationWithoutSecrets/short_container_budget` | KEEP | K-CONFIG |
+| `github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/wrong_scheme` | `TestLoadRejectsInvalidConfigurationWithoutSecrets/wrong_scheme` | KEEP | K-CONFIG |
+| `github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_cleanup` | `TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_cleanup` | KEEP | K-CONFIG |
+| `github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_header` | `TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_header` | KEEP | K-CONFIG |
+| `github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_idle` | `TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_idle` | KEEP | K-CONFIG |
+| `github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_port` | `TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_port` | KEEP | K-CONFIG |
+| `github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_read` | `TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_read` | KEEP | K-CONFIG |
+| `github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_shutdown` | `TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_shutdown` | KEEP | K-CONFIG |
+| `github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_startup` | `TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_startup` | KEEP | K-CONFIG |
+| `github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_write` | `TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_write` | KEEP | K-CONFIG |
+| `github.com/filser89/stripe-payments-go/internal/config::TestLoadValidConfiguration` | `TestLoadValidConfiguration` | KEEP | Common invalid database/address/log/duration syntax remains rejected; this assertion does not require the old 10s read default. |
+| `github.com/filser89/stripe-payments-go/internal/integration::TestDatabaseMigrationsReadinessAndRestart/apply_repeat_and_rollback` | `TestDatabaseMigrationsReadinessAndRestart/apply_repeat_and_rollback` | KEEP | K-DB |
+| `github.com/filser89/stripe-payments-go/internal/integration::TestDatabaseMigrationsReadinessAndRestart/empty_production_migrations` | `TestDatabaseMigrationsReadinessAndRestart/empty_production_migrations` | KEEP | Generic query/readiness/cancellation and isolated fixture migration sources retain their contract; empty-source TOUCH prevents production/fixture version collision; explicit transport/shutdown overrides remain valid. |
+| `github.com/filser89/stripe-payments-go/internal/integration::TestDatabaseMigrationsReadinessAndRestart/failing_transaction_leaves_no_partial_table` | `TestDatabaseMigrationsReadinessAndRestart/failing_transaction_leaves_no_partial_table` | KEEP | K-DB |
+| `github.com/filser89/stripe-payments-go/internal/integration::TestDatabaseMigrationsReadinessAndRestart/generated_readiness_query` | `TestDatabaseMigrationsReadinessAndRestart/generated_readiness_query` | KEEP | K-DB |
+| `github.com/filser89/stripe-payments-go/internal/integration::TestDatabaseMigrationsReadinessAndRestart/outage_recovery_and_retained_data` | `TestDatabaseMigrationsReadinessAndRestart/outage_recovery_and_retained_data` | KEEP | K-DB |
+| `github.com/filser89/stripe-payments-go/internal/integration::TestOpenRejectsUnavailableDatabaseWithinDeadline` | `TestOpenRejectsUnavailableDatabaseWithinDeadline` | KEEP | K-DB |
+| `github.com/filser89/stripe-payments-go/internal/integration::TestShutdownCancelsActivePostgresQuery` | `TestShutdownCancelsActivePostgresQuery` | KEEP | K-DB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationAuditASCIISchemeOnWire/ascii` | `TestAuthenticationAuditASCIISchemeOnWire/ascii` | KEEP | K-WEB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationAuditASCIISchemeOnWire/ascii_mixed_case` | `TestAuthenticationAuditASCIISchemeOnWire/ascii_mixed_case` | KEEP | K-WEB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationAuditASCIISchemeOnWire/unicode_long_s` | `TestAuthenticationAuditASCIISchemeOnWire/unicode_long_s` | KEEP | K-WEB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationAuditLandingReadFailureContext/GET/clean_eof` | `TestAuthenticationAuditLandingReadFailureContext/GET/clean_eof` | KEEP | K-WEB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationAuditLandingReadFailureContext/GET/nonempty_body` | `TestAuthenticationAuditLandingReadFailureContext/GET/nonempty_body` | KEEP | K-WEB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationAuditLandingReadFailureContext/GET/zero_byte_read_failure` | `TestAuthenticationAuditLandingReadFailureContext/GET/zero_byte_read_failure` | KEEP | K-WEB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationAuditLandingReadFailureContext/HEAD/clean_eof` | `TestAuthenticationAuditLandingReadFailureContext/HEAD/clean_eof` | KEEP | K-WEB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationAuditLandingReadFailureContext/HEAD/nonempty_body` | `TestAuthenticationAuditLandingReadFailureContext/HEAD/nonempty_body` | KEEP | K-WEB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationAuditLandingReadFailureContext/HEAD/zero_byte_read_failure` | `TestAuthenticationAuditLandingReadFailureContext/HEAD/zero_byte_read_failure` | KEEP | K-WEB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationAuthorizationParsing` | `TestAuthenticationAuthorizationParsing` | KEEP | K-WEB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationBodyReadFailure` | `TestAuthenticationBodyReadFailure` | KEEP | K-WEB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationConcurrentIsolation` | `TestAuthenticationConcurrentIsolation` | KEEP | K-WEB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationCredentialSources` | `TestAuthenticationCredentialSources` | KEEP | K-WEB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationDelegation` | `TestAuthenticationDelegation` | KEEP | K-WEB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationExactCredentials` | `TestAuthenticationExactCredentials` | KEEP | K-WEB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationFoundationTransport` | `TestAuthenticationFoundationTransport` | KEEP | K-WEB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationLanding` | `TestAuthenticationLanding` | KEEP | K-WEB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationLandingBodyBytes` | `TestAuthenticationLandingBodyBytes` | KEEP | K-WEB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationMissingCredentials` | `TestAuthenticationMissingCredentials` | KEEP | K-WEB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationPublicProbeBoundary` | `TestAuthenticationPublicProbeBoundary` | KEEP | K-WEB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationRealStreamingBodies` | `TestAuthenticationRealStreamingBodies` | KEEP | K-WEB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationRouting` | `TestAuthenticationRouting` | KEEP | K-WEB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationSanitizedOutcomes` | `TestAuthenticationSanitizedOutcomes` | KEEP | K-WEB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationShutdownAdmission` | `TestAuthenticationShutdownAdmission` | KEEP | K-WEB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationStalledBodyDeadline` | `TestAuthenticationStalledBodyDeadline` | KEEP | K-WEB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestCleanupFailureIsReported` | `TestCleanupFailureIsReported` | KEEP | K-WEB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestCleanupIsBounded` | `TestCleanupIsBounded` | KEEP | K-WEB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestGracefulShutdownAllowsActiveRequestToFinish` | `TestGracefulShutdownAllowsActiveRequestToFinish` | KEEP | K-WEB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestHealthReadinessAndSanitizedLogs` | `TestHealthReadinessAndSanitizedLogs` | KEEP | K-WEB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestPanicProducesSanitizedFailureLog` | `TestPanicProducesSanitizedFailureLog` | KEEP | K-WEB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestReadinessDeadline` | `TestReadinessDeadline` | KEEP | K-WEB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestServeFailureClosesResources` | `TestServeFailureClosesResources` | KEEP | K-WEB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestShutdownCancelsOverdueWorkAndWaitsForCleanup` | `TestShutdownCancelsOverdueWorkAndWaitsForCleanup` | KEEP | K-WEB |
+
+### CD-3 — Feature route integration and production migration source
+
+- **Contract surface**: foundation API paths absent; production migration source empty; required feature contract four authenticated API paths; business migrations apply normally; foundation probes/landing retained (HTTP-005, FND-001/002, DATA-001/002, DO-006).
+- **Kind**: conditional: actual feature routing or application migrations selected
+- **Probes**: `/api/orders|StatusNotFound|StatusMethodNotAllowed|empty_production_migrations|postgres\.Migrate|migrate|goose_db_version|version_id|foundation_fixture`
+- **Request/command boundary**: run/serve and web.New/authSettings; canonical API and negative guards; actual stream requests.
+- **Storage/behavior boundary**: config.Load duration fields and serving helpers; postgres.Migrate/Goose versions and fixture data.
+- **Files hit**: `cmd/service/authentication_test.go`, `internal/integration/foundation_test.go`, `internal/integration/testdata/migrations/00001_fixture.sql`, `internal/web/authentication_test.go`, `scripts/testdata/workflows.sh`
+
+Reason key: K-WEB = explicit transport overrides and generic web.New nil/test extra fixtures retain Basic/transport semantics; serving checkout validation is in run/serve, and negative guards do not name API routes. K-CONFIG = common invalid database/address/log/duration syntax remains rejected and no old read-default expectation. K-COMMAND = unknown command/database rejection precedes serving validation. K-BASIC = preserved Basic semantics with separately authorized inline TOUCHs, no helper edits. K-DB = generic/isolated fixture migrations, readiness and cancellation remain valid; empty-source TOUCH avoids version collision.
+
+| Example (address) | Description | Disposition | Reason |
+|---|---|---|---|
+| `github.com/filser89/stripe-payments-go/cmd/service::TestAuthenticationCommandIndependence` | `TestAuthenticationCommandIndependence` | KEEP | This delta preserves Basic account/command semantics; targeted inline checkout environment additions are separately authorized TOUCHs, no shared helper body changes. |
+| `github.com/filser89/stripe-payments-go/cmd/service::TestAuthenticationCredentialLifetime` | `TestAuthenticationCredentialLifetime` | KEEP | This delta preserves Basic account/command semantics; targeted inline checkout environment additions are separately authorized TOUCHs, no shared helper body changes. |
+| `github.com/filser89/stripe-payments-go/cmd/service::TestAuthenticationServingConfiguration` | `TestAuthenticationServingConfiguration` | KEEP | This delta preserves Basic account/command semantics; targeted inline checkout environment additions are separately authorized TOUCHs, no shared helper body changes. |
+| `github.com/filser89/stripe-payments-go/internal/integration::TestDatabaseMigrationsReadinessAndRestart/apply_repeat_and_rollback` | `TestDatabaseMigrationsReadinessAndRestart/apply_repeat_and_rollback` | KEEP | K-DB |
+| `github.com/filser89/stripe-payments-go/internal/integration::TestDatabaseMigrationsReadinessAndRestart/empty_production_migrations` | `TestDatabaseMigrationsReadinessAndRestart/empty_production_migrations` | KEEP | Status-preserving content alignment is authorized by the corresponding TOUCH row. FND-002/DO-006: genuinely empty supplied fs retains empty-source support, keeps fixture Goose versions isolated from production business migrations |
+| `github.com/filser89/stripe-payments-go/internal/integration::TestDatabaseMigrationsReadinessAndRestart/failing_transaction_leaves_no_partial_table` | `TestDatabaseMigrationsReadinessAndRestart/failing_transaction_leaves_no_partial_table` | KEEP | K-DB |
+| `github.com/filser89/stripe-payments-go/internal/integration::TestDatabaseMigrationsReadinessAndRestart/generated_readiness_query` | `TestDatabaseMigrationsReadinessAndRestart/generated_readiness_query` | KEEP | K-DB |
+| `github.com/filser89/stripe-payments-go/internal/integration::TestDatabaseMigrationsReadinessAndRestart/outage_recovery_and_retained_data` | `TestDatabaseMigrationsReadinessAndRestart/outage_recovery_and_retained_data` | KEEP | K-DB |
+| `github.com/filser89/stripe-payments-go/internal/integration::TestOpenRejectsUnavailableDatabaseWithinDeadline` | `TestOpenRejectsUnavailableDatabaseWithinDeadline` | KEEP | K-DB |
+| `github.com/filser89/stripe-payments-go/internal/integration::TestShutdownCancelsActivePostgresQuery` | `TestShutdownCancelsActivePostgresQuery` | KEEP | K-DB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationAuthorizationParsing` | `TestAuthenticationAuthorizationParsing` | KEEP | K-WEB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationBodyReadFailure` | `TestAuthenticationBodyReadFailure` | KEEP | K-WEB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationConcurrentIsolation` | `TestAuthenticationConcurrentIsolation` | KEEP | K-WEB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationCredentialSources` | `TestAuthenticationCredentialSources` | KEEP | K-WEB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationDelegation` | `TestAuthenticationDelegation` | KEEP | K-WEB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationExactCredentials` | `TestAuthenticationExactCredentials` | KEEP | K-WEB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationLanding` | `TestAuthenticationLanding` | KEEP | K-WEB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationLandingBodyBytes` | `TestAuthenticationLandingBodyBytes` | KEEP | K-WEB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationMissingCredentials` | `TestAuthenticationMissingCredentials` | KEEP | K-WEB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationPublicProbeBoundary` | `TestAuthenticationPublicProbeBoundary` | KEEP | K-WEB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationRouting` | `TestAuthenticationRouting` | KEEP | K-WEB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationSanitizedOutcomes` | `TestAuthenticationSanitizedOutcomes` | KEEP | K-WEB |
+| `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationShutdownAdmission` | `TestAuthenticationShutdownAdmission` | KEEP | K-WEB |
+| `scripts/testdata/workflows.sh` (command evidence, no Go identity) | Workflow checks | KEEP | Real scripts with a controlled Docker boundary still prove current migration image, stop-on-failed-migration, ordered startup and local sqlc command. Execute via make verify; Compose inspection separately verifies settings. |
+
+Unchanged web fixture settings/authSettings/transportSettings and foundation setting helpers must not be broadly edited: web.New is general authenticated composition, while full serving configuration validates in run/serve. Explicit short test transport overrides continue proving generic foundation deadlines. Existing `/unknown` guards do not name new API paths and remain 404. `cmd/service/authentication_test.go` gets inline sandbox values only in two serving tests; commandEnvironment, commandDatabase, startCommand and commandEnv declarations remain byte-preserved to avoid accidental executable-wide digest drift. CommandIndependence explicitly varies checkout values inline. The empty migration leaf uses a real empty temporary fs through postgres.Migrate; its exact legacy identity remains stable while the new production migration tests cover business schema.
+
+## Planned State Changes
+
+| Action | Identity (address) | Description | Expected landing | Reason |
+|---|---|---|---|---|
+| MODIFY | `github.com/filser89/stripe-payments-go/internal/config::TestLoadValidConfiguration` | `TestLoadValidConfiguration` | failed | CFG-003 requires 11s read default; 15s write and existing shutdown/cleanup assertions remain |
+| TOUCH | `github.com/filser89/stripe-payments-go/cmd/service::TestAuthenticationCommandIndependence` | `TestAuthenticationCommandIndependence` | unchanged | CFG-004 extends same command concern with absent/invalid checkout serving settings; preserve all real dependency witnesses |
+| TOUCH | `github.com/filser89/stripe-payments-go/cmd/service::TestAuthenticationServingConfiguration` | `TestAuthenticationServingConfiguration` | unchanged | CFG-002/FND-002: scoped inline valid sandbox key/origin in serving cases; preserve all Basic assertions |
+| TOUCH | `github.com/filser89/stripe-payments-go/cmd/service::TestAuthenticationCredentialLifetime` | `TestAuthenticationCredentialLifetime` | unchanged | CFG-002: scoped inline valid sandbox key/origin for serve; retain captured Basic lifetime behavior |
+| TOUCH | `github.com/filser89/stripe-payments-go/internal/integration::TestDatabaseMigrationsReadinessAndRestart/empty_production_migrations` | `TestDatabaseMigrationsReadinessAndRestart/empty_production_migrations` | unchanged | FND-002/DO-006: genuinely empty supplied fs retains empty-source support, keeps fixture Goose versions isolated from production business migrations |
+
+Every entry copies an actual inventory address/file/description. Other existing test/support declarations remain frozen at baseline. A required change to shared setup/imports that affects more digests must return to plan authoring, not be silently widened. go.mod/go.sum exact dependency pins participate in reviewed execution evidence even though they are test-writable.
+
+## Factories / Fixtures
+
+### purchase (NEW)
+
+- **File**: internal/testutil/fixtures.go
+- **Base attributes**: Canonical random-v4 request key, exact UTF-8 single description, int64 cents50, usd; no quantity/cart model.
+- **Traits/variants**: 1/200 Unicode characters; interior/canonical-distinct text; configured amount endpoints; syntactically invalid requests remain raw JSON, not normalized fixtures.
+- **Associations**: none.
+- **Used by**: cmd/service/checkout_test.go, internal/web/checkout_validation_test.go, internal/web/orders_create_test.go, internal/web/orders_read_test.go, internal/web/orders_history_test.go, internal/web/checkout_routing_test.go, internal/web/checkout_security_test.go, internal/web/checkout_transport_test.go, internal/postgres/payment_test.go, internal/postgres/payment_concurrency_test.go, internal/integration/orders_test.go, internal/integration/checkout_lifecycle_test.go, internal/integration/checkout_recovery_test.go, internal/integration/checkout_concurrency_test.go, internal/integration/checkout_deadlines_test.go
+
+### operation (NEW)
+
+- **File**: internal/testutil/fixtures.go
+- **Base attributes**: Order association, unique operation and Stripe key, prepared state and immutable purchase snapshot.
+- **Traits/variants**: unresolved/open/complete_unpaid/expired/rejected; paid prerequisite only; known/missing IDs; ambiguity; supported/incompatible version; exact expiry/15m/23h boundaries.
+- **Associations**: purchase, snapshot.
+- **Used by**: internal/web/orders_checkout_test.go, internal/web/orders_read_test.go, internal/web/checkout_security_test.go, internal/postgres/payment_test.go, internal/postgres/payment_concurrency_test.go, internal/integration/orders_test.go, internal/integration/checkout_lifecycle_test.go, internal/integration/checkout_recovery_test.go, internal/integration/checkout_concurrency_test.go, internal/integration/checkout_deadlines_test.go
+
+### binding (NEW)
+
+- **File**: internal/testutil/fixtures.go
+- **Base attributes**: Globally unique caller UUIDv4 with initial or continuation target and immutable order/operation association.
+- **Traits/variants**: changed fields/target/order; original versus historical operation; new unaccepted key.
+- **Associations**: purchase, operation.
+- **Used by**: internal/web/orders_checkout_test.go, internal/postgres/payment_test.go, internal/postgres/payment_concurrency_test.go, internal/integration/orders_test.go, internal/integration/checkout_lifecycle_test.go, internal/integration/checkout_recovery_test.go, internal/integration/checkout_concurrency_test.go, internal/integration/checkout_deadlines_test.go
+
+### history (NEW)
+
+- **File**: internal/testutil/fixtures.go
+- **Base attributes**: Per-order increasing sequence, UTC observation time, kind, local IDs and explicit nullable external evidence.
+- **Traits/variants**: all six representable kinds; null/available session/intent/event/request IDs and external event time; multi-page/interleaved orders; immutable prior transitions.
+- **Associations**: purchase, operation.
+- **Used by**: internal/web/orders_history_test.go, internal/postgres/payment_test.go, internal/postgres/payment_concurrency_test.go, internal/integration/orders_test.go, internal/integration/checkout_lifecycle_test.go, internal/integration/checkout_recovery_test.go, internal/integration/checkout_concurrency_test.go, internal/integration/checkout_deadlines_test.go
+
+### snapshot (NEW)
+
+- **File**: internal/testutil/fixtures.go
+- **Base attributes**: Complete creation parameters, separate Stripe key, SDKv87.0.0/API2026-09-30.endive, first/last dispatch and integer expiry.
+- **Traits/variants**: prepared incomplete dispatch-time fields finalized by application; compatible/incompatible saved versions; changed process origin/limits after reconstruction.
+- **Associations**: purchase, operation.
+- **Used by**: internal/stripeapi/checkout_test.go, internal/stripeapi/transport_test.go, internal/postgres/payment_test.go, internal/postgres/payment_concurrency_test.go, internal/integration/orders_test.go, internal/integration/checkout_lifecycle_test.go, internal/integration/checkout_recovery_test.go, internal/integration/checkout_concurrency_test.go, internal/integration/checkout_deadlines_test.go
+
+### session_evidence (NEW)
+
+- **File**: internal/testutil/stripe_http.go
+- **Base attributes**: Local sandbox session JSON with matching IDs, amount_total/currency/mode and open/unpaid URL/expiry.
+- **Traits/variants**: every wrong/missing correlation/amount/currency/mode/live/state/session/intent field; structured/generic/malformed errors; sensitive sentinels; lost response and cached logical object.
+- **Associations**: purchase, operation, snapshot.
+- **Used by**: internal/stripeapi/checkout_test.go, internal/stripeapi/transport_test.go, internal/integration/orders_test.go, internal/integration/checkout_lifecycle_test.go, internal/integration/checkout_recovery_test.go, internal/integration/checkout_concurrency_test.go, internal/integration/checkout_deadlines_test.go
+
+### payment_fixtures (NEW)
+
+- **File**: internal/payment/fixtures_test.go
+- **Base attributes**: Payment-local equivalents of purchase/operation/binding/history/snapshot/evidence using plain payment types; never import shared fixture package back into payment.
+- **Traits/variants**: same policy variants including paid prerequisite and exact-time boundaries; no SDK, HTTP server or real database.
+- **Associations**: none.
+- **Used by**: internal/payment/checkout_test.go, internal/payment/recovery_test.go
+
+Factories never bypass the production operation for the behavior under test. Paid/old/unresolved/history fixtures are explicit persisted prerequisites with provenance in test names/comments; they do not implement future confirmation. Domain fixtures stay local to payment; shared fixtures serve web/persistence/connected tests. Required associated factory values are supplied explicitly by fixtures, not created implicitly.
+
+## Shared Helpers
+
+### serving_environment (NEW)
+
+- **File**: internal/testutil/config.go
+- **Type**: shared_setup
+- **Purpose**: Build deterministic valid Basic, database and STRIPE_SECRET_KEY=sk_test_fixture / APP_BASE_URL=http://localhost:8080 environment plus exact configured USD/local-origin/budgets; mutations explicitly scoped per test.
+- **Interface**: Environment(databaseURL,listenAddress) returns map; never live secrets.
+- **Used by**: internal/config/checkout_test.go, cmd/service/checkout_test.go
+
+### command_environment (EXISTS)
+
+- **File**: cmd/service/authentication_test.go
+- **Type**: helper_method
+- **Purpose**: Existing commandEnvironment remains byte-preserved; add valid Stripe key/origin inline only in serving examples.
+- **Interface**: commandEnvironment(t,databaseURL) returns environment map.
+- **Used by**: cmd/service/authentication_test.go
+
+### command_database (EXISTS)
+
+- **File**: cmd/service/authentication_test.go
+- **Type**: shared_setup
+- **Purpose**: Existing commandDatabase runs PostgreSQL18.6 and normal application migrations.
+- **Interface**: commandDatabase(t) returns URL and pool.
+- **Used by**: cmd/service/authentication_test.go
+
+### fake_repository (NEW)
+
+- **File**: internal/payment/repository_fake_test.go
+- **Type**: shared_setup
+- **Purpose**: Deterministic prepared result repository for payment policy, preserving binding/state/history preconditions; calls/barriers/errors visible without SQL.
+- **Interface**: implements payment.Repository; snapshot and returned values independent copies; fault scripts at operation boundaries.
+- **Used by**: internal/payment/checkout_test.go, internal/payment/recovery_test.go
+
+### fake_gateway (NEW)
+
+- **File**: internal/payment/gateway_fake_test.go
+- **Type**: shared_setup
+- **Purpose**: Prepared payment evidence/errors, capture keys/snapshots; no real SDK/server; cancellation/completion observable.
+- **Interface**: implements payment.Gateway Create/Retrieve; scripted responses and bounded barrier callbacks.
+- **Used by**: internal/payment/checkout_test.go, internal/payment/recovery_test.go
+
+### controlled_clock (NEW)
+
+- **File**: internal/payment/clock_test.go; internal/testutil/clock.go
+- **Type**: helper_method
+- **Purpose**: Payment-local deterministic now/wait; connected helper clock does not import payment test code; exact equality cases, no real time sleeps to manufacture age.
+- **Interface**: Now returns UTC time; Wait(context,duration) records request and honors cancellation; actual transport backoff uses wall time.
+- **Used by**: internal/payment/checkout_test.go, internal/payment/recovery_test.go, internal/integration/checkout_lifecycle_test.go, internal/integration/checkout_recovery_test.go
+
+### authenticated_request (NEW)
+
+- **File**: internal/testutil/http.go
+- **Type**: helper_method
+- **Purpose**: Real HTTP/recorder JSON requests with dedicated Basic account, response decoding; no hidden retries.
+- **Interface**: Request(method,path,rawBody,credentials); response result plus headers/raw bytes.
+- **Used by**: internal/web/checkout_validation_test.go, internal/web/orders_create_test.go, internal/web/orders_checkout_test.go, internal/web/orders_read_test.go, internal/web/orders_history_test.go, internal/web/checkout_routing_test.go, internal/web/checkout_security_test.go, internal/web/checkout_transport_test.go, internal/integration/orders_test.go, internal/integration/checkout_lifecycle_test.go, internal/integration/checkout_recovery_test.go, internal/integration/checkout_concurrency_test.go, internal/integration/checkout_deadlines_test.go
+
+### fake_operations (NEW)
+
+- **File**: internal/web/checkout_helpers_test.go
+- **Type**: shared_setup
+- **Purpose**: Implements payment.Operations with prepared outcomes/counters and controlled reads; valid authenticated requests prove actual delegation.
+- **Interface**: Create/Continue/Get/History signatures from public contract; counters and scoped errors.
+- **Used by**: internal/web/checkout_validation_test.go, internal/web/orders_create_test.go, internal/web/orders_checkout_test.go, internal/web/orders_read_test.go, internal/web/orders_history_test.go, internal/web/checkout_routing_test.go, internal/web/checkout_security_test.go, internal/web/checkout_transport_test.go
+
+### body_streams (NEW)
+
+- **File**: internal/web/checkout_helpers_test.go
+- **Type**: helper_method
+- **Purpose**: Zero/partial read errors, observed stream bytes and stalled body/controlled network peers; join and cleanup all readers.
+- **Interface**: Readers and TCP stream writers return observation/completion channels.
+- **Used by**: internal/web/checkout_validation_test.go, internal/web/checkout_security_test.go, internal/web/checkout_transport_test.go
+
+### structured_logs (NEW)
+
+- **File**: internal/testutil/logs.go
+- **Type**: shared_assertions
+- **Purpose**: Synchronized JSON capture, decoded fields/correlation and secret sentinel assertions across packages; avoid String receiver method collision.
+- **Interface**: Captured records and contents accessor; compare request/order/operation IDs and stable error categories.
+- **Used by**: cmd/service/checkout_test.go, internal/web/orders_create_test.go, internal/web/checkout_security_test.go, internal/integration/orders_test.go, internal/integration/checkout_recovery_test.go, internal/integration/checkout_deadlines_test.go
+
+### real_postgres (NEW)
+
+- **File**: internal/testutil/postgres.go
+- **Type**: shared_setup
+- **Purpose**: PostgreSQL18.6-alpine Testcontainers, production Goose migrations, separate pools/connections and clean schemas/databases; no skips on unavailable Docker.
+- **Interface**: Database(t) returns URL/pool/container and independent connections; bounded lifecycle; isolated fixture migration versions.
+- **Used by**: cmd/service/checkout_test.go, internal/postgres/payment_test.go, internal/postgres/payment_concurrency_test.go, internal/integration/orders_test.go, internal/integration/checkout_lifecycle_test.go, internal/integration/checkout_recovery_test.go, internal/integration/checkout_concurrency_test.go, internal/integration/checkout_deadlines_test.go
+
+### local_stripe (NEW)
+
+- **File**: internal/testutil/stripe_http.go
+- **Type**: shared_setup
+- **Purpose**: Stateful httptest endpoint through real pinned SDK, capture exact form/headers/method/timestamps; deduplicate simulated objects by original key+snapshot; release/reset/drop/hang fixtures.
+- **Interface**: Server and client backend config; logical objects count separate from wire attempts; per-test clients, no global stripe.Key/backend mutation.
+- **Used by**: cmd/service/checkout_test.go, internal/stripeapi/checkout_test.go, internal/stripeapi/transport_test.go, internal/integration/orders_test.go, internal/integration/checkout_lifecycle_test.go, internal/integration/checkout_recovery_test.go, internal/integration/checkout_concurrency_test.go, internal/integration/checkout_deadlines_test.go
+
+### database_faults (NEW)
+
+- **File**: internal/testutil/postgres_faults.go
+- **Type**: helper_method
+- **Purpose**: Real DB trigger/permissions/row-lock/connection-termination faults at acceptance/dispatch/result/history/commit boundaries; separate control connection; cleanup scoped to fixture.
+- **Interface**: Arm/release named fault; observe pg_stat_activity/committed reads; no production test hook or fake transaction.
+- **Used by**: internal/postgres/payment_test.go, internal/postgres/payment_concurrency_test.go, internal/integration/checkout_lifecycle_test.go, internal/integration/checkout_recovery_test.go, internal/integration/checkout_concurrency_test.go, internal/integration/checkout_deadlines_test.go
+
+### controlled_barriers (NEW)
+
+- **File**: internal/testutil/barriers.go
+- **Type**: helper_method
+- **Purpose**: Explicit arrived/release/done handshake and bounded joins for two apps/connections and outstanding DB/SDK/body work.
+- **Interface**: Barrier with cancellation-aware wait and completion; no sleeps create overlap.
+- **Used by**: internal/web/checkout_transport_test.go, internal/stripeapi/transport_test.go, internal/postgres/payment_concurrency_test.go, internal/integration/orders_test.go, internal/integration/checkout_lifecycle_test.go, internal/integration/checkout_recovery_test.go, internal/integration/checkout_concurrency_test.go, internal/integration/checkout_deadlines_test.go
+
+Common fixture/helper packages are test-owned and never imported by ordinary application code. Support names avoid incidental same-named receiver collisions such as String. Structured output access is synchronized; barriers join owned goroutines. Database fixtures fail rather than skip if PostgreSQL18.6/Docker is unavailable. For real cmd run wiring only, a sequential test-local HTTP transport redirects the official Stripe host to httptest while retaining the real SDK and all original request headers/forms; restore and join before return, do not run with t.Parallel or mutate SDK globals. A subprocess valid startup test makes no Stripe mutation. No user-facing endpoint override is introduced.
+
+## Criteria Mapping
+
+Every semicolon-delimited group and its named subvariants below requires distinct assertions/cases, even if a coherent function covers several. All repeated locations establish complementary layers: fake rules for policy, web fakes for encoding/admission, real PostgreSQL for durable guarantees, real SDK for wire behavior, connected tests for actual composition. A test-family name is a locator and never substitutes for an assertion.
+
+| Criterion ID | Required outcomes / named variants | Evidence kind | Location / procedure | Expected result |
+|---|---|---|---|---|
+| CFG-001 | Defaults `usd`, minimum `50`, maximum `100000`; accepted limits at `50 <= min <= max <= 100000`, including equal limits; currency missing/default versus exact `usd` versus uppercase/other currencies; malformed/non-base-10/fractional/overflow limits, minimum below 50, maximum above 100000, and reversed limits rejected; identical persisted replay outside tightened limits accepted without repricing; changed input under its key conflicts; genuinely new order outside tightened limits rejected. | automated tests; distinct boundary assertions as annotated | `internal/config/checkout_test.go` / `TestCheckoutAmountConfiguration`; `cmd/service/checkout_test.go` / `TestCheckoutServingValidation`; `internal/integration/orders_test.go` / `TestConnectedOrderCheckoutAndInspection` | Serving with valid settings uses explicit USD cents and the configured new-order limits; invalid currency/limit configuration prevents HTTP serving without exposing supplied values. A valid replay compares persisted inputs before applying current amount limits and preserves its accepted price/currency. |
+| CFG-002 | `sk_test_` with nonempty suffix accepted; missing/empty suffix, live/other key classes, leading/trailing whitespace, and Unicode controls rejected; base default `http://localhost:8080`; localhost, 127.0.0.1, and bracketed ::1 with absent/valid port accepted; optional trailing `/` accepted; non-HTTP scheme, relative URL, missing/nonlocal host, invalid port, credentials, non-root path, query, and fragment rejected; environment changes after startup do not alter an accepted process's settings. | automated tests; distinct boundary assertions as annotated | `internal/config/checkout_test.go` / `TestCheckoutSandboxOriginConfiguration`; `cmd/service/authentication_test.go` / `TestAuthenticationServingConfiguration`; `cmd/service/authentication_test.go` / `TestAuthenticationCredentialLifetime`; `cmd/service/checkout_test.go` / `TestCheckoutServingValidation` | HTTP serving requires a valid sandbox secret and local absolute HTTP origin; invalid settings fail before serving and never disclose values. Settings are fixed for the process. |
+| CFG-003 | Defaults request `10s`, call `2s`, retry `7s`, max attempts `3`, HTTP read `11s`, write `15s`; accepted endpoints request 2–10 seconds, call 100ms–2s, retry 500ms–7s, attempts integer 1–3; missing/default, malformed, below/above each limit; retry greater than request minus 1s rejected; call greater than retry rejected; read/write exactly request+1s accepted and smaller rejected; default shutdown grace 10s and cleanup 5s retained. | automated tests; distinct boundary assertions as annotated | `internal/config/checkout_test.go` / `TestCheckoutBudgetConfiguration`; `internal/config/config_test.go` / `TestLoadValidConfiguration`; `cmd/service/checkout_test.go` / `TestCheckoutServingValidation` | Validated settings define request/call/retry/wire-attempt bounds and permit final response work; invalid or incompatible settings prevent serving. HTTP read/write settings each accommodate request timeout plus one second. |
+| CFG-004 | Missing and invalid Stripe key/base URL for both commands; migration reaches real PostgreSQL and applies application migrations; probe reaches public readiness without credentials; unavailable database/probe remains a real bounded failure. | automated tests; distinct boundary assertions as annotated | `cmd/service/authentication_test.go` / `TestAuthenticationCommandIndependence` | Local migrate/probe commands do their actual work with absent or invalid Stripe secret/base-origin serving settings while retaining applicable foundation configuration validation and bounded dependency failures. |
+| INP-001 | Lengths 1 and 200 accepted, 0 and 201 rejected; multibyte code points counted as characters; interior whitespace and case/canonical Unicode distinctions preserved; leading/trailing Unicode whitespace, Unicode control characters, invalid UTF-8, missing/null/non-string description rejected. Application order has one product without a quantity/cart/line-item model. | automated tests; distinct boundary assertions as annotated | `internal/web/checkout_validation_test.go` / `TestINP001CheckoutValidation`; `internal/integration/orders_test.go` / `TestConnectedOrderCheckoutAndInspection` | A creation request accepts valid UTF-8 descriptions of 1–200 Unicode code points without controls or boundary whitespace; accepted text remains exact in stored purchase data, responses, and the Stripe snapshot. Invalid descriptions cause no durable or Stripe effect. |
+| INP-002 | Configured minimum/maximum accepted, each adjacent outside value rejected; zero/negative, string, fraction, exponent, null, boolean, missing amount, signed-64-bit overflow rejected; currency field and extra override fields rejected; accepted amount remains exact integer cents and currency `usd` through persistence/SDK calls. Replay ordering is CFG-001. | automated tests; distinct boundary assertions as annotated | `internal/web/checkout_validation_test.go` / `TestINP002CheckoutValidation`; `internal/integration/orders_test.go` / `TestConnectedOrderCheckoutAndInspection` | New orders accept a positive signed-64-bit decimal-digits-only JSON integer within configured inclusive bounds; no client currency or price override is accepted. Invalid monetary inputs have no order/operation/history/Stripe effect. |
+| INP-003 | Valid request key accepted; missing/null/non-string, uppercase, absent hyphens, malformed characters/length, non-v4 version, and invalid UUID variant rejected; malformed order ID returns `400 invalid_request`, valid unknown order `404 not_found`; generated order/operation IDs differ from each other and caller key; Stripe key is independent of the caller key, not amount-derived. | automated tests; distinct boundary assertions as annotated | `internal/web/checkout_validation_test.go` / `TestINP003CheckoutValidation`; `internal/integration/orders_test.go` / `TestConnectedOrderCheckoutAndInspection` | Both POST operations require canonical lowercase hyphenated UUID v4 request keys; order paths require canonical UUIDs. The backend generates distinct random UUID v4 order/operation IDs and an independent Stripe key of at most 255 characters. |
+| INP-004 | Valid declared object and trailing whitespace accepted; duplicate declared fields, unknown fields, missing/null fields, arrays/scalars, empty normal EOF, malformed JSON/UTF-8, extra JSON value/trailing non-whitespace, and read errors before/after partial valid input rejected. Initial fields on checkout POST rejected. A zero-byte normal EOF and a zero-byte read error are distinct rejected cases. | automated tests; distinct boundary assertions as annotated | `internal/web/checkout_validation_test.go` / `TestINP004CheckoutValidation`; `internal/integration/orders_test.go` / `TestConnectedOrderCheckoutAndInspection` | Initial POST accepts exactly description/amount/request_key; checkout POST accepts exactly request_key. Bodies are one JSON object with each field once and EOF after trailing whitespace; malformed or unsupported structures produce `400 invalid_request` with no feature effects. |
+| INP-005 | application/json and its optional UTF-8 charset accepted; missing/other type or unsupported charset/content encoding rejected; exactly 4096 bytes accepted when otherwise valid, 4097 rejected; whitespace counts; known Content-Length and unknown/chunked streams enforce the same byte boundary; partial/error reads do not turn into successful input; stalled stream termination is STR-004, not proof from a Content-Length check alone. | automated tests; distinct boundary assertions as annotated | `internal/web/checkout_validation_test.go` / `TestINP005CheckoutValidation`; `internal/web/checkout_transport_test.go` / `TestCheckoutRealBodyAndResponseDeadlines`; `internal/integration/orders_test.go` / `TestConnectedOrderCheckoutAndInspection` | POST requires application/json with optional UTF-8 charset and at most 4096 bytes of JSON source including whitespace. Unsupported media/encoding returns `415 unsupported_media_type`; oversized bodies return `413 body_too_large`; no rejected stream creates effects. |
+| INP-006 | Empty body with normal EOF accepted; nonempty Content-Length and chunked/unknown-length bodies rejected; zero-byte read error rejected; stalled read bounded under STR-004; queries rejected on creation/checkout/order reads; history defaults after 0/limit 50; after nonnegative signed-64-bit decimal integer including 0/max accepted; negative, malformed, overflow, duplicate/unknown query fields rejected; limit 1/100 accepted, 0/101/noninteger rejected; GET/HEAD validation agrees. | automated tests; distinct boundary assertions as annotated | `internal/web/checkout_validation_test.go` / `TestINP006CheckoutValidation`; `internal/web/checkout_transport_test.go` / `TestCheckoutRealBodyAndResponseDeadlines`; `internal/integration/orders_test.go` / `TestConnectedOrderCheckoutAndInspection` | GET/HEAD accept no body, detected with bounded reads; query fields are accepted only as the declared history cursor/limit once. Invalid inputs return `400 invalid_request` without state or Stripe effects. |
+| HTTP-001 | Connected initial success with one order/operation and hosted location; identical initial replay retains IDs/price and returns established result; established continuation retains its bound operation; session creation and success/cancel browser return never mark paid. Card entry stays on the hosted Stripe page. | automated tests; distinct boundary assertions as annotated | `cmd/service/checkout_test.go` / `TestCheckoutCommandWiring`; `internal/web/orders_create_test.go` / `TestHTTP001CreateResponse`; `internal/integration/orders_test.go` / `TestConnectedOrderCheckoutAndInspection` | An authenticated valid initial POST atomically accepts purchase, initial operation, key binding, and history before external creation. A new durable operation with a usable saved hosted result returns `201`; order remains unpaid. Identical replay/continuation with an established result returns `200`. |
+| HTTP-002 | Order fields id/description/amount/currency/payment_status/created_at/updated_at; operation fields id/state/stripe_session_id/stripe_payment_intent_id/checkout_url/first_dispatch_at/expires_at/created_at/updated_at/failure_code/investigation_required; explicit nulls for absent values; populated values and optional fractional timestamps; top-level can_resume/can_retry_same_operation/can_start_new_attempt; initial/replay/continuation/read envelopes; no raw Stripe body or sensitive fields. Exact flags are LIFE-008. | automated tests; distinct boundary assertions as annotated | `internal/web/orders_create_test.go` / `TestHTTP002CreateResponse`; `internal/web/orders_checkout_test.go` / `TestCheckoutContinuationResponses`; `internal/web/orders_read_test.go` / `TestOrderReadResponses`; `internal/integration/orders_test.go` / `TestConnectedOrderCheckoutAndInspection` | POST and order-read responses contain the specified order/operation objects, UTC RFC3339 timestamps, explicit nullable fields, and all three eligibility flags. Feature JSON responses have UTF-8 content type, no-store caching, and the existing request ID. |
+| HTTP-003 | Prepared, unresolved, active concurrent dispatch, unavailable Stripe exhausted within budget, and prepared new attempt after eligibility exhausts remaining budget; status/history remain accessible by local ID, including absent Stripe object ID. | automated tests; distinct boundary assertions as annotated | `internal/web/orders_create_test.go` / `TestHTTP003CreateResponse`; `internal/web/orders_checkout_test.go` / `TestCheckoutContinuationResponses`; `internal/integration/orders_test.go` / `TestConnectedOrderCheckoutAndInspection`; `internal/integration/checkout_concurrency_test.go` / `TestConnectedCheckoutConcurrency` | Accepted prepared/unresolved/in-flight work returns `202` with the same envelope/IDs, Location `/api/orders/{id}`, and Retry-After `1`. A concurrent duplicate may return this immediately without allocating another operation; callers can inspect without another creation. |
+| HTTP-004 | `400 invalid_request`, `413 body_too_large`, `415 unsupported_media_type`, `404 not_found`, `405 method_not_allowed`, `409 idempotency_conflict`, `409 checkout_blocked`, `502 checkout_rejected`, `503 temporarily_unavailable`; body-read failure produces 400 when response remains possible; accepted rejection/unavailability includes known IDs; unknown IDs omitted rather than fabricated; submitted body/Stripe/internal error text never echoed; rejected pre-acceptance input has no durable/Stripe effects; blocked fresh key remains usable later. | automated tests; distinct boundary assertions as annotated | `internal/web/orders_create_test.go` / `TestHTTP004CreateResponse`; `internal/web/orders_checkout_test.go` / `TestCheckoutContinuationResponses`; `internal/integration/orders_test.go` / `TestConnectedOrderCheckoutAndInspection` | Feature errors use error.code/message, generic text, and known order_id/operation_id inside error for accepted work. Responses use the prescribed status/code; fresh-key requests blocked before durable acceptance allocate no binding/operation and can use that key after eligibility is established. An already accepted key retains its binding when subsequent dispatch/result handling becomes unresolved (HTTP-003/007). |
+| HTTP-005 | Initial POST, checkout POST, order GET/HEAD, history GET/HEAD; unsupported methods on each known path; unknown protected path; malformed canonical ID versus unknown valid ID; HEAD success and errors; unauthorized routing remains SEC-001, exact public probes FND-001. | automated tests; distinct boundary assertions as annotated | `cmd/service/checkout_test.go` / `TestCheckoutCommandWiring`; `internal/web/checkout_routing_test.go` / `TestCheckoutEndpointRouting`; `internal/integration/orders_test.go` / `TestConnectedOrderCheckoutAndInspection` | The four specified API paths implement their stated methods; known paths with other methods return 405 and Allow, unknown paths return 404. HEAD on order/history reads has identical status/headers to GET and no response body after normal authentication/validation. |
+| HTTP-006 | Prepared/open/unresolved/complete_unpaid/expired/rejected/paid local states; no saved session ID; stale local observations reported as last observed; history empty, first/default page, exact-limit page, following page without omission/duplication, final partial/empty page; next_after last returned sequence or input cursor when empty; order isolation; specified entry fields/kinds/nulls per DATA-004. | automated tests; distinct boundary assertions as annotated | `internal/web/orders_read_test.go` / `TestOrderReadResponses`; `internal/web/orders_history_test.go` / `TestOrderHistoryResponses`; `internal/integration/orders_test.go` / `TestConnectedOrderCheckoutAndInspection` | Authenticated order/status and history reads expose persisted purchase/current operation and distinguish unpaid/pending, unresolved integration work, and confirmed paid prerequisites. Reads call no Stripe and mutate no state/history. History returns per-order ascending sequence strictly after cursor, at most limit, and correct next_after. |
+| HTTP-007 | Pre-acceptance transaction failure; external success then result-commit failure with readable local state; external success then result-commit failure with read unavailable; known versus unavailable IDs; failed persistence followed by retry/restart retains original operation and evidence, with no duplicate creation. | automated tests; distinct boundary assertions as annotated | `internal/integration/checkout_recovery_test.go` / `TestConnectedCheckoutRecovery` | Initial durable acceptance commits before external work. If result persistence fails after Stripe returns, response is 202 when a database read establishes IDs, otherwise 503 with the same known IDs when available; no uncommitted result is claimed successful. Inability to durably accept work returns 503 and dispatches no Stripe mutation. |
+| ID-001 | Sequential replay, deliberately overlapping identical requests using independent PostgreSQL connections, retry after caller response loss, retry after process restart, replay after configured limits change; durable key binding remains present with no automatic expiry/deletion. | automated tests; distinct boundary assertions as annotated | `internal/integration/orders_test.go` / `TestConnectedOrderCheckoutAndInspection`; `internal/integration/checkout_recovery_test.go` / `TestConnectedCheckoutRecovery`; `internal/integration/checkout_concurrency_test.go` / `TestConnectedCheckoutConcurrency` | Identical initial requests with one key resolve to one order/operation, independent of response delivery or process lifetime. Each retry of its mutation preserves the separate durable Stripe key and snapshot. |
+| ID-002 | Changed description, amount, initial-versus-continuation target, different order target; concurrent conflicting submissions across independent connections; changed amount outside current configured bounds still conflicts after syntax/binding resolution; malformed replay still rejects syntax first; no new binding/order/operation/Stripe effect for loser. | automated tests; distinct boundary assertions as annotated | `internal/integration/orders_test.go` / `TestConnectedOrderCheckoutAndInspection`; `internal/integration/checkout_concurrency_test.go` / `TestConnectedCheckoutConcurrency` | A globally bound key cannot accept different purchase data, method/logical target, or order association; syntactically valid changed inputs return 409 idempotency_conflict before new-order amount-limit policy can hide the conflict. Its original binding/state remains intact. |
+| ID-003 | Same description/amount with different initial keys produces distinct IDs; same key deduplicates; new eligible attempt differs from previous operation/key while retaining order/price; later attempt is subject to LIFE-004 rather than fresh-key permission alone. | automated tests; distinct boundary assertions as annotated | `internal/payment/checkout_test.go` / `TestID003CheckoutRules`; `internal/integration/orders_test.go` / `TestConnectedOrderCheckoutAndInspection` | Identical purchase fields with distinct caller keys may create distinct orders; fields alone do not deduplicate intent. A supported later attempt has a distinct durable operation/Stripe key on the original order and retains its immutable purchase. |
+| ID-004 | Original expired/rejected operation with a newer current operation; original initial key and continuation key; paid order initial-key replay reports existing result with URL suppressed and all flags false; paid checkout continuation/replay blocks per LIFE-006; old binding never deleted to permit reuse. | automated tests; distinct boundary assertions as annotated | `internal/web/orders_checkout_test.go` / `TestCheckoutContinuationResponses`; `internal/integration/orders_test.go` / `TestConnectedOrderCheckoutAndInspection`; `internal/integration/checkout_lifecycle_test.go` / `TestConnectedCheckoutLifecycle` | A replay/continuation key remains bound to its original operation; it never creates or switches to a later attempt. Order reads report the current operation. Definitive-rejection replay returns the same rejection/IDs without another Stripe POST. |
+| LIFE-001 | Prepared with no dispatch marker; interrupted pre-call boundary unresolved even if no wire send occurs; usable verified unpaid open; verified complete/unpaid; verified expired/unpaid; definitive no-creation rejection; persisted confirmed-paid prerequisite; timeout/decline/browser cancellation/abandonment never terminally fail the whole order or mark paid. | automated tests; distinct boundary assertions as annotated | `internal/payment/checkout_test.go` / `TestLIFE001CheckoutRules`; `internal/integration/checkout_lifecycle_test.go` / `TestConnectedCheckoutLifecycle` | Orders are unpaid or terminal paid; initial unpaid orders have a durable current operation. Operations distinguish prepared, unresolved, open, complete_unpaid, expired, rejected, and paid with their specified meanings. First possible dispatch atomically changes prepared to unresolved with history before the call. |
+| LIFE-002 | Verified open/unpaid before saved expiry resumes same ID/URL; locally expired time alone suppresses URL and cannot enable replacement; cancel/abandon/decline does not expire the session; retrieval fails/mismatches/establishes complete or paid → no usable resumed URL; known ID uses GET retrieval even beyond 23h; no creation POST to rediscover a known session. | automated tests; distinct boundary assertions as annotated | `internal/payment/checkout_test.go` / `TestLIFE002CheckoutRules`; `internal/stripeapi/checkout_test.go` / `TestSDKCheckoutEvidenceTranslation`; `internal/integration/checkout_lifecycle_test.go` / `TestConnectedCheckoutLifecycle` | An open saved session can resume card entry/decline recovery on its same hosted page. Every resumed POST with a known session ID retrieves current Stripe evidence within budget before returning a usable URL; a read only reports local last-observed state. At/after saved expiry the response suppresses the URL until evidence refresh. |
+| LIFE-003 | Prepared dispatch; unresolved with compatible snapshot/missing ID inside safe age; unresolved with known ID retrieval; active dispatch may return 202; open refresh/resume; incompatible snapshot, old missing-ID ambiguity, and mismatch block instead of replacement; repeated new continuation key retains its binding. | automated tests; distinct boundary assertions as annotated | `internal/payment/checkout_test.go` / `TestLIFE003CheckoutRules`; `internal/integration/checkout_lifecycle_test.go` / `TestConnectedCheckoutLifecycle` | A fresh continuation key on prepared/unresolved work binds to and retries that same operation only where safe; an open operation is retrieved/resumed under its identity. It cannot allocate a replacement merely because its key is fresh. Once its key is durably bound, later response loss/mismatched evidence retains that association and accepted unresolved work, even when no session ID is saved. |
+| LIFE-004 | Correctly correlated expired/unpaid predecessor permits new operation; confirmed no-ambiguity rejection permits it without session retrieval; multiple prior attempts all satisfy safety; locally expired time, absent object/result, and list absence cannot substitute for evidence; concurrent eligible fresh keys allocate one potentially active operation; stale eligibility losing to another current operation or paid prerequisite cannot allocate. | automated tests; distinct boundary assertions as annotated | `internal/payment/checkout_test.go` / `TestLIFE004CheckoutRules`; `internal/integration/checkout_lifecycle_test.go` / `TestConnectedCheckoutLifecycle`; `internal/integration/checkout_concurrency_test.go` / `TestConnectedCheckoutConcurrency` | For an unpaid order, a fresh key may allocate one distinct operation only after every prior potentially active attempt is verified expired/unpaid or confirmed rejected with no earlier ambiguity. A preceding known session is retrieved and correctly validated before allocation; rejected work has no session to retrieve. Paid/current-operation state is rechecked transactionally at commit. |
+| LIFE-005 | Complete/unpaid including decline; retrieved paid without local confirmation; local paid; PaymentIntent-only or no_payment_required evidence; unknown status/payment combination; correlation mismatch; retrieval network/error/malformed result; missing-ID ambiguity at/after safe cutoff; cancel/abandon; previously ambiguous operation followed by rejection remains unresolved rather than newly eligible. | automated tests; distinct boundary assertions as annotated | `internal/payment/checkout_test.go` / `TestLIFE005CheckoutRules`; `internal/web/orders_checkout_test.go` / `TestCheckoutContinuationResponses`; `internal/integration/checkout_lifecycle_test.go` / `TestConnectedCheckoutLifecycle` | Complete_unpaid, paid, unknown/mismatched evidence, failed retrieval, and old ambiguous creation cannot permit a fresh attempt. A fresh-key continuation blocked by its pre-acceptance eligibility check returns 409 checkout_blocked without binding/operation allocation. If that key has already been durably accepted onto recoverable work and its dispatch subsequently becomes ambiguous, preserve the binding and return the accepted unresolved outcome/IDs under HTTP-003; do not erase the association or reclassify it as an unaccepted blocked request. No card decline or browser action justifies a new creation key. |
+| LIFE-006 | Fresh checkout key, existing continuation key, initial creation-key replay bound to historical open operation; paid state established while dispatch/retrieval is outstanding; delayed failure result; new/current operation race; persisted state/history never records a paid regression. | automated tests; distinct boundary assertions as annotated | `internal/payment/checkout_test.go` / `TestLIFE006CheckoutRules`; `internal/integration/checkout_lifecycle_test.go` / `TestConnectedCheckoutLifecycle`; `internal/integration/checkout_concurrency_test.go` / `TestConnectedCheckoutConcurrency` | Persisted paid is terminal. All checkout continuations, including replays, block without external mutation; initial creation-key replay reports its existing order/result with URL suppressed and all flags false. Stale external failure/success cannot regress paid or attach a second active operation. |
+| LIFE-007 | Correct session/client_reference/order and operation metadata, amount_total, `usd`, mode payment, livemode false; wrong/missing correlation, wrong amount/currency/mode/live flag, differing known session/PaymentIntent IDs; missing required session ID/open URL; unknown state combinations; complete/paid retrieval with nonempty/matching PaymentIntent still awaits later confirmation, stays unresolved, and blocks replacement; absent/mismatched PaymentIntent in purported paid evidence also cannot confirm or enable replacement. | automated tests; distinct boundary assertions as annotated | `internal/payment/checkout_test.go` / `TestLIFE007CheckoutRules`; `internal/stripeapi/checkout_test.go` / `TestSDKCheckoutEvidenceTranslation`; `internal/integration/checkout_lifecycle_test.go` / `TestConnectedCheckoutLifecycle` | First and replayed creation results and retrievals must correlate to local order/operation, associated IDs where known, immutable amount/currency, payment mode, and sandbox evidence before their result enables an open URL or safe expiration/replacement. Unknown/mismatched evidence preserves unresolved/investigation and cannot establish payment or eligibility. |
+| LIFE-008 | Each required predicate present versus independently missing/false; expiry just before/at/after saved expiry; retry age just before/at/after 23h; known-ID unresolved at any age; unsupported snapshot or mismatched evidence false; prepared true for same-operation retry; open/complete_unpaid/paid not unresolved-retry candidates; rejected with earlier ambiguity not new-attempt eligible; noncurrent bound operation replay versus current order read; locally eligible read followed by blocking refreshed POST. | automated tests; distinct boundary assertions as annotated | `internal/payment/checkout_test.go` / `TestLIFE008CheckoutRules`; `internal/web/orders_read_test.go` / `TestOrderReadResponses`; `internal/integration/checkout_lifecycle_test.go` / `TestConnectedCheckoutLifecycle` | Flags describe permitted actions from last-observed local eligibility, and POST rechecks actual evidence and transactional guards. For unpaid work: can_resume requires open+saved URL+future saved expiry; can_retry_same_operation requires prepared or unresolved with supported snapshot and known ID or time strictly before first_dispatch_at+23h, and no mismatched evidence; can_start_new_attempt requires current confirmed rejection without prior ambiguity or verified expired/unpaid with no other potentially active operation. All flags are false for paid. |
+| LIFE-009 | Exhausted combined attempt budget; elapsed budget insufficient for another call; eligible prepared operation persists with history/key; later same-key dispatch retains snapshot; no unsafe dispatch beyond limits and no extra operation on retry. | automated tests; distinct boundary assertions as annotated | `internal/payment/checkout_test.go` / `TestLIFE009CheckoutRules`; `internal/integration/checkout_lifecycle_test.go` / `TestConnectedCheckoutLifecycle`; `internal/integration/checkout_deadlines_test.go` / `TestConnectedCheckoutBudgetsAndShutdown` | After retrieval verifies new-attempt eligibility but exhausts remaining wire/time budget, a durably prepared new operation returns 202. Its bound key can dispatch later under that identity without another operation. |
+| STR-001 | First dispatch and every retry/restart identical parameters/key; automatic tax, discounts/promotion codes, adaptive pricing, after-expiration recovery disabled; no credentials in metadata/URLs/purchase; API-version-compatible hosted-mode representation; inline amount/name exactly persisted; application remains a one-product model despite adapter's required line item. | automated tests; distinct boundary assertions as annotated | `internal/stripeapi/checkout_test.go` / `TestSTR001SDKRequest`; `internal/integration/checkout_recovery_test.go` / `TestConnectedCheckoutRecovery` | Each creation sends the persisted compatible-version snapshot for hosted one-time immediate automatic-capture card payment: mode payment, explicit card-only methods, one Stripe line item quantity 1 with accepted inline product name/amount/currency, client_reference_id order ID, and session plus payment_intent_data metadata containing order/operation IDs. Pricing-changing/recovery features are disabled. |
+| STR-002 | External observer/independent DB connection can see committed prerequisite before call; failure of pre-call commit sends nothing; interruption after marker but before wire call remains unresolved; first and last possible dispatch timestamps survive restart; subsequent sends never recompute first dispatch/expiry/key; correlation persists even with no saved response/session/request ID. | automated tests; distinct boundary assertions as annotated | `internal/integration/checkout_lifecycle_test.go` / `TestConnectedCheckoutLifecycle`; `internal/integration/checkout_recovery_test.go` / `TestConnectedCheckoutRecovery` | Before each possible Stripe mutation, durable local identity, Stripe key, snapshot, conservative ambiguity marker, and last possible dispatch time are saved. First dispatch fixes server-time first_dispatch_at and integer Unix expiry 23h59m later, and records unresolved transition/history before external work. |
+| STR-003 | Local origin with/without trailing slash/port/IPv6 yields specified credential-free URL; changed base URL/API configuration after restart leaves saved snapshot unchanged; compatible snapshot reused; incompatible stored version returns unresolved/investigation and disables same-operation replay/new attempt. | automated tests; distinct boundary assertions as annotated | `internal/stripeapi/checkout_test.go` / `TestSTR003SDKRequest`; `internal/integration/checkout_recovery_test.go` / `TestConnectedCheckoutRecovery` | Snapshot uses validated origin plus `/?order_id=<id>&checkout_return=success` or cancel; URLs, metadata, API version, key, and expiry remain fixed across replay/restart. Unsupported old versions remain unresolved, never silently migrate or issue a changed creation. |
+| STR-004 | Stalled Content-Length and chunked bodies; blocked DB before dispatch and after external success; hung local SDK response/header/body; cancellation during call, database wait, retry wait, body read, and final persistence; earlier parent deadline versus configured deadline; budget exhausted without success retains accepted work recoverably; no work continues unbounded after response/shutdown. Invalid body read returns 400 when response is possible, not a false successful empty body. | automated tests; distinct boundary assertions as annotated | `internal/payment/recovery_test.go` / `TestSTR004RecoveryRules`; `internal/web/checkout_transport_test.go` / `TestCheckoutRealBodyAndResponseDeadlines`; `internal/stripeapi/transport_test.go` / `TestSTR004SDKTransport`; `internal/integration/checkout_deadlines_test.go` / `TestConnectedCheckoutBudgetsAndShutdown` | Overall request deadline begins at protected admission and covers body reads, DB operations, Stripe calls, waits, final persistence/response. Earlier parent cancellation/deadline wins. Each Stripe call is bounded by call timeout and remaining shared retry budget; final database/response work is bounded by the remaining one-second reserve. Blocking body reads actually terminate; canceled owned work completes within its bound. |
+| STR-005 | Limits 1/2/3; create-only retry; retrieval plus subsequent creation/retries share total; SDK hidden-retry multiplication cannot exceed total; fast failures hit attempts while slow calls/waits hit elapsed bound; remaining time caps the last call; exhausted work stays recoverable under same identity. | automated tests; distinct boundary assertions as annotated | `internal/payment/recovery_test.go` / `TestSTR005RecoveryRules`; `internal/stripeapi/transport_test.go` / `TestSTR005SDKTransport`; `internal/integration/checkout_deadlines_test.go` / `TestConnectedCheckoutBudgetsAndShutdown` | STRIPE_MAX_ATTEMPTS bounds total actual HTTP wire attempts across creation and retrieval combined in one incoming request; all calls/waits share retry elapsed budget. SDK retries count, and an outer retry owner disables SDK automatic retries. |
+| STR-006 | Default second/third waits; valid longer Retry-After versus shorter header minimum; required header wait cannot fit remaining budget; cancellation/deadline during wait prevents later wire call; Stripe-Should-Retry false on otherwise retryable response; delay/attempt total counted within STR-005. | automated tests; distinct boundary assertions as annotated | `internal/payment/recovery_test.go` / `TestSTR006RecoveryRules`; `internal/stripeapi/transport_test.go` / `TestSTR006SDKTransport`; `internal/integration/checkout_deadlines_test.go` / `TestConnectedCheckoutBudgetsAndShutdown` | Attempt 2 waits at least 250ms and attempt 3 500ms; waits are cancellable, fit remaining elapsed budget, and honor longer valid Retry-After. Stripe-Should-Retry false suppresses retry; insufficient time for a required wait stops unresolved. |
+| STR-007 | Transport timeout; connection reset/response loss; 429; documented transient conflict; 5xx first and repeated/cached; no retry beyond safe cutoff or when retry header/budget forbids; successful same-key recovery preserves one logical session; exhausted indeterminate 5xx sets investigation. | automated tests; distinct boundary assertions as annotated | `internal/payment/recovery_test.go` / `TestSTR007RecoveryRules`; `internal/stripeapi/transport_test.go` / `TestSTR007SDKTransport`; `internal/integration/checkout_recovery_test.go` / `TestConnectedCheckoutRecovery`; `internal/integration/checkout_deadlines_test.go` / `TestConnectedCheckoutBudgetsAndShutdown` | Transport timeout/reset, 429, and documented transient conflict/5xx retry only the same snapshot/key within safe age and request bounds. Indeterminate 5xx remains unresolved even when cached failure repeats; timeout never proves business rejection. |
+| STR-008 | First structured validation rejection; first sandbox credential/permission rejection; same responses after response loss/interruption/uncertain earlier dispatch; generic 4xx, idempotency mismatch, malformed success, missing required ID/open URL, correlation mismatch, uncertain dependency errors; hosted decline remains open/unpaid or complete_unpaid by verified evidence, never a fresh-key creation justification. | automated tests; distinct boundary assertions as annotated | `internal/payment/recovery_test.go` / `TestSTR008RecoveryRules`; `internal/stripeapi/checkout_test.go` / `TestSDKCheckoutEvidenceTranslation`; `internal/stripeapi/transport_test.go` / `TestSTR008SDKTransport`; `internal/integration/checkout_recovery_test.go` / `TestConnectedCheckoutRecovery` | A fully observed structured pre-execution parameter rejection or sandbox credential/permission rejection with no earlier ambiguous dispatch is confirmed rejected without automatic retry. Generic/uncertain errors and any rejection after earlier ambiguity remain unresolved for investigation. Changing parameters requires an eligible distinct operation; replay of definitive rejection returns its saved rejection/IDs without creation. |
+| REC-001 | Response lost before local session ID saved; caller response loss after local result saved; repeated retry; missing Stripe request ID versus available supplemental request ID; unresolved status/history before recovery and correctly associated result afterward. | automated tests; distinct boundary assertions as annotated | `internal/integration/checkout_recovery_test.go` / `TestConnectedCheckoutRecovery` | After Stripe processes a mutation but response is lost, accepted work remains inspectable locally. Safe retry uses original operation/key/snapshot, validates replayed evidence, and recovers the established session without duplicate logical creation. |
+| REC-002 | No saved Stripe object ID at interruption; result observed but result transaction not committed; interrupted before response receipt; restarted dependencies have no process-memory identity; configuration values changed without repricing/recomputing snapshot; current operation remains recoverable until established; incompatible version remains unresolved instead of automatic migration. | automated tests; distinct boundary assertions as annotated | `internal/integration/checkout_recovery_test.go` / `TestConnectedCheckoutRecovery` | A process/service restart after external success but before local result commits recovers original identity, price, Stripe key, correlation, URLs/version/expiry and snapshot without another logical Checkout. Failed partial local changes/history remain absent. |
+| REC-003 | Just before/exactly at/after 23h; restart at cutoff; same original key and fresh continuation key; known session ID older than cutoff retrieves without creation; insufficient/mismatched read evidence preserves unresolved; local 23h59m expiry is a separate boundary and cannot extend replay eligibility. | automated tests; distinct boundary assertions as annotated | `internal/payment/recovery_test.go` / `TestREC003RecoveryRules`; `internal/integration/checkout_recovery_test.go` / `TestConnectedCheckoutRecovery` | With no saved session ID, same-operation POST replay is allowed only strictly before first_dispatch_at+23h. At or beyond cutoff issue no creation POST, retain unresolved/investigation, and block replacement. Known IDs use evidence GET at any age; missing result/request ID cannot justify another creation. |
+| REC-004 | Unresolved just before/at/after 15m; young network ambiguity without other trigger; young mismatch/5xx/incompatible version; confirmed configuration/integration rejection; 23h exhausted age; absent first dispatch on prepared work; advisory true inside safe age still allows otherwise-safe replay; no automatic list/recreate/force-paid/reset/background recovery. | automated tests; distinct boundary assertions as annotated | `internal/payment/recovery_test.go` / `TestREC004RecoveryRules`; `internal/integration/checkout_recovery_test.go` / `TestConnectedCheckoutRecovery` | investigation_required is an advisory, not failed payment or permission for new creation. It is true for unresolved age at least 15 minutes from first dispatch, exhausted safe retry age, mismatched evidence, indeterminate 5xx, incompatible snapshot versions, or confirmed configuration/integration rejection. It starts no background task; safe same-key replay may still recover network ambiguity. |
+| DATA-001 | Successful atomic initial acceptance, first dispatch, open/rejected/unresolved/expired observations, later attempt preparation; injected failure between business and history writes and at commit; retry after failure creates only the actual committed transition entries; no external dispatch when prerequisite transaction failed. Paid fixture changes belong to later confirmation, but Feature 2 cannot regress them. | automated tests; distinct boundary assertions as annotated | `internal/postgres/payment_test.go` / `TestDATA001PaymentPersistence`; `internal/integration/checkout_lifecycle_test.go` / `TestConnectedCheckoutLifecycle`; `internal/integration/checkout_recovery_test.go` / `TestConnectedCheckoutRecovery` | Initial order/operation/key acceptance, dispatch marker/state, saved external result, and eligible later-attempt changes each commit with their corresponding append-only history in one PostgreSQL transaction. Failure leaves neither a partial state nor orphan/missing audit effect. |
+| DATA-002 | Concurrent identical/conflicting initial keys; different continuation keys racing on one eligible order; collisions in Stripe keys/session IDs/PaymentIntent IDs; attempts to alter an accepted binding/purchase snapshot; independent connections observe one committed winner with valid state/history; multiple application instances/process-local lock independence. | automated tests; distinct boundary assertions as annotated | `internal/postgres/payment_test.go` / `TestDATA002PaymentPersistence`; `internal/postgres/payment_concurrency_test.go` / `TestDATA002IndependentConnections`; `internal/integration/checkout_concurrency_test.go` / `TestConnectedCheckoutConcurrency` | PostgreSQL constraints/transactions enforce globally unique request and Stripe keys, unique associated session/payment IDs, immutable request bindings/purchase snapshots, and one current potentially active operation per order across independent connections/processes. |
+| DATA-003 | Overlapping same-operation dispatch/recovery through independent DB connections; ownership lost/canceled with outstanding call; paid/current operation changed before result commit; concurrent fresh-key replacement eligibility; verified expiration of every earlier attempt required before dispatching later session; no process-local-only synchronization. | automated tests; distinct boundary assertions as annotated | `internal/postgres/payment_concurrency_test.go` / `TestDATA003IndependentConnections`; `internal/integration/checkout_lifecycle_test.go` / `TestConnectedCheckoutLifecycle`; `internal/integration/checkout_concurrency_test.go` / `TestConnectedCheckoutConcurrency` | Dispatch/recovery overlap uses persisted coordination and the same Stripe key; eligibility and committing changes recheck paid/current state. Losing ownership or cancellation retains recoverability and cannot admit another attempt or attach stale results to another operation. |
+| DATA-004 | Entry fields sequence/kind/recorded_at/order_id/nullable operation_id/from_state/to_state/session/PaymentIntent/event/request IDs/failure_code; relevant kinds order_created/operation_prepared/dispatch_started/operation_state_changed and future-compatible payment_confirmed/recovery_recorded representation; IDs absent/null versus available; separate external event time when present rather than causal ordering by it; concurrent order sequences strictly increase; identical replay/read/unchanged repeated observation preserves transition count; no normal update/delete or raw payload requirement. | automated tests; distinct boundary assertions as annotated | `internal/web/orders_history_test.go` / `TestOrderHistoryResponses`; `internal/postgres/payment_test.go` / `TestDATA004PaymentPersistence`; `internal/integration/orders_test.go` / `TestConnectedOrderCheckoutAndInspection`; `internal/integration/checkout_recovery_test.go` / `TestConnectedCheckoutRecovery` | History associates relevant local operations/state/recovery outcomes and available Stripe identifiers with order, uses strictly increasing per-order sequences and UTC observation timestamps, and is append-only through normal paths. Read/replay/unchanged observations add no duplicate business-transition entry. |
+| DATA-005 | Blocked creation and blocked retrieval while another independent order progresses; persisted prerequisite visible externally; canceled/failed external call leaves recoverable operation; external result still performs committing guard after the wait. | automated tests; distinct boundary assertions as annotated | `internal/postgres/payment_concurrency_test.go` / `TestDATA005IndependentConnections`; `internal/integration/checkout_concurrency_test.go` / `TestConnectedCheckoutConcurrency` | Network calls do not hold a transaction open for their duration. Pre-call intent is already committed; post-call guards preserve correctness while unrelated successful operations can complete independently. |
+| SEC-001 | Valid, missing, and invalid credentials on every introduced endpoint/method; successful authenticated request followed by credential-free request; deliberately overlapping valid and credential-free/wrong requests; protected unknown path/unsupported method/invalid body still rejects auth first; credential-bearing query/cookie/body cannot substitute for the existing Authorization boundary; no parser/DB/Stripe invocation on rejection. | automated tests; distinct boundary assertions as annotated | `internal/web/checkout_routing_test.go` / `TestCheckoutEndpointRouting`; `internal/web/checkout_security_test.go` / `TestCheckoutEndpointAuthentication`; `internal/integration/orders_test.go` / `TestConnectedOrderCheckoutAndInspection` | Existing Basic authentication protects initial creation, checkout, status/history and HEAD access before protected routing or body parsing. Missing/invalid credentials cannot set price, read feature data, call Stripe, or affect durable state; valid authentication delegates to the feature contract without retained authorization leaking to another request. |
+| SEC-002 | Successful creation/inspection, rejected submitted bodies, structured/unstructured dependency errors, timeout/retry/recovery logs/history, external response containing sensitive sentinels, Basic/Stripe/database secrets; response/history fields remain allowlisted; SDK authenticates with its sandbox Stripe secret only, without leaking application Basic credentials; credential-free metadata/URLs and browser assets. | automated tests; distinct boundary assertions as annotated | `internal/web/checkout_security_test.go` / `TestCheckoutSanitizedLogsAndResponses`; `internal/integration/orders_test.go` / `TestConnectedOrderCheckoutAndInspection`; `internal/integration/checkout_recovery_test.go` / `TestConnectedCheckoutRecovery` | Feature paths never return/log/store secrets, card numbers/CVC, raw Stripe response bodies, or unnecessary personal data. Privileged service credentials stay out of browser-delivered code and Stripe request data; return URLs are credential-free and card entry remains hosted. |
+| SEC-003 | Accepted/successful checkout, prepared/unresolved, confirmed rejection, input/auth rejection, database acceptance/result/read failure, Stripe timeout/server/mismatch, cancellation/ownership loss; known order/operation IDs included appropriately, request ID agrees with response; no sensitive error text/body from SEC-002. | automated tests; distinct boundary assertions as annotated | `internal/web/checkout_security_test.go` / `TestCheckoutSanitizedLogsAndResponses`; `internal/integration/orders_test.go` / `TestConnectedOrderCheckoutAndInspection`; `internal/integration/checkout_recovery_test.go` / `TestConnectedCheckoutRecovery` | Introduced operations/failures produce useful structured logs with request and known operation correlation identifiers and sanitized error context; explicit errors propagate without suppressing relevant failures. |
+| FND-001 | Public GET/HEAD without Basic credentials; HEAD body empty; DB unavailable → readiness 503/liveness 200; dependency recovery → readiness 200; unsupported POST/DELETE → 405; /healthz/private, /readyz/private, and prefix variants remain unauthorized. | automated tests; distinct boundary assertions as annotated | `internal/integration/foundation_test.go` / `TestDatabaseMigrationsReadinessAndRestart/outage_recovery_and_retained_data`; `internal/web/authentication_test.go` / `TestAuthenticationPublicProbeBoundary`; `internal/web/server_test.go` / `TestHealthReadinessAndSanitizedLogs`; `internal/web/server_test.go` / `TestReadinessDeadline` | Exact /healthz and /readyz GET/HEAD remain public. Liveness does not depend on database readiness; readiness is bounded and distinguishes available/unavailable/recovered database. Probe-like protected paths do not become public; unsupported probe methods retain their existing contract. |
+| FND-002 | Valid configuration/migrated available database; invalid key/origin/currency/budgets; unavailable PostgreSQL and recovery; feature migration failure prevents useful serving readiness; externally unavailable Stripe is handled as bounded unresolved request work, not invented payment confirmation or background recovery. | automated tests; distinct boundary assertions as annotated | `cmd/service/authentication_test.go` / `TestAuthenticationServingConfiguration`; `cmd/service/checkout_test.go` / `TestCheckoutServingValidation`; `cmd/service/checkout_test.go` / `TestCheckoutCommandWiring`; `internal/integration/foundation_test.go` / `TestDatabaseMigrationsReadinessAndRestart/empty_production_migrations`; `internal/integration/checkout_deadlines_test.go` / `TestConnectedCheckoutBudgetsAndShutdown` | Invalid checkout serving configuration never exposes a serving HTTP process as ready; applicable dependency readiness reflects ability to serve application operations while liveness identifies a running process. Preserve the existing local migration/startup contract. |
+| FND-003 | Authenticated and unauthenticated admission after stop; active checkout completes in grace; blocked Stripe/DB/body work canceled after grace; unfinished accepted operation persists safely; cleanup succeeds after work exits, fails, or exceeds timeout; default grace 10s/cleanup 5s/total 15s; nonzero real command exit on cleanup failure. | automated tests; distinct boundary assertions as annotated | `internal/web/checkout_transport_test.go` / `TestCheckoutRealBodyAndResponseDeadlines`; `internal/integration/checkout_deadlines_test.go` / `TestConnectedCheckoutBudgetsAndShutdown` | Shutdown rejects new protected work before body reads/effects, allows active requests within grace, cancels overdue contexts, waits for owned work before cleanup, and ends within grace+cleanup bound. Cleanup failure produces nonzero process exit. Interrupted checkout remains durably recoverable. |
+| FND-004 | Concurrent identical/conflicting requests, independent orders, outstanding call ownership/cancellation, earlier parent/request/shutdown cancellation; canceled work exits with no unbounded goroutine; one failed/canceled operation does not lose another committed success; database invariants separately verified by DATA-002/003. | automated tests; distinct boundary assertions as annotated | `internal/integration/checkout_concurrency_test.go` / `TestConnectedCheckoutConcurrency`; `internal/integration/checkout_deadlines_test.go` / `TestConnectedCheckoutBudgetsAndShutdown` | Owned concurrent work has cancellation/completion and bounded lifetime; shared state is synchronized. Relevant coordinated request/dispatch/recovery paths complete without races while unfinished operations remain recoverable and independent successful work survives another failure. |
+
+### Concrete scenario evidence requirements
+
+- Connected creation executes authenticated HTTP → real payment Service → production-migrated PostgreSQL → stripeapi → actual v87 SDK → local HTTP endpoint; verify 201 unpaid, committed identity/key/snapshot/history visible from an independent connection before response release, then authenticated order/history reads. Repeat same key200 and distinct key distinct order. Every invalid/auth loser checks before/after bindings/orders/operations/history and wire counters.
+- Pre-acceptance eligibility blocks fresh key409 with no durable binding, and that same key can later be accepted after verified safe eligibility. Accepted new continuation on unresolved work with later lost/malformed/mismatched dispatch preserves its binding and202/IDs, even with no session ID. Definitive first rejection returns502 and saved IDs; earlier ambiguity followed by the same rejection remains unresolved/investigation, never eligible replacement.
+- Production migration fixtures use fresh schema/DB per scenario and migrate up/repeat/down/up through postgres.Migrate; assert expected business constraints and persistence, not merely migration success. Inject DB failure between business/history writes and at commit for acceptance, marker, result and new attempt. Read with independent connection: no partial business/history or external send when prerequisites fail. After external success with result failure, verify readable202 versus unreadable503 with original known IDs, and recover same logical external object.
+- Response-loss endpoint caches one external object by original Stripe key and immutable full form, then drops/hijacks the first response; subsequent same-key wire requests return that identity. Count logical objects separately from wire attempts. Caller response loss after saved result must inspect/replay without another mutation. Restart reconstructs fresh service/repository/gateway/client using retained PostgreSQL and local server; no in-memory IDs or retry cache survives. Controlled cancellation/DB rollback at external-success-before-result-commit establishes no saved ID/result/history; recovery preserves key/form/URL/API/expiry.
+- Concurrency creates two independent app compositions and PostgreSQL pools/connections, uses explicit arrival/release barriers, and observes committed losers/winners/constraints. Coordinate identical/conflicting keys, competing continuation keys, ownership cancellation, stale result after paid/current change, and every-prior-attempt safe expiration. While SDK creation/retrieval blocks, inspect pg_stat_activity for absence of an open transaction across the network wait and allow another order to commit successfully. Failure/cleanup in one request cannot lose that success.
+- Wire tests assert POST /v1/checkout/sessions versus GET /v1/checkout/sessions/{id}, Stripe-Version and Idempotency-Key, required sandbox API authentication only, exact form and disabled pricing/recovery options, stable version/expiry across restart. RealSDK structured errors and request IDs/retry headers feed the domain classification; never fake SDK retries. Combined retrieval→creation retries count actual HTTP attempts1/2/3. Observe minimum250ms/500ms/longer Retry-After using server arrival timestamps; upper bounds share request/retry budget. Cancellable waits do not issue a later call.
+- Real TCP Content-Length and chunked stalls, hanging SDK headers/body, blocked DB row/query/persistence, earlier parent cancellation, blocked response writes and shutdown all demonstrate actual completion within configured bound plus bounded scheduling allowance. Assert owned work exits and no later wire/state work occurs; context field inspection/client timeouts alone cannot prove service cancellation. Maintain real configured minimum request2s/call100ms/retry500ms; use controlled clock only for business age and unit waits.
+
+### Non-automated runtime evidence
+
+These six completion-time procedures supplement automated outcomes; each remains a behavioral check where listed, separate from deliverable ownership. Record exact command/source outputs at implementation verification, not planned success.
+
+| Procedure | Criteria | Concrete check | Expected result |
+|---|---|---|---|
+| NE-1 | CFG-001, CFG-002, CFG-003, CFG-004, FND-002 | Inspect .env.example, compose.yaml resolved with placeholder env, internal/config and cmd/service wiring; run docker compose config --quiet with ignored local sandbox env and make up; verify unavailable/migration-failure startup via scripts/testdata/workflows.sh | Checkout settings reach app only as needed; read11s/write15s/default budgets; serve validates before DB/listener; migrate/probe independence; database→fresh migration→app ordering, failure leaves app stopped; loopback bindings and healthcheck service probe retained |
+| NE-2 | INP-003, ID-003, SEC-002 | Inspect random UUIDv4/Stripe-key generation, tracked config/browser/templates and request snapshot allowlists; git check-ignore .env; git ls-files secret review without printing secret values | Independent random IDs/keys, no amount-derived identity; only placeholders tracked; no Basic/database secret or card/CVC/raw sensitive body in browser/metadata/URLs/history/log fields |
+| NE-3 | LIFE-001, LIFE-005, LIFE-006, LIFE-007, LIFE-008, REC-003, REC-004 | Inspect payment lifecycle/replay/retry/investigation paths and current API/recovery docs; perform documented authenticated creation/status/history/continuation commands against local sandbox or the reproducible local stub harness | No create/browser return/decline/timeout confirms paid; exact flags/409-before-acceptance versus202-after-acceptance; safe-age23h, expiry23h59m and advisory15m distinct; no force-paid/reset/recreate/list/background worker introduced |
+| NE-4 | STR-001, STR-002, STR-003, STR-004, STR-005, STR-006, STR-007, STR-008 | Inspect go.mod/go.sum, exact SDK constants and client/backend construction; examine captured local-server method/form/header/timing evidence and persisted snapshots | v87.0.0/API2026-09-30.endive exact and frozen; hosted_page; SDK retries disabled under outer owner; original keys/versions/snapshots before every possible send; combined bounded attempts/waits/context propagation |
+| NE-5 | DATA-001, DATA-002, DATA-003, DATA-004, DATA-005, HTTP-007 | Inspect production migrations/parameterized SQL, generated package and repository transaction/guard boundaries; run make generate and confirm no generated drift; inspect normal-path history writes and real DB failure/activity evidence | Schema/invariants versioned; authoritative sqlc sources agree; atomic state/history, no normal history update/delete, monotonic paid/current/ownership guards; transactions committed outside network waits; no swallowed errors/uncommitted-success claims |
+| NE-6 | FND-001, FND-002, FND-003, FND-004, SEC-003 | Run make verify; inspect scripts/verify.sh and .github/workflows/verify.yml; trace main nonzero cleanup-error exit through actual serve return/error; execute local startup, probe, graceful stop and dependency-unavailable/recovered requests | Same formatting/lint/vulnerability/unit/integration/race checks locally/CI without narrower selection; protected admission closes before parsing/effects, real checkout cancellation recoverable, owned work joined before cleanup, nonzero cleanup-failure exit and total bound; useful sanitized correlated logs |
+
+## Delivery Obligations
+
+| Obligation ID | Source | Deliverable | Completion check |
+|---|---|---|---|
+| DO-001 | spec Delivery Obligations DO-001; FR-013/014/021 | Deliver API usage for initial creation, continuation, status/history, authentication, input/key contract, error/outcome interpretation, local IDs and flags. | application documentation permits creation and inspection of accepted unresolved work without starting another operation and describes the delivered envelope/pagination/HEAD behavior. |
+| DO-002 | spec DO-002; Input and configuration; FR-020 | Supply committed placeholder configuration examples, ignored local `.env`, sandbox/local startup and relevant Stripe setup prerequisites. | examples describe exact validated defaults/ranges and local-origin/sandbox requirements, local configuration is ignored, and inspected tracked files contain no secrets. Sandbox setup supports the USD charge range. Later webhook/command setup belongs to its delivering feature. |
+| DO-003 | spec DO-003; FR-010/012/015/019 | Document supported continuation/lifecycle, exact safe replay boundary, immutable identities/evidence, unresolved and investigation meanings, and operator inspection without force-paid/reset/recreate override. | documented API/recovery examples preserve keys/purchase data and explain open/complete_unpaid/expired/rejected/paid behavior and unsupported external dashboard actions such as refunds. Shared confirmation/listing bounds remain explicit future feature contracts. |
+| DO-004 | spec DO-004; Stripe request, deadlines, and recovery, SDK pin clause; Supporting Context agreed stack/Q1–Q4 | Supply fake-based payment rules, real PostgreSQL/migrations, focused real SDK/local HTTP, connected HTTP-payment-DB-SDK, controlled response-loss/precommit-restart, and independent-connection concurrency evidence. Pin exact Stripe SDK/compatible API version before SDK-based test authoring and freeze those pins with reviewed tests; record that version in durable snapshots. | evidence maps every automated outcome/named variant without live Stripe credentials or availability, verifies real wire parameters/retries/cancellation, and coordinates concurrency without sleeps. Multiple tests/evidence locations may establish one criterion. |
+| DO-005 | spec DO-005; FR-022; Supporting Context Q7/A-13 | Keep documented local/CI checks aligned for formatting, golangci-lint, govulncheck, all unit/integration tests, and Go race detection. | full required project checks cover added payment paths without narrowing foundation checks; report actual outcomes and material gaps. No acceptance-phase execution is implied by this obligation. |
+| DO-006 | spec DO-006; FR-016/017/018/022; Supporting Context application conventions | Deliver versioned migrations, authoritative SQL/sqlc generation, and current API/configuration/architecture/recovery documentation. | migrations create the business schema/invariants and apply through the normal commands; generated SQL agrees with source; docs describe delivered behavior/structure. Payment rules remain independently testable, HTTP/business/persistence/SDK responsibilities follow application conventions, explicit errors/context propagation and generated-source discipline are inspected. |
+
+DO-001/002/003/006 are production documentation/configuration/schema work for implementation, not test-session application source writes. DO-004 pins dependencies before SDK test authoring; DO-005 retains configured make verify. Architecture reference maintenance belongs to its prescribed command. Normal Compose/scripts current-migration startup and real run dependency wiring must be preserved while feature settings are documented and injected into app. Do not introduce future webhook/listing/worker paths.
+
+## Existing runner inventory
+
+Copied from successful actual `snapshot-tests.sh identities`, 66 entries. This is a lookup, not a new integrity manifest or gate; actual Kaba snapshots/lock, reviewed commit and normal Git diffs own preservation.
+
+| File | Identity | Full description |
+|---|---|---|
+| cmd/service/authentication_test.go | `github.com/filser89/stripe-payments-go/cmd/service::TestAuthenticationCommandIndependence` | `TestAuthenticationCommandIndependence` |
+| cmd/service/authentication_test.go | `github.com/filser89/stripe-payments-go/cmd/service::TestAuthenticationCredentialLifetime` | `TestAuthenticationCredentialLifetime` |
+| cmd/service/authentication_test.go | `github.com/filser89/stripe-payments-go/cmd/service::TestAuthenticationServingConfiguration` | `TestAuthenticationServingConfiguration` |
+| cmd/service/main_test.go | `github.com/filser89/stripe-payments-go/cmd/service::TestRunRejectsInvalidDatabaseWithoutExposingCredentials` | `TestRunRejectsInvalidDatabaseWithoutExposingCredentials` |
+| cmd/service/main_test.go | `github.com/filser89/stripe-payments-go/cmd/service::TestRunRejectsMissingConfiguration` | `TestRunRejectsMissingConfiguration` |
+| cmd/service/main_test.go | `github.com/filser89/stripe-payments-go/cmd/service::TestRunRejectsUnknownCommandBeforeConnecting` | `TestRunRejectsUnknownCommandBeforeConnecting` |
+| internal/config/config_test.go | `github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/bad_log_level` | `TestLoadRejectsInvalidConfigurationWithoutSecrets/bad_log_level` |
+| internal/config/config_test.go | `github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/bad_port` | `TestLoadRejectsInvalidConfigurationWithoutSecrets/bad_port` |
+| internal/config/config_test.go | `github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/invalid_database` | `TestLoadRejectsInvalidConfigurationWithoutSecrets/invalid_database` |
+| internal/config/config_test.go | `github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/invalid_timeout` | `TestLoadRejectsInvalidConfigurationWithoutSecrets/invalid_timeout` |
+| internal/config/config_test.go | `github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/missing_database` | `TestLoadRejectsInvalidConfigurationWithoutSecrets/missing_database` |
+| internal/config/config_test.go | `github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/missing_database_name` | `TestLoadRejectsInvalidConfigurationWithoutSecrets/missing_database_name` |
+| internal/config/config_test.go | `github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/missing_host` | `TestLoadRejectsInvalidConfigurationWithoutSecrets/missing_host` |
+| internal/config/config_test.go | `github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/negative_readiness` | `TestLoadRejectsInvalidConfigurationWithoutSecrets/negative_readiness` |
+| internal/config/config_test.go | `github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/overflow_budget` | `TestLoadRejectsInvalidConfigurationWithoutSecrets/overflow_budget` |
+| internal/config/config_test.go | `github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/short_container_budget` | `TestLoadRejectsInvalidConfigurationWithoutSecrets/short_container_budget` |
+| internal/config/config_test.go | `github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/wrong_scheme` | `TestLoadRejectsInvalidConfigurationWithoutSecrets/wrong_scheme` |
+| internal/config/config_test.go | `github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_cleanup` | `TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_cleanup` |
+| internal/config/config_test.go | `github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_header` | `TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_header` |
+| internal/config/config_test.go | `github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_idle` | `TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_idle` |
+| internal/config/config_test.go | `github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_port` | `TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_port` |
+| internal/config/config_test.go | `github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_read` | `TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_read` |
+| internal/config/config_test.go | `github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_shutdown` | `TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_shutdown` |
+| internal/config/config_test.go | `github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_startup` | `TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_startup` |
+| internal/config/config_test.go | `github.com/filser89/stripe-payments-go/internal/config::TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_write` | `TestLoadRejectsInvalidConfigurationWithoutSecrets/zero_write` |
+| internal/config/config_test.go | `github.com/filser89/stripe-payments-go/internal/config::TestLoadValidConfiguration` | `TestLoadValidConfiguration` |
+| internal/integration/foundation_test.go | `github.com/filser89/stripe-payments-go/internal/integration::TestDatabaseMigrationsReadinessAndRestart/apply_repeat_and_rollback` | `TestDatabaseMigrationsReadinessAndRestart/apply_repeat_and_rollback` |
+| internal/integration/foundation_test.go | `github.com/filser89/stripe-payments-go/internal/integration::TestDatabaseMigrationsReadinessAndRestart/empty_production_migrations` | `TestDatabaseMigrationsReadinessAndRestart/empty_production_migrations` |
+| internal/integration/foundation_test.go | `github.com/filser89/stripe-payments-go/internal/integration::TestDatabaseMigrationsReadinessAndRestart/failing_transaction_leaves_no_partial_table` | `TestDatabaseMigrationsReadinessAndRestart/failing_transaction_leaves_no_partial_table` |
+| internal/integration/foundation_test.go | `github.com/filser89/stripe-payments-go/internal/integration::TestDatabaseMigrationsReadinessAndRestart/generated_readiness_query` | `TestDatabaseMigrationsReadinessAndRestart/generated_readiness_query` |
+| internal/integration/foundation_test.go | `github.com/filser89/stripe-payments-go/internal/integration::TestDatabaseMigrationsReadinessAndRestart/outage_recovery_and_retained_data` | `TestDatabaseMigrationsReadinessAndRestart/outage_recovery_and_retained_data` |
+| internal/integration/foundation_test.go | `github.com/filser89/stripe-payments-go/internal/integration::TestOpenRejectsUnavailableDatabaseWithinDeadline` | `TestOpenRejectsUnavailableDatabaseWithinDeadline` |
+| internal/integration/foundation_test.go | `github.com/filser89/stripe-payments-go/internal/integration::TestShutdownCancelsActivePostgresQuery` | `TestShutdownCancelsActivePostgresQuery` |
+| internal/web/authentication_audit_test.go | `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationAuditASCIISchemeOnWire/ascii` | `TestAuthenticationAuditASCIISchemeOnWire/ascii` |
+| internal/web/authentication_audit_test.go | `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationAuditASCIISchemeOnWire/ascii_mixed_case` | `TestAuthenticationAuditASCIISchemeOnWire/ascii_mixed_case` |
+| internal/web/authentication_audit_test.go | `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationAuditASCIISchemeOnWire/unicode_long_s` | `TestAuthenticationAuditASCIISchemeOnWire/unicode_long_s` |
+| internal/web/authentication_audit_test.go | `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationAuditLandingReadFailureContext/GET/clean_eof` | `TestAuthenticationAuditLandingReadFailureContext/GET/clean_eof` |
+| internal/web/authentication_audit_test.go | `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationAuditLandingReadFailureContext/GET/nonempty_body` | `TestAuthenticationAuditLandingReadFailureContext/GET/nonempty_body` |
+| internal/web/authentication_audit_test.go | `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationAuditLandingReadFailureContext/GET/zero_byte_read_failure` | `TestAuthenticationAuditLandingReadFailureContext/GET/zero_byte_read_failure` |
+| internal/web/authentication_audit_test.go | `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationAuditLandingReadFailureContext/HEAD/clean_eof` | `TestAuthenticationAuditLandingReadFailureContext/HEAD/clean_eof` |
+| internal/web/authentication_audit_test.go | `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationAuditLandingReadFailureContext/HEAD/nonempty_body` | `TestAuthenticationAuditLandingReadFailureContext/HEAD/nonempty_body` |
+| internal/web/authentication_audit_test.go | `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationAuditLandingReadFailureContext/HEAD/zero_byte_read_failure` | `TestAuthenticationAuditLandingReadFailureContext/HEAD/zero_byte_read_failure` |
+| internal/web/authentication_test.go | `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationAuthorizationParsing` | `TestAuthenticationAuthorizationParsing` |
+| internal/web/authentication_test.go | `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationBodyReadFailure` | `TestAuthenticationBodyReadFailure` |
+| internal/web/authentication_test.go | `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationConcurrentIsolation` | `TestAuthenticationConcurrentIsolation` |
+| internal/web/authentication_test.go | `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationCredentialSources` | `TestAuthenticationCredentialSources` |
+| internal/web/authentication_test.go | `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationDelegation` | `TestAuthenticationDelegation` |
+| internal/web/authentication_test.go | `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationExactCredentials` | `TestAuthenticationExactCredentials` |
+| internal/web/authentication_transport_test.go | `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationFoundationTransport` | `TestAuthenticationFoundationTransport` |
+| internal/web/authentication_test.go | `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationLanding` | `TestAuthenticationLanding` |
+| internal/web/authentication_test.go | `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationLandingBodyBytes` | `TestAuthenticationLandingBodyBytes` |
+| internal/web/authentication_test.go | `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationMissingCredentials` | `TestAuthenticationMissingCredentials` |
+| internal/web/authentication_test.go | `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationPublicProbeBoundary` | `TestAuthenticationPublicProbeBoundary` |
+| internal/web/authentication_transport_test.go | `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationRealStreamingBodies` | `TestAuthenticationRealStreamingBodies` |
+| internal/web/authentication_test.go | `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationRouting` | `TestAuthenticationRouting` |
+| internal/web/authentication_test.go | `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationSanitizedOutcomes` | `TestAuthenticationSanitizedOutcomes` |
+| internal/web/authentication_test.go | `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationShutdownAdmission` | `TestAuthenticationShutdownAdmission` |
+| internal/web/authentication_transport_test.go | `github.com/filser89/stripe-payments-go/internal/web::TestAuthenticationStalledBodyDeadline` | `TestAuthenticationStalledBodyDeadline` |
+| internal/web/server_test.go | `github.com/filser89/stripe-payments-go/internal/web::TestCleanupFailureIsReported` | `TestCleanupFailureIsReported` |
+| internal/web/server_test.go | `github.com/filser89/stripe-payments-go/internal/web::TestCleanupIsBounded` | `TestCleanupIsBounded` |
+| internal/web/server_test.go | `github.com/filser89/stripe-payments-go/internal/web::TestGracefulShutdownAllowsActiveRequestToFinish` | `TestGracefulShutdownAllowsActiveRequestToFinish` |
+| internal/web/server_test.go | `github.com/filser89/stripe-payments-go/internal/web::TestHealthReadinessAndSanitizedLogs` | `TestHealthReadinessAndSanitizedLogs` |
+| internal/web/server_test.go | `github.com/filser89/stripe-payments-go/internal/web::TestPanicProducesSanitizedFailureLog` | `TestPanicProducesSanitizedFailureLog` |
+| internal/web/server_test.go | `github.com/filser89/stripe-payments-go/internal/web::TestReadinessDeadline` | `TestReadinessDeadline` |
+| internal/web/server_test.go | `github.com/filser89/stripe-payments-go/internal/web::TestServeFailureClosesResources` | `TestServeFailureClosesResources` |
+| internal/web/server_test.go | `github.com/filser89/stripe-payments-go/internal/web::TestShutdownCancelsOverdueWorkAndWaitsForCleanup` | `TestShutdownCancelsOverdueWorkAndWaitsForCleanup` |
+
+## Validation and authoring readiness
+
+- Complete coverage: PASS
+- Coverage accountability: PASS
+- No empty files: PASS
+- Describe blocks map to criteria: PASS
+- Factory completeness: PASS
+- Helper completeness: PASS
+- Used-by consistency: PASS
+- Path conventions: PASS
+- Criteria Mapping table matches: PASS
+- State-change entries resolve: PASS
+- MODIFY consistency: PASS
+- Removal reasons: PASS
+- Delta completeness: PASS
+- Sweep coverage: PASS
+- Disposition–table consistency: PASS
+- KEEP satisfiability: PASS
+- Landing legality: PASS
+
+Planning verification: actual path resolution/prior-run gate reports no prior plan; script identity matches supplied source; actual inventory succeeds; suite-wide probes and affected source assertions inspected; exact SDK tag/API/module checksums verified; schema-v3 JSON entries match the five rows and all existing IDs/descriptions/files. No feature tests, business code, application verification result or captured baseline is claimed.
+
+Authoring partitions, if the command agent coordinates disjoint helpers: (1) payment-local tests/fakes/contracts; (2) postgres and connected integration tests plus shared DB/fixture/barrier helpers; (3) SDK, web, config and cmd tests plus local HTTP/log/request helpers and their declared scaffolds. One author owns shared testutil and dependency writes to avoid overlap; command agent owns exact state changes, baseline capture/validate-plan/lock, aggregate execution and commit. Fresh independent review and dedicated freeze remain required. No helper approves its own tests. Missing non-default compile declarations follow only this plan; material contract/coverage/state-change defects return for plan correction.
