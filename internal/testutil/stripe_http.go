@@ -180,7 +180,7 @@ func CheckWire(t *testing.T, w Wire, s payment.Snapshot) {
 	require.Equal(t, s.APIVersion, w.Header.Get("Stripe-Version"))
 	require.Equal(t, "payment", w.Form.Get("mode"))
 	require.Equal(t, "hosted_page", w.Form.Get("ui_mode"))
-	require.Equal(t, "card", w.Form.Get("payment_method_types[0]"))
+	require.Equal(t, "card", w.Form.Get("allowed_payment_method_types[0]"))
 	require.Equal(t, s.OrderID, w.Form.Get("client_reference_id"))
 	require.Equal(t, s.OrderID, w.Form.Get("metadata[order_id]"))
 	require.Equal(t, s.OperationID, w.Form.Get("metadata[operation_id]"))
@@ -213,7 +213,7 @@ func expiryFromForm(form url.Values) int64 {
 // StripeFormValid rejects extra charge components rather than simulating only item zero.
 func StripeFormValid(form url.Values) error {
 	allowed := map[string]bool{}
-	for _, k := range []string{"mode", "ui_mode", "payment_method_types[0]", "client_reference_id", "metadata[order_id]", "metadata[operation_id]", "payment_intent_data[metadata][order_id]", "payment_intent_data[metadata][operation_id]", "line_items[0][price_data][currency]", "line_items[0][price_data][unit_amount]", "line_items[0][price_data][product_data][name]", "line_items[0][quantity]", "success_url", "cancel_url", "expires_at", "payment_intent_data[capture_method]", "automatic_tax[enabled]", "allow_promotion_codes", "adaptive_pricing[enabled]", "after_expiration[recovery][enabled]"} {
+	for _, k := range []string{"mode", "ui_mode", "allowed_payment_method_types[0]", "client_reference_id", "metadata[order_id]", "metadata[operation_id]", "payment_intent_data[metadata][order_id]", "payment_intent_data[metadata][operation_id]", "line_items[0][price_data][currency]", "line_items[0][price_data][unit_amount]", "line_items[0][price_data][product_data][name]", "line_items[0][quantity]", "success_url", "cancel_url", "expires_at", "payment_intent_data[capture_method]", "automatic_tax[enabled]", "allow_promotion_codes", "adaptive_pricing[enabled]", "after_expiration[recovery][enabled]"} {
 		allowed[k] = true
 	}
 	for k, v := range form {
@@ -221,7 +221,7 @@ func StripeFormValid(form url.Values) error {
 			return fmt.Errorf("unexpected form field %s", k)
 		}
 	}
-	if form.Get("payment_method_types[0]") != "card" || form.Get("line_items[0][quantity]") != "1" {
+	if form.Get("allowed_payment_method_types[0]") != "card" || form.Get("line_items[0][quantity]") != "1" {
 		return fmt.Errorf("card-only single-item contract")
 	}
 	for _, k := range []string{"automatic_tax[enabled]", "allow_promotion_codes", "adaptive_pricing[enabled]", "after_expiration[recovery][enabled]"} {

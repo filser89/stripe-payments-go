@@ -217,7 +217,7 @@ func (s *Service) intent(order Order) (Operation, error) {
 		return Operation{}, e
 	}
 	at := s.opts.Now().UTC().Truncate(time.Microsecond)
-	snap := Snapshot{OrderID: order.ID, OperationID: id, Description: order.Description, Amount: order.Amount, Currency: order.Currency, StripeKey: key, SuccessURL: strings.TrimSuffix(s.opts.Origin, "/") + "/?order_id=" + order.ID + "&checkout_return=success", CancelURL: strings.TrimSuffix(s.opts.Origin, "/") + "/?order_id=" + order.ID + "&checkout_return=cancel", SDKVersion: s.opts.SDKVersion, APIVersion: s.opts.APIVersion}
+	snap := Snapshot{OrderID: order.ID, OperationID: id, Description: order.Description, Amount: order.Amount, Currency: order.Currency, StripeKey: key, SuccessURL: strings.TrimSuffix(s.opts.Origin, "/") + "/?order_id=" + order.ID + "&checkout_return=success", CancelURL: strings.TrimSuffix(s.opts.Origin, "/") + "/?order_id=" + order.ID + "&checkout_return=cancel", SDKVersion: s.opts.SDKVersion, APIVersion: s.opts.APIVersion, AllowedPaymentMethodTypes: []string{"card"}}
 	return Operation{ID: id, OrderID: order.ID, State: "prepared", StripeKey: key, Snapshot: snap, Version: 1, CreatedAt: at, UpdatedAt: at}, nil
 }
 func (s *Service) Create(ctx context.Context, in CreateInput) (out Outcome, err error) {

@@ -23,7 +23,7 @@ func policyFixture(c *policyClock, state string) View {
 	first := at.Add(-time.Minute)
 	expiry := first.Add(23*time.Hour + 59*time.Minute)
 	o := Order{ID: "e8d54778-7688-4b68-aadf-55cd860911bd", Description: "One product", Amount: 4200, Currency: "usd", Status: "unpaid", CurrentOperationID: "9e7d0ed0-8cf9-47b2-b511-7bb6d075a10c", CreatedAt: first, UpdatedAt: first}
-	s := Snapshot{OrderID: o.ID, OperationID: o.CurrentOperationID, Description: o.Description, Amount: o.Amount, Currency: o.Currency, StripeKey: "stripe-independent-operation-key", SuccessURL: "http://localhost:8080/?order_id=" + o.ID + "&checkout_return=success", CancelURL: "http://localhost:8080/?order_id=" + o.ID + "&checkout_return=cancel", SDKVersion: "v87.0.0", APIVersion: "2026-09-30.endive", FirstDispatchAt: &first, LastDispatchAt: &first, ExpiresAt: expiry.Unix()}
+	s := Snapshot{OrderID: o.ID, OperationID: o.CurrentOperationID, Description: o.Description, Amount: o.Amount, Currency: o.Currency, StripeKey: "stripe-independent-operation-key", SuccessURL: "http://localhost:8080/?order_id=" + o.ID + "&checkout_return=success", CancelURL: "http://localhost:8080/?order_id=" + o.ID + "&checkout_return=cancel", SDKVersion: "v87.0.0", APIVersion: "2026-09-30.endive", AllowedPaymentMethodTypes: []string{"card"}, FirstDispatchAt: &first, LastDispatchAt: &first, ExpiresAt: expiry.Unix()}
 	op := Operation{ID: o.CurrentOperationID, OrderID: o.ID, State: state, StripeKey: s.StripeKey, Snapshot: s, CreatedAt: first, UpdatedAt: first, Version: 1, FirstDispatchAt: &first, LastDispatchAt: &first}
 	if state == "prepared" {
 		op.FirstDispatchAt = nil

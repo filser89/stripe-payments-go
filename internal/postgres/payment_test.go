@@ -453,3 +453,40 @@ func TestSameUnresolvedOutcomeAuditAtomicity(t *testing.T) {
 		})
 	}
 }
+
+func TestPaymentMethodFilterSnapshotSurvivesDispatchAndReload(t *testing.T) {
+	db := testutil.Database(t)
+	repo := postgres.NewPaymentRepository(db.Pool)
+	for _, legacy := range []bool{false, true} {
+		name := "allowed_card_filter"
+		if legacy {
+			name = "legacy_static_card"
+		}
+		t.Run(name, func(t *testing.T) {
+			ctx := context.Background()
+			intent := testutil.Intent()
+			if legacy {
+				intent.Operation.Snapshot.AllowedPaymentMethodTypes = nil
+			}
+			accepted, err := repo.AcceptInitial(ctx, intent)
+			require.NoError(t, err)
+			require.Equal(t, intent.Operation.Snapshot, accepted.Operation.Snapshot)
+			at := time.Now().UTC().Truncate(time.Microsecond)
+			snap := accepted.Operation.Snapshot
+			snap.FirstDispatchAt = &at
+			snap.LastDispatchAt = &at
+			snap.ExpiresAt = at.Add(23*time.Hour + 59*time.Minute).Unix()
+			_, err = repo.PrepareDispatch(ctx, payment.Dispatch{OrderID: intent.Order.ID, OperationID: intent.Operation.ID, ExpectedCurrentOperationID: intent.Operation.ID, ExpectedVersion: 1, OwnerToken: "method-filter-owner", Snapshot: snap, FirstDispatchAt: at, LastDispatchAt: at})
+			require.NoError(t, err)
+			other := postgres.NewPaymentRepository(db.Independent(t))
+			loaded, err := other.LoadOrder(ctx, intent.Order.ID)
+			require.NoError(t, err)
+			require.Equal(t, snap, loaded.Operation.Snapshot)
+			var allowed, static bool
+			err = db.Pool.QueryRow(ctx, `SELECT snapshot ? 'AllowedPaymentMethodTypes', snapshot ? 'PaymentMethodTypes' FROM payment_operations WHERE id=$1`, intent.Operation.ID).Scan(&allowed, &static)
+			require.NoError(t, err)
+			require.Equal(t, !legacy, allowed)
+			require.Equal(t, legacy, static)
+		})
+	}
+}

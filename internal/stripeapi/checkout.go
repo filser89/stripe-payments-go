@@ -92,7 +92,13 @@ func (g *gateway) Create(ctx context.Context, s payment.Snapshot) (payment.Sessi
 		AutomaticTax:      &stripe.CheckoutSessionCreateAutomaticTaxParams{Enabled: stripe.Bool(false)}, AllowPromotionCodes: stripe.Bool(false),
 		AdaptivePricing: &stripe.CheckoutSessionCreateAdaptivePricingParams{Enabled: stripe.Bool(false)}, AfterExpiration: &stripe.CheckoutSessionCreateAfterExpirationParams{Recovery: &stripe.CheckoutSessionCreateAfterExpirationRecoveryParams{Enabled: stripe.Bool(false)}},
 	}
-	params.AddExtra("payment_method_types[0]", "card")
+	if len(s.AllowedPaymentMethodTypes) == 0 {
+		// Preserve the exact parameters of accepted legacy operations. A confirmed
+		// rejection can be continued as a new operation with the supported filter.
+		params.AddExtra("payment_method_types[0]", "card")
+	} else {
+		params.AllowedPaymentMethodTypes = stripe.StringSlice(s.AllowedPaymentMethodTypes)
+	}
 	params.SetIdempotencyKey(s.StripeKey)
 	facts := &responseFacts{}
 	ctx = context.WithValue(ctx, responseContextKey{}, facts)
