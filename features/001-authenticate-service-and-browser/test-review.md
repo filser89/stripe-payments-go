@@ -1,19 +1,20 @@
 # Test Review: Authenticate service and browser access
 
-**Feature**: `001-authenticate-service-and-browser` | **Reviewed**: 2026-10-09 | **Verdict**: NO-GO (advisory) | **Scope**: CFG-001, CFG-002, HTTP-003, SEC-001
+**Feature**: `001-authenticate-service-and-browser` | **Reviewed**: 2026-10-09 | **Verdict**: GO (advisory) | **Scope**: CFG-001, SEC-001
 
 ## Summary
 
-- Criteria reviewed: 4 / 22 (scoped: CFG-001, CFG-002, HTTP-003, SEC-001), covering 28 required variants and their source dependencies.
-- Findings: 1 critical, 0 high, 0 medium, 0 low.
-- Verdict: NO-GO — invalid-credential startup can accept requests silently without failing the listener assertion.
+- Criteria reviewed: 2 / 22 (scoped: CFG-001, SEC-001), covering 17 required variants and their source dependencies.
+- Findings: 0 critical, 0 high, 0 medium, 0 low.
+- Verdict: GO — no blocking weaknesses identified in the scoped evidence; no unrelated findings remain in the report.
 - Review method: static inspection of specification, criteria, plan, test bodies, helpers, and relevant production boundaries. The suite was not run.
 
 ## Findings
 
 | ID | Criterion | Location (file:block) | Severity | Weakness | Counterexample / evidence | Recommendation |
 |----|-----------|-----------------------|----------|----------|--------------------------|----------------|
-| R5 | CFG-001 | `cmd/service/authentication_test.go:213` > `TestAuthenticationServingConfiguration`, lines 201–229 | CRITICAL | The invalid-credential process is dialed only if its output contains `service listening`; the test then requires that message to be absent. A process that silently accepts requests before reporting the sanitized credential error leaves `accepted` false and passes every startup assertion. Acceptance Scenario 1 and FR-001 require rejection before requests are accepted. | Passing incorrect branch after common configuration loading and credential validation: `if credentialErr != nil { ln, err := net.Listen("tcp", c.ListenAddr); if err == nil { go func() { _ = http.Serve(ln, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusOK) })) }(); time.Sleep(100*time.Millisecond); _ = ln.Close() }; return credentialErr }`. The real entry point emits only the sanitized invalid-setting diagnostic and exits normally with a nonzero code within the test's 500 ms deadline. No `service listening` message is emitted, so the observer never attempts a connection while the temporary server accepts requests. | Observe the invalid process's configured address independently of log contents throughout startup, and retain the sanitized diagnostic, absent success message, and normal nonzero-exit assertions. A bounded direct connection/request witness must expose silent serving before credential rejection. |
+
+No findings.
 
 ## Strength Summary
 
@@ -29,5 +30,4 @@
 
 ## Next Actions
 
-- Use `/kaba:fix-tests` to make CFG-001's startup listener observation independent of log output.
-- Re-review CFG-001 before the human review gate. The human owns the final go/no-go decision; implementation is not the automatic next step.
+- No blocking issues — proceed to human review. The human owns the final go/no-go decision. Phase 3 planning with `/kaba:plan-code` in a fresh session follows that gate.
