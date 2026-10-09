@@ -31,6 +31,9 @@ func landing(logger *slog.Logger) http.Handler {
 			// an input failure. The server's read deadline bounds stalled streams.
 			var input [1]byte
 			n, err := io.ReadFull(r.Body, input[:])
+			if err != nil && !errors.Is(err, io.EOF) {
+				logger.WarnContext(r.Context(), "request body read failed", "request_id", w.Header().Get("X-Request-ID"), "error_kind", "body_read")
+			}
 			if n != 0 || !errors.Is(err, io.EOF) {
 				plainResponse(w, r, logger, http.StatusBadRequest, "Bad Request")
 				return

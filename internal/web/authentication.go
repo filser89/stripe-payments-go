@@ -43,7 +43,8 @@ func basicCredentials(r *http.Request) (string, string, bool) {
 		return "", "", false
 	}
 	scheme, token, ok := strings.Cut(values[0], " ")
-	if !ok || !strings.EqualFold(scheme, "Basic") {
+	// The byte length excludes non-ASCII Unicode case-fold equivalents.
+	if !ok || len(scheme) != len("Basic") || !strings.EqualFold(scheme, "Basic") {
 		return "", "", false
 	}
 	token = strings.TrimLeft(token, " ")
